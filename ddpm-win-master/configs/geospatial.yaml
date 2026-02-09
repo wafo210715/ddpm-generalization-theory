@@ -1,0 +1,49 @@
+# Geo-spatial urban vitality configuration
+
+# Device settings
+use_dual_gpu: true  # Recommended for high-res images
+
+# Dataset settings
+dataset_name: "geospatial"
+img_channels: 3  # RGB
+img_size: 512  # Configurable - change based on your needs
+batch_size: 16  # Smaller for high-res images
+
+# Training (step-based)
+lr: 0.0001
+n_steps: 100000  # More steps for complex urban data
+timesteps: 1000
+log_every: 100
+
+# Diffusion schedule configuration
+schedule_type: "linear"  # Options: linear, fixed, vp, ve
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001  # Starting beta
+bT: 0.02    # Ending beta
+# Fixed schedule parameters
+beta: 0.006  # Constant beta value
+# VP schedule parameters (Song et al. SDE naming)
+beta_d: 19.9    # Extent of noise level schedule
+beta_min: 0.1   # Initial slope
+# VE schedule parameters (Song et al. SDE naming)
+sigma_min: 0.02  # Minimum noise level
+sigma_max: 100.0 # Maximum noise level
+
+# Paths
+checkpoint_dir: "model_ckpts/geospatial"
+log_dir: "logs/geospatial"
+
+# Normalization
+center: true
+normalize: true  # Geo-spatial data may need normalization
+
+# Checkpointing (extended for generalization window analysis)
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 1000
+  - 2500
+  - 5000
+  - 10000
+save_interval: 10000

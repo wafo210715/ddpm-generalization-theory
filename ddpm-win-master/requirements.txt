@@ -1,0 +1,28 @@
+# DDPM Research - Requirements for Urban Vitality Study
+# Python 3.10+
+
+# Core Deep Learning
+# torch>=2.0.0  # Already installed: 2.0.1+cu118
+# torchvision>=0.15.0  # Will install with missing deps
+
+# Progress & Visualization
+tqdm>=4.65.0
+matplotlib>=3.7.0
+pillow>=9.0.0
+
+# Scientific Computing
+numpy>=1.23.0
+scipy>=1.10.0
+
+# Configuration
+pyyaml>=6.0
+
+# Model Format Conversion (for HuggingFace/WebUI sharing)
+safetensors>=0.4.0
+
+# Evaluation Metrics (for later phases)
+pytorch-fid>=0.3.0  # For FID computation
+natsort>=8.3.0  # For natural sorting
+
+# Optional: Fast package manager (if user wants uv)
+# uv is not a pip package - install with: pip install uv

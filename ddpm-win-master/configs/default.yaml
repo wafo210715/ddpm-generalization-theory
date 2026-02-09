@@ -1,0 +1,48 @@
+# Default DDPM configuration for MNIST
+
+# Device settings
+use_dual_gpu: true  # Set to true to enable dual GPU training
+
+# Dataset settings
+dataset_name: "mnist"
+img_channels: 1
+img_size: 32
+batch_size: 128
+
+# Training (step-based)
+lr: 0.0001
+n_steps: 50000
+timesteps: 1000
+log_every: 100
+
+# Diffusion schedule configuration
+schedule_type: "linear"  # Options: linear, fixed, vp, ve
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001  # Starting beta
+bT: 0.02    # Ending beta
+# Fixed schedule parameters
+beta: 0.006  # Constant beta value
+# VP schedule parameters (Song et al. SDE naming)
+beta_d: 19.9    # Extent of noise level schedule
+beta_min: 0.1   # Initial slope
+# VE schedule parameters (Song et al. SDE naming)
+sigma_min: 0.02  # Minimum noise level
+sigma_max: 100.0 # Maximum noise level
+
+# Paths
+checkpoint_dir: "model_ckpts"
+log_dir: "logs"
+
+# Normalization
+center: true
+normalize: false
+
+# Checkpointing (for finding generalization window)
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 1000
+  - 2500
+  - 5000
+save_interval: 5000
