@@ -1,0 +1,44 @@
+# HCMC urban vitality cell images (713 PNGs, 256x256x3 RGB)
+# Data source: data-processing/data/hcmc/processed/cells_256x256/
+
+# Dataset settings
+dataset_name: "geospatial"
+img_channels: 3
+img_size: 256
+batch_size: 4  # 713 images, batch=4 -> ~143 steps/epoch. RTX 4060 8GB: peak ~4.3GB
+
+# Training (step-based)
+lr: 0.0001
+n_steps: 50000
+timesteps: 1000
+log_every: 100
+
+# Diffusion schedule configuration
+schedule_type: "linear"
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001
+bT: 0.02
+
+# Paths
+checkpoint_dir: "model_ckpts/hcmc_vitality"
+log_dir: "logs/hcmc_vitality"
+
+# Normalization: center+normalize together yield [-1, 1] range
+center: true
+normalize: true
+
+# Device
+use_dual_gpu: false  # Start single GPU, enable after baseline established
+
+# Checkpointing (logarithmic for generalization window analysis)
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 1000
+  - 2500
+  - 5000
+  - 10000
+  - 20000
+  - 40000
+save_interval: 5000

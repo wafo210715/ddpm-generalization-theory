@@ -6,7 +6,7 @@ use_dual_gpu: true  # Recommended for high-res images
 # Dataset settings
 dataset_name: "geospatial"
 img_channels: 3  # RGB
-img_size: 512  # Configurable - change based on your needs
+img_size: 256  # Configurable - change based on your needs
 batch_size: 16  # Smaller for high-res images
 
 # Training (step-based)
