@@ -45,12 +45,17 @@ def train_with_config(config: TrainingConfig):
 
     # Load dataset
     print(f"\nLoading {config.dataset_name} dataset...")
-    dataset = get_dataset(config.dataset_name, img_size=config.img_size)
+    # Resolve data_root relative to this script's directory
+    data_dir = None
+    if hasattr(config, "data_root") and config.data_root:
+        data_dir = os.path.abspath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), config.data_root)
+        )
+    dataset = get_dataset(
+        config.dataset_name, img_size=config.img_size, data_dir=data_dir
+    )
     dataloader = DataLoader(
-        dataset,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers=0
+        dataset, batch_size=config.batch_size, shuffle=True, num_workers=0
     )
     print(f"Dataset loaded: {len(dataset)} samples")
 
@@ -58,7 +63,11 @@ def train_with_config(config: TrainingConfig):
     print("\nCreating diffusion configuration...")
 
     # Only pass parameters relevant to the specific schedule type
-    schedule_kwargs = {"n_steps": config.timesteps, "schedule_type": config.schedule_type, "device": config.device}
+    schedule_kwargs = {
+        "n_steps": config.timesteps,
+        "schedule_type": config.schedule_type,
+        "device": config.device,
+    }
 
     if config.schedule_type == "linear":
         schedule_kwargs["b0"] = config.b0
@@ -77,13 +86,21 @@ def train_with_config(config: TrainingConfig):
 
     # Create model
     print("Creating DDPM model...")
-    ddpm_unet = DDPMUnet(config.img_channels, 64)
+    ddpm_unet = DDPMUnet(config.img_channels, config.model_channels)
     ddpm = DDPM(config.timesteps, ddpm_unet, diffusion_config=diffusion_config)
 
     # Wrap with DataParallel if dual GPU enabled
     if config.use_dual_gpu:
-        ddpm.eps_model = DataParallel(ddpm.eps_model, device_ids=[0, 1])
-        print("Model wrapped with DataParallel")
+        n_gpus = torch.cuda.device_count()
+        if n_gpus >= 2:
+            ddpm.eps_model = DataParallel(
+                ddpm.eps_model, device_ids=list(range(n_gpus))
+            )
+            print(f"Model wrapped with DataParallel ({n_gpus} GPUs)")
+        else:
+            print(
+                f"Warning: use_dual_gpu=true but only {n_gpus} GPU(s) found. Using single GPU."
+            )
 
     ddpm = ddpm.to(device)
     print("Model moved to device")
@@ -107,7 +124,7 @@ def train_with_config(config: TrainingConfig):
 
     data_iter = iter(dataloader)
 
-    pbar = tqdm(range(config.n_steps), desc="Training")
+    pbar = tqdm(range(1, config.n_steps + 1), desc="Training")
     for step in pbar:
         # Get batch (handle dataloader exhaustion)
         try:
@@ -116,8 +133,10 @@ def train_with_config(config: TrainingConfig):
             data_iter = iter(dataloader)
             batch = next(data_iter)
 
-        # Handle dataset that returns tuples (MNIST) vs single tensors
+        # Handle dataset that returns tuples (MNIST) vs single tensors vs dicts
         x_0 = batch[0] if isinstance(batch, (list, tuple)) else batch
+        if isinstance(x_0, dict):
+            x_0 = x_0["image"]
         x_0 = x_0.to(device)
 
         # Sample timestep and noise
@@ -147,11 +166,16 @@ def train_with_config(config: TrainingConfig):
 
         # Update progress bar
         if step % config.log_every == 0:
-            avg_loss = sum(losses[-config.log_every:]) / min(len(losses), config.log_every)
+            avg_loss = sum(losses[-config.log_every :]) / min(
+                len(losses), config.log_every
+            )
             pbar.set_postfix({"loss": f"{avg_loss:.6f}"})
 
         # Save checkpoints
-        if next_checkpoint_idx < len(checkpoint_steps) and step == checkpoint_steps[next_checkpoint_idx]:
+        if (
+            next_checkpoint_idx < len(checkpoint_steps)
+            and step == checkpoint_steps[next_checkpoint_idx]
+        ):
             checkpoint_file = checkpoint_path.replace(".pth", f"_step{step}.pth")
             save_model(ddpm, checkpoint_file, config.use_dual_gpu)
             print(f"\n[CHECKPOINT] Saved at step {step}: {checkpoint_file}")
@@ -163,7 +187,7 @@ def train_with_config(config: TrainingConfig):
     print("=" * 60)
     print(f"Total steps: {step_count}")
     print(f"Final loss: {losses[-1]:.6f}")
-    print(f"Average loss: {sum(losses)/len(losses):.6f}")
+    print(f"Average loss: {sum(losses) / len(losses):.6f}")
 
     # Save final model
     save_model(ddpm, checkpoint_path, config.use_dual_gpu)
@@ -192,7 +216,7 @@ def main():
         "--config",
         type=str,
         default="configs/default.yaml",
-        help="Path to config YAML file"
+        help="Path to config YAML file",
     )
     args = parser.parse_args()
 
@@ -204,6 +228,7 @@ def main():
     except Exception as e:
         print(f"\n[FAIL] Training failed: {e}")
         import traceback
+
         traceback.print_exc()
 
 
