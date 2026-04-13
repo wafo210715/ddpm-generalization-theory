@@ -1,0 +1,17 @@
+QA2: Cell Quality Check
+Date: 2026-04-13
+Result: PASSED
+
+Total saved cells: 732
+Empty cells (max < 10): 0
+Empty percentage: 0.0% (<= 5% requirement met)
+
+Cell filtering: 7704 empty cells excluded from 8436 total grid cells.
+Only cells with meaningful data (rgb.max() >= 10) are saved.
+
+Grid: 8436 cells total, 732 with data (8.7% coverage)
+- Low coverage expected: OSM data covers urban core only (~20km x 20km)
+- Grid extends to full municipality (~74km x 114km), mostly rural
+
+File format: 128x128x3 uint8 RGB PNGs
+Naming: {row:03d}_{col:03d}.png (GAP-3 fix confirmed)

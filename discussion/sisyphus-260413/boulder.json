@@ -1,0 +1,71 @@
+{
+  "active_plan": "C:\\sd\\ddpm-generalization-theory\\.sisyphus\\plans\\epistemic-probe-framework.md",
+  "started_at": "2026-04-13T07:22:35.432Z",
+  "session_ids": [
+    "ses_284a0e09cffe2oYCdQ616onw0b",
+    "ses_2794f7b2dffeYAMO2yOkaz0VU7",
+    "ses_2794f5d9fffe0H7F4hairtTrcn",
+    "ses_2794f1f1cffew8WPZUpXS5kbuz",
+    "ses_2789213e8ffehjnRDXP9dZk1Fn",
+    "ses_2789207c0ffe8b3MPwaCKXGVpQ"
+  ],
+  "session_origins": {
+    "ses_284a0e09cffe2oYCdQ616onw0b": "direct",
+    "ses_2794f7b2dffeYAMO2yOkaz0VU7": "appended",
+    "ses_2794f5d9fffe0H7F4hairtTrcn": "appended",
+    "ses_2794f1f1cffew8WPZUpXS5kbuz": "appended",
+    "ses_2789213e8ffehjnRDXP9dZk1Fn": "appended",
+    "ses_2789207c0ffe8b3MPwaCKXGVpQ": "appended"
+  },
+  "plan_name": "epistemic-probe-framework",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "HCMC Full Municipality Boundary",
+      "session_id": "ses_27a44de72ffeuIxL68usW0321K",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-13T07:55:27.324Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "Data Pipeline Redesign (50m Calculation Units, Global Normalization, RGB Fusion)",
+      "session_id": "ses_27a1250ceffeMeOEJdIiIPfccs",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-13T08:39:53.041Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Dataset Characterization + Pre-encoding Analysis Report",
+      "session_id": "ses_279a19c02ffeJLRGY1hHKYZuDB",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-13T10:32:27.294Z"
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "Pilot Training — GATE DECISION (1000 steps, 5 checkpoints, F_mem)",
+      "session_id": "ses_27987fd49ffe6VPdyTqouYudKo",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-13T10:59:11.451Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Full DDPM Training (50K steps, Log Checkpoints) — CONDITIONAL ON TASK 6 GATE PASS",
+      "session_id": "ses_27890b1e6ffe3x8nk1NUHuyFl0",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-13T15:28:33.181Z"
+    }
+  },
+  "previous_plan": "revised-research-plan",
+  "previous_plan_status": "superseded - 22/101 tasks completed before pivot to epistemic probe framework"
+}

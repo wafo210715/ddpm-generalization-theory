@@ -1,0 +1,31 @@
+TASK-4: Pre-Encoding Analysis Report — EVIDENCE CHECK
+========================================================
+Date: 2026-04-13
+Status: COMPLETE
+
+Deliverables:
+1. [x] full_report.md saved to data-processing/data/hcmc/reports/pre_encoding/full_report.md (11.9 KB)
+2. [x] Report contains: intrinsic dimension estimate (40 @95%, 137 @99%), typology classification (k=6, silhouette=0.3972), cross-channel correlation (B-G=0.44, B-R=0.35, G-R=0.91), mutual information (cell-level MI(G;R)=0.485 nats, pixel-level MI(G;R)=0.127 nats), per-channel stats
+3. [x] Supporting outputs: pca_scree.png, typology_labels.csv, channel_histograms.png, channel_scatter.png
+
+Analysis Details:
+- Input: 731 non-empty cells (from splits/train+val+test, filtered from 8436 total)
+- Temp directory created with copies of non-empty cells only (avoiding PCA contamination from 91.3% empty cells)
+- PCA: 731 x 49152 matrix, 200 components capped, intrinsic dim = 40 (1230:1 compression)
+- Typology: k=6 clusters, silhouette=0.3972
+  - Cluster 0 (n=145): Suburban periphery
+  - Cluster 1 (n=51): Dense mixed-use core
+  - Cluster 2 (n=213): Well-connected residential (largest)
+  - Cluster 3 (n=172): Rural fringe
+  - Cluster 4 (n=44): High-density industrial (smallest)
+  - Cluster 5 (n=106): Commercial corridors
+- Mutual information: NOT near zero — synergy analysis will be meaningful
+  - Cell-level MI(G;R)=0.485 nats (14.5% of H(G))
+  - Pixel-level MI is lower due to sparsity but non-zero
+
+Risk Assessment:
+- MI is NOT flagged as risk (adequate for synergy analysis)
+- Dataset size (N=731) is small but compensated by low intrinsic dimensionality (d=40)
+- Memorization risk: HIGH due to small N, mitigated by low d and strong spatial structure
+
+Temp directory cleaned up after analysis.
