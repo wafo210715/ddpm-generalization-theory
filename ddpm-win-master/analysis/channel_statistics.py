@@ -16,7 +16,6 @@ Usage:
 import argparse
 import csv
 import os
-import re
 import sys
 import warnings
 
@@ -41,7 +40,6 @@ from config_loader import TrainingConfig
 from datasets.dataset import get_dataset
 from evaluation.memorization import (
     _collect_images,
-    compute_memorization_fraction,
     evaluate_checkpoint_memorization,
 )
 from evaluation.compute_fmem_batch import discover_checkpoints
@@ -171,7 +169,7 @@ def compute_wasserstein_per_channel(
 def compute_morans_i(channel_2d: np.ndarray) -> float:
     """Compute Moran's I for spatial autocorrelation of a 2D channel.
 
-    Uses queen contiguity (4-neighbor adjacency) weights.
+    Uses rook contiguity (4-neighbor adjacency: up, down, left, right) weights.
 
     Args:
         channel_2d: 2D numpy array (H, W) with channel values.
@@ -195,7 +193,7 @@ def compute_morans_i(channel_2d: np.ndarray) -> float:
         return 0.0
 
     # Build 4-neighbor adjacency weights and compute spatial lag
-    # Using roll for efficiency (queen contiguity = 4 neighbors)
+    # Using roll for efficiency (rook contiguity = 4 neighbors: up, down, left, right)
     dev_2d = deviations.reshape(h, w)
 
     # Neighbors: up, down, left, right

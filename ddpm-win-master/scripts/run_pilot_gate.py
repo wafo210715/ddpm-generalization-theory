@@ -16,7 +16,6 @@ Reference: Bonnaire et al., "Why Diffusion Models Don't Memorize" (arXiv:2505.17
 import argparse
 import csv
 import os
-import re
 import subprocess
 import sys
 import time
@@ -41,6 +40,7 @@ import torch
 import yaml
 
 from config_loader import TrainingConfig
+from evaluation.compute_fmem_batch import discover_checkpoints
 
 # Config template paths relative to project root
 _CONFIGS = {
@@ -48,8 +48,6 @@ _CONFIGS = {
     128: os.path.join(_PROJECT_ROOT, "configs", "hcmc_pilot_128.yaml"),
     256: os.path.join(_PROJECT_ROOT, "configs", "hcmc_pilot_256.yaml"),
 }
-
-_STEP_RE = re.compile(r"_step(\d+)\.pth$", re.IGNORECASE)
 
 
 # ======================================================================
@@ -155,20 +153,6 @@ def train_single_resolution(config_path: str) -> bool:
 # ======================================================================
 
 
-def discover_checkpoints(checkpoint_dir: str) -> List[Tuple[int, str]]:
-    """Find all ``*_step{N}.pth`` files sorted by step."""
-    results: List[Tuple[int, str]] = []
-    if not os.path.isdir(checkpoint_dir):
-        return results
-    for fname in os.listdir(checkpoint_dir):
-        m = _STEP_RE.search(fname)
-        if m:
-            step = int(m.group(1))
-            results.append((step, os.path.join(checkpoint_dir, fname)))
-    results.sort(key=lambda t: t[0])
-    return results
-
-
 def evaluate_resolution(
     resolution: int,
     config_path: str,
@@ -265,7 +249,7 @@ def evaluate_resolution(
 def _parse_fmem_csv(csv_path: str) -> Dict[int, Dict[str, Any]]:
     """Parse fmem_curve.csv into {step: {f_mem, lower_ci, upper_ci, ...}}."""
     results: Dict[int, Dict[str, Any]] = {}
-    with open(csv_path, "r", newline="") as f:
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             step = int(row["checkpoint_step"])

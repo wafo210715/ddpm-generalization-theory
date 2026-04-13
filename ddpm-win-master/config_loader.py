@@ -109,7 +109,7 @@ class TrainingConfig:
     def to_yaml(self, path: str):
         """Save config to YAML file."""
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
 
     def print_summary(self):

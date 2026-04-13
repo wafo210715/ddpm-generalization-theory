@@ -27,9 +27,7 @@ Reference:
 import argparse
 import csv
 import os
-import re
 import sys
-import warnings
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -50,6 +48,7 @@ import torch
 from scipy import stats as sp_stats
 
 from config_loader import TrainingConfig
+from evaluation.compute_fmem_batch import discover_checkpoints
 
 # ============================================================================
 # Literature thresholds (from urban planning literature)
@@ -65,32 +64,10 @@ THRESHOLDS = {
 # values. They are included for documentary completeness and future calibration.
 
 # ============================================================================
-# Regex for checkpoint discovery
-# ============================================================================
-_STEP_RE = re.compile(r"_step(\d+)\.pth$", re.IGNORECASE)
-
-# ============================================================================
 # Constants
 # ============================================================================
 CHANNEL_NAMES = {0: "B", 1: "G", 2: "R"}
 CHANNEL_LABELS = {0: "Density (B)", 1: "Diversity (G)", 2: "Accessibility (R)"}
-
-
-# ======================================================================
-# Checkpoint discovery (mirrors compute_fmem_batch.py)
-# ======================================================================
-
-
-def discover_checkpoints(checkpoint_dir: str) -> List[Tuple[int, str]]:
-    """Find all ``*_step{N}.pth`` files and return ``(step, path)`` pairs sorted by step."""
-    results: List[Tuple[int, str]] = []
-    for fname in os.listdir(checkpoint_dir):
-        m = _STEP_RE.search(fname)
-        if m:
-            step = int(m.group(1))
-            results.append((step, os.path.join(checkpoint_dir, fname)))
-    results.sort(key=lambda t: t[0])
-    return results
 
 
 # ======================================================================

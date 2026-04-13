@@ -232,13 +232,14 @@ def evaluate_checkpoint_memorization(
     # ------------------------------------------------------------------
     # Generate samples via DDIM
     # ------------------------------------------------------------------
-    generated, _ = sample_ddim(
+    result = sample_ddim(
         ddpm,
         n_images=n_samples,
         config=config,
         diffusion_config=diffusion_config,
         device=device,
     )
+    generated = result[0]
 
     # ------------------------------------------------------------------
     # Collect training images

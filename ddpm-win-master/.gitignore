@@ -34,7 +34,10 @@ ENV/
 
 # Data and outputs
 data/
-datasets/
+# Negate parent .gitignore datasets/ rule for our code directory
+!datasets/
+!datasets/__init__.py
+!datasets/*.py
 outputs/
 vis/
 
