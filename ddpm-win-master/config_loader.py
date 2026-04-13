@@ -20,6 +20,9 @@ class TrainingConfig:
     img_size: int = 32
     batch_size: int = 128
 
+    # Model
+    model_channels: int = 64  # U-Net base channel count
+
     # Training (step-based, not epoch-based)
     lr: float = 1e-4
     n_steps: int = 50000
@@ -33,6 +36,7 @@ class TrainingConfig:
     # Paths
     checkpoint_dir: str = "model_ckpts"
     log_dir: str = "logs"
+    data_root: Optional[str] = None  # Data directory (relative to ddpm-win-master root)
     run_name: Optional[str] = None  # Auto-generated if None
 
     # Data normalization
@@ -54,7 +58,9 @@ class TrainingConfig:
     sigma_max: float = 100.0  # Maximum noise level
 
     # Checkpointing (for generalization window)
-    save_initial: List[int] = field(default_factory=lambda: [100, 250, 500, 1000, 2500, 5000])
+    save_initial: List[int] = field(
+        default_factory=lambda: [100, 250, 500, 1000, 2500, 5000]
+    )
     save_log: List[int] = field(default_factory=list)  # Auto-generated if empty
     save_interval: int = 5000
 
@@ -89,21 +95,21 @@ class TrainingConfig:
         return sorted(set(self.save_initial + self.save_log))
 
     @classmethod
-    def from_yaml(cls, path: str) -> 'TrainingConfig':
+    def from_yaml(cls, path: str) -> "TrainingConfig":
         """Load config from YAML file."""
-        with open(path, 'r') as f:
+        with open(path, "r", encoding="utf-8") as f:
             config_dict = yaml.safe_load(f)
         return cls(**config_dict)
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> 'TrainingConfig':
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "TrainingConfig":
         """Create config from dictionary."""
         return cls(**config_dict)
 
     def to_yaml(self, path: str):
         """Save config to YAML file."""
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
 
     def print_summary(self):

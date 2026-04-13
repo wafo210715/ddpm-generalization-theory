@@ -1,0 +1,55 @@
+# HCMC Pilot Training — 64x64 resolution
+# Pilot GATE DECISION config (1000 steps, 5 checkpoints)
+# Based on: hcmc_vitality_v2.yaml
+
+# Device settings
+use_dual_gpu: true
+
+# Dataset settings
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 64
+batch_size: 16
+
+# Model
+model_channels: 32
+
+# Training (step-based, pilot length)
+lr: 0.0001
+n_steps: 1000
+timesteps: 1000
+log_every: 100
+
+# Diffusion schedule configuration
+schedule_type: "linear"
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001
+bT: 0.02
+# Fixed schedule parameters
+beta: 0.006
+# VP schedule parameters (Song et al. SDE naming)
+beta_d: 19.9
+beta_min: 0.1
+# VE schedule parameters (Song et al. SDE naming)
+sigma_min: 0.02
+sigma_max: 100.0
+
+# Paths
+data_root: "../data-processing/data/hcmc/processed/cells"
+checkpoint_dir: "model_ckpts/hcmc_pilot_64"
+log_dir: "logs/hcmc_pilot_64"
+run_name: "hcmc_pilot_64"
+
+# Normalization
+center: true
+normalize: true
+
+# Checkpointing (5 pilot checkpoints)
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 750
+  - 1000
+save_log: []
+save_interval: 5000
