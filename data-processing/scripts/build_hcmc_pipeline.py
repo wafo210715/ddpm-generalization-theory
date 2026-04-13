@@ -63,6 +63,12 @@ REPORT_DIR = DATA_DIR / "reports"
 GRID_RES_KM = 1.0
 UTM_EPSG = 32648  # UTM zone 48N
 
+# HCMC bounding boxes (WGS84: minx, miny, maxx, maxy)
+# Urban core (old bbox from plot_poi_distribution.py) — ~653 km^2
+HCMC_BBOX_URBAN = (106.58, 10.70, 106.85, 10.90)
+# Full municipality (from OSM Relation 1973756, pre-2025 merger) — ~2,407 km^2
+HCMC_BBOX = (106.357, 10.140, 107.028, 11.160)
+
 CELL_PX = 256
 PIXEL_RES = GRID_RES_KM * 1000 / CELL_PX  # ~3.90625 m/pixel
 CELLS_256_DIR = PROC_DIR / "cells_256x256"
