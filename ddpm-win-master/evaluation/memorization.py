@@ -143,8 +143,10 @@ def _collect_images(dataset: Union[Dataset, DataLoader]) -> torch.Tensor:
     if isinstance(dataset, DataLoader):
         batches = []
         for batch in dataset:
-            # DataLoader may yield (tensor,) or just tensor
+            # DataLoader may yield (tensor,) or just tensor or dict
             t = batch[0] if isinstance(batch, (list, tuple)) else batch
+            if isinstance(t, dict):
+                t = t["image"]
             batches.append(t)
         return torch.cat(batches, dim=0)
     else:
@@ -152,6 +154,8 @@ def _collect_images(dataset: Union[Dataset, DataLoader]) -> torch.Tensor:
         batches = []
         for batch in loader:
             t = batch[0] if isinstance(batch, (list, tuple)) else batch
+            if isinstance(t, dict):
+                t = t["image"]
             batches.append(t)
         return torch.cat(batches, dim=0)
 
@@ -215,7 +219,7 @@ def evaluate_checkpoint_memorization(
     # Load model
     # ------------------------------------------------------------------
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    ddpm_unet = DDPMUnet(config.img_channels, 64)
+    ddpm_unet = DDPMUnet(config.img_channels, config.model_channels)
     ddpm = DDPM(config.timesteps, ddpm_unet, diffusion_config=diffusion_config)
 
     if "eps_model" in checkpoint or "beta" in checkpoint:
