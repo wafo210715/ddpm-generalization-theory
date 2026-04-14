@@ -1,0 +1,76 @@
+# HCMC Urban Vitality v3 — DDPM training configuration
+# Upgraded from v2: 157M param model (ch=128), 500K steps, validation tracking
+#
+# Benchmark results (ch=128, dual RTX 3090):
+#   bs=8:  4.78 it/s, 4.4 GB/GPU, ~29h for 500K  ← SELECTED
+#   bs=16: 3.17 it/s, 6.4 GB/GPU, ~44h
+#   bs=32: 1.90 it/s, 10.3 GB/GPU, ~73h
+#   bs=64: 1.13 it/s, 18.3 GB/GPU, ~123h
+#   bs=80: OOM
+#
+# Small bs=8 is fastest due to DataParallel overhead without NCCL.
+# Also beneficial: more gradient updates per epoch (408 vs 102 with bs=32).
+
+# Device settings
+use_dual_gpu: true
+
+# Dataset settings
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 128
+batch_size: 8
+
+# Model (upgraded from 32 → 128 channels, ~9.88M → ~157.8M params)
+model_channels: 128
+
+# Training (step-based)
+lr: 0.0001
+n_steps: 500000
+timesteps: 1000
+log_every: 100
+
+# Validation loss tracking
+val_every: 5000
+val_steps: 50
+
+# Diffusion schedule configuration
+schedule_type: "linear"
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001
+bT: 0.02
+# Fixed schedule parameters
+beta: 0.006
+# VP schedule parameters (Song et al. SDE naming)
+beta_d: 19.9
+beta_min: 0.1
+# VE schedule parameters (Song et al. SDE naming)
+sigma_min: 0.02
+sigma_max: 100.0
+
+# Paths
+data_root: "../data-processing/data/hcmc/processed/cells"
+checkpoint_dir: "model_ckpts/hcmc_vitality_v3"
+log_dir: "logs/hcmc_vitality_v3"
+
+# Normalization
+center: true
+normalize: true
+
+# Checkpointing (logarithmic for generalization window analysis)
+# Early checkpoints: dense sampling to capture rapid learning phase
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 1000
+  - 2500
+  - 5000
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 300000
+  - 400000
+  - 500000
+save_interval: 10000

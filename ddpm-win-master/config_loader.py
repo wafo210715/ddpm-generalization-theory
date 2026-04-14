@@ -29,6 +29,10 @@ class TrainingConfig:
     timesteps: int = 1000
     log_every: int = 100
 
+    # Validation
+    val_every: int = 5000  # Compute validation loss every N steps
+    val_steps: int = 50  # Number of batches to average over for val loss
+
     # Device
     device: str = "cuda"  # Will auto-detect
     use_dual_gpu: bool = False  # Enable dual GPU training with DataParallel
