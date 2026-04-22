@@ -187,3 +187,44 @@ Papers using gap ratio: Yoon et al. (2023) [originator], Gu et al. (2023) [adopt
 - Pre-encoding analysis: installed scikit-learn 1.8.0 + umap-learn 0.5.12 in data-processing venv
 - F_mem 1000 samples: ~55 min on RTX 5090 GPU (100 samples per batch × 10 batches × 19 checkpoints)
 - Git commit: BLOCKED — no git config user.name/user.email set
+
+---
+
+## Roadmap: What's Needed to Move On
+
+### Track 1: Fix the Data (CRITICAL PATH — blocks everything else)
+
+1. **Fix channel data quality** — G (diversity) is 95% near-zero. Options:
+   - Increase POI buffer radius (150m → 300-500m)
+   - Log-scale entropy instead of linear
+   - Per-channel loss weighting to compensate imbalance
+   - Merge diversity into a combined "urban activity" metric
+2. **Re-cluster with better features** — Current k=3 on (B_mean, G_mean, R_mean) not distinctive enough:
+   - **Method 1**: Per-image 3D features → visualize 3D scatter → choose k-means vs DBSCAN
+   - **Method 2**: Per-pixel 3D features → DBSCAN → image typology = composition of pixel clusters
+   - Consider extended features: B_std, G_std, R_std, spatial autocorrelation (not just mean)
+3. **Curate comparative datasets** from `typology_labels.csv` (4,183 rows):
+   - Minimal dataset (~33 images spanning intrinsic dimension)
+   - Cluster-balanced dataset (equal samples from clusters 0, 1, 2)
+   - Dense-core-only dataset (241 images, cluster 2)
+4. **Consider 512×512 resolution** — tradeoff: higher resolution vs smaller batch size (less smooth convergence)
+5. **Consider smaller model** — base_ch=32 (~10M params) so memorization is actually reachable within training budget
+
+### Track 2: Train and Evaluate (after Track 1)
+
+6. **Train on curated datasets** — compare memorization dynamics across dataset compositions
+7. **Resume training or retrain** — with fixed data + possibly smaller model + longer (1M-2M steps)
+8. **F_mem 10,000 samples** — for publication quality, once model has actually memorized enough
+9. **Feature-space F_mem** — compute gap ratios in U-Net bottleneck embeddings instead of raw 49K-dim pixels
+10. **Investigate train/val loss divergence vs memorization gap** — divergence occurs well before step 240K where memorization starts. Why? Theoretical question related to implicit regularization in diffusion training.
+
+### Track 3: Methodology & Paper (ongoing, not blocking)
+
+11. **Gap ratio distribution as novel contribution** — percentile curves, histogram evolution, leading indicators for memorization onset. Zero literature precedent (10+ papers checked — all use binary F_mem). Data source already exists: `gap_ratios_1000samples.csv` (19,000 rows).
+12. **Latent walk evaluation** — details TBD
+13. **Visualization at every step** — computation scripts produce CSVs, visualization scripts read CSVs and produce plots (already separated for future R/Python publication figures)
+14. **Fix resume training log bug** — `train.py` opens log with `"w"` (overwrite) instead of `"a"` (append) when resuming
+
+### Priority Order
+
+Track 1 is the critical path. Without better data quality and curated datasets, training more models or generating more samples won't produce meaningful results. The model is currently learning mostly "generate empty/rural cells" because that's 73% of the dataset.
