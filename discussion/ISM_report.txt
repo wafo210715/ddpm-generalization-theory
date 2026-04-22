@@ -1,0 +1,511 @@
+Probing the Latent City: Unveiling the Low-Dimensional Manifolds of Urban Vitality via Generative AI
+
+
+
+Abstract: Despite the influx of big data, urban vitality research remains constrained by a “correlationist paradigm,” reducing complex urban synergies to linear, additive feature lists. This proposal advances a generative epistemology, repositioning Diffusion Models (DMs) from tools of automated design to epistemic probes for manifold learning. We argue that diffusion models function as structure-preserving compressors, capable of internalizing the low-dimensional manifold of urban life. Central to this inquiry is the generalization window - a training phase where structural concepts are learned before memorization occurs. By curating minimal, intrinsic-dimension-aligned datasets via RGB channel synthesis, this research aims to isolate the robust, irreducible “essence” of vitality from idiosyncratic noise. Moving beyond prediction, this study reframes the latent space as a computational laboratory, transforming the architect into a curator to uncover the hidden generative grammar of the city.
+
+
+
+Keywords: Generative AI, Urban Vitality, Latent Space, Generalization Window, Intrinsic Dimension, Typology
+
+
+
+Introduction
+
+The proliferation of multi-source urban big data has fundamentally altered the landscape of urban vitality research. What was once a qualitative inquiry into the social life of small urban spaces has evolved into a rigorous science of quantification, where location-based services, social media data, and built-environment metrics are routinely synthesized to map the pulse of the city (Kim, 2020; X. Li et al., 2022; Liu et al., 2019). Yet, despite this empirical expansion, the field remains theoretically constrained by a “correlationist” paradigm. Dominant methodologies ranging from spatial regression to random forest algorithms, prioritize the identification of statistical associations over the explication of generative mechanisms (Y. Jiang et al., 2024; C. Wu et al., 2023; Zeng et al., 2018). Within this framework, urban vitality is treated as a dependent variable to be predicted by independent factors, effectively flattening the complex, emergent synergies of the city into linear, additive lists of drivers (X. Li et al., 2022; Pan et al., 2021). As recent systematic reviews indicate, this approach frequently suffers from “conceptual reductionism,” where the lived experience of the city is severed from its context and reduced to isolated digital signals (Doan & Zhang, 2025).
+
+This proposal argues that the true significance of contemporary generative AI, specifically Denoising Diffusion Probabilistic Models (DDPMs), lies not in its ability to automate urban design or visualize “future cities” (M. He et al., 2026; Q. Wang et al., 2025; Zhuang et al., 2024), but in its potential to function as an epistemic probe into this complexity. Unlike the correlationist approach, which strips context to isolate variables, diffusion models operate as “structure-preserving compressors” (P. Wang et al., 2025). By learning to reconstruct urban data from noise, these models do not merely memorize pixels; they internalize the low-dimensional manifold of the city - the hidden, intrinsic constraints and joint probability distributions that govern how physical form and social activity coalesce into vibrant environments (P. Wang et al., 2025).
+
+From this perspective, the training of a diffusion model is not a technical task of image synthesis, but a methodological experiment in manifold learning. If, as recent computer science literature suggests, diffusion models exhibit a distinct “generalization window” where structural concepts are learned before noisy details (Bonnaire et al., 2025), then the training process itself offers a window into the “essence” of urban vitality. By observing what the model prioritizes and preserves during this window, we can distinguish between the fundamental, irreducible structural patterns and the incidental noise of specific locales.
+
+However, a critical gap separates these theoretical properties from their application to urban data. The evidence for the manifold-learning behavior of diffusion models derives almost exclusively from controlled computational settings. Bonnaire et al. (2025) validate the generalization window on synthetic mixture-of-Gaussians distributions; P. Wang et al. (2025) demonstrate the subspace clustering equivalence on CIFAR-10 (32×32 pixels) and CelebA (64×64 pixels); Kadkhodaie et al. (2024) establish geometry-adaptive harmonic representations on similarly low-resolution benchmark datasets. These datasets share three characteristics that urban geospatial data emphatically do not: low resolution, statistical regularity, and homogeneity. Urban data - encoded through the lossy compression of rasterization from heterogeneous geospatial sources (polygons, polylines, points) - is high-dimensional, structurally irregular, and devoid of ground-truth labels. Whether the theoretical properties of DDPMs - the generalization window, the structure-preserving compression, the subspace clustering equivalence - survive contact with such data is an open empirical question. Answering it is the methodological significance of this paper.
+
+To bridge this gap, we require a data encoding strategy that preserves heterogeneity without imposing the very assumptions the correlationist paradigm carries. We propose RGB channel synthesis, a technique that maps distinct rasterized urban variables - building density (R), road accessibility (G), and POI diversity (B) - into separate color channels (X. Liu et al., 2024). This approach makes no composite vitality assumptions: no pre-calculated scores, no variable weighting, no human annotation. The raw, unweighted relationships between urban variables are preserved, and the model is forced to learn their joint structure rather than receiving it pre-digested through preprocessing. It should be noted that this study addresses the supply side of the built environment only; the integration of demand-side human activity data remains future work. This framing yields a single research question:
+
+Can a Denoising Diffusion Probabilistic Model learn the low-dimensional manifold of urban built environment from RGB-encoded geospatial data?
+
+This question is examined through three analytical dimensions: (1) whether a generalization window emerges during training on urban data; (2) what structural patterns persist during this window; and (3) how the distributions of generated samples compare to those of the training data.
+
+This paper offers two layers of significance. Methodologically, if a DDPM can learn a meaningful manifold from urban geospatial data, it validates the transferability of generalization theory from controlled computational experiments to complex real-world spatial data, and demonstrates that the structure-preserving compressor property holds beyond benchmark datasets - establishing a new analytical pathway beyond the correlationist paradigm. Epistemologically, regardless of the specific experimental outcome, the framework itself offers a new way to conceptualize urban vitality research. By framing the question through the supply-demand lens and treating the model as an epistemic probe, the analytical orientation shifts from "which factors predict vitality?" to "what structure underlies the built environment?" - a fundamentally different epistemological position. This paper is primarily a methods paper: testing feasibility, documenting the theory-to-practice gap, and proposing a framework for future development.
+
+The scope of this study is explicitly bounded. The study area is a single city (Ho Chi Minh City, Vietnam). The data comprise built-environment supply-side variables only (building footprint, road networks, POIs). The analysis is preliminary - training dynamics and initial sampling - rather than a full characterization of the learned manifold. Multi-city comparison, supply-demand joint learning, and systematic data composition experiments are deferred to future work. The remainder of this paper proceeds as follows: Section 2 reviews urban vitality theory and DDPM properties; Section 3 details the methodology; Section 4 presents preliminary experiments; Section 5 discusses findings, limitations, and future directions. 
+
+
+
+Literature Review
+
+From Jacobs to Quantification: The Conceptual Evolution of Urban Vitality
+
+Urban vitality has a common theoretical root which points to Jane Jacob’s The Death and Life of Great American Cities (1961). Her insights were ground in direct observation and a normative vision of inclusive, active urban life (Doan & Zhang, 2025; Dogan & Lee, 2024; Mouratidis & Poortinga, 2020). Jacobs sought to answer ‘how cities work in real life’ - what principles of planning promote social and economic vitality, and what deadens these attributes. Her answer comprised four generators of diversity: mixed primary uses, short blocks, aged buildings, and concentration - tangible carriers through which her normative principles could be observed and assessed. As the systematic review by Doan & Zhang (2025) traces, this conceptual foundation evolved through several expansions: Whyte (1980) on activity density in public spaces; Lynch (1981) on city form as an organism whose vitality encompasses material quality, safety, human health, and ecosystem stability; Maas (1984) introducing social heterogeneity as a vitality dimension; and Montgomery (1998) drawing on sociological insights into place attachment to portray vitality as an emergent property - a "sense of place" or "rhythm of life force" - arising once form, activity, and image are met. Both Jacobs and Lynch assigned urban vitality a tangible carrier (generators, morphology), while Maas and Montgomery shifted toward viewing vitality as an emergent, unobservable quality. Landry (2007) subsequently proposed a holistic view where vitality emerges from the dynamic interplay of three core elements - social, economic, and physical - each reinforcing the other to create thriving urban systems. Doan & Zhang (2025) review documents how these foundational visions, portraying vitality as emergent and multidimensional, progressively encountered the pressure of operationalization: how does one measure a "sense of place"? The progression from tangible carriers to emergent properties represents not merely conceptual evolution but an increasing tension between vitality's theoretical richness and its resistance to direct measurement.
+
+While these foundational visions portray vitality as a dynamic, emergent phenomenon, they remain inherently unobservable and resistant to direct measurement. The advent of big data from sensing technologies, such as mobile phone records, social media check-ins, POI datasets, offered unprecedented insight into population concentration and urban activity patterns, revealing dimensions of urban life that were previously inaccessible to systematic inquiry (Kim, 2020; X. Li et al., 2022; Liu et al., 2019). This empirical expansion enabled two dominant proxy strategies. On one side, human activity intensity - population concentration, mobility flows, social media engagement - captures where vitality manifests, serving as what we term the demand dimension: where does urban life concentrate (X. Li et al., 2022; H. Liu et al., 2022; Scepanovic et al., 2021). On the other, built environment (BE) factors - density, functional mix, morphology, accessibility - capture the physical preconditions that enable vitality, serving as the supply dimension: why do certain places support vibrant life (Chen et al., 2021; Y. Jiang et al., 2024; C. Wu et al., 2023). We propose that these two dimensions are not merely complementary but structurally distinct: the supply side represents what the physical environment affords, while the demand side represents what people actually do. Vitality emerges from their interaction, not from either alone. Importantly, the supply and demand dimensions are not symmetrical: BE factors explain why certain configurations support vitality, while human factors indicate where it manifests. Scholars correlated these proxies to quantitatively validate Jacobs et al.'s qualitative insights, birthing the correlationist paradigm - an approach that, we argue, carries within it a fundamental conflation.
+
+Subsequent research formalized these proxies into multidimensional indices, commonly structured as a triad of density, diversity, and accessibility/connectivity - directly adapting Jacobs' generators alongside Lynch and Montgomery's insights (Gómez-Varo et al., 2022; Kim, 2020; M. Wang et al., 2025; Zeng et al., 2018). This progression yielded refined frameworks such as H. Liu et al. (2022) "growth, diversity, mobility" and Doan & Zhang (2025) "density, diversity, connectivity." However, the critical issue is not the construction of indices per se but how they are deployed in driving factors analysis - regression-based studies that use a vitality proxy as the dependent variable (DV) while including supply-side indicators as independent variables (IVs). Across prevailing studies, BE (supply) and human activity (demand) indicators are conflated within the DV construction itself. This is not a problem of comprehensive measurement - indices that integrate multiple dimensions are not inherently flawed - but of circular reasoning: when supply-side elements appear in both the DV and IVs, the regression effectively tests whether supply predicts supply, rendering causal interpretation invalid.
+
+Three examples illustrate this conflation at increasing levels of subtlety. First, Q. Li et al. (2021) construct a cultural vitality DV using cultural POI counts within 300m buffers, then regress it against IVs that include overall POI density and POI mixture entropy. This is effectively regressing POI against POI — the regression coefficient reflects spatial autocorrelation of POI data, not a causal relationship between built environment and human activity. Second, X. Li et al. (2022) construct a composite vitality DV from street-view imagery (pedestrians, bicycles, motor vehicles, buses, private cars, trucks) averaged with Weibo check-ins, then regress against BE supply factors including road density, shopping density, and transit facility density. The circularity here is more subtle: SVI-detected vehicles and buses represent both demand (people using transport) and supply (infrastructure presence). If bus count partially reflects transit infrastructure density — which also appears as an IV — the vitality score is inflated by supply-side visibility rather than human activity intensity. Third, Pan et al. (2021) employ PLS-SEM with a UV latent variable measured by nighttime light intensity (NTL, demand-side) and POI count (supply-side). When modeling pathways from environmental and economic variables to UV, the POI component in the latent variable means that a pathway such as "road density → UV" may operate via road density → more POIs → higher UV (a pure supply transmission) rather than road density → more human activity → higher UV (a demand effect). These two mechanisms are statistically indistinguishable in the model.
+
+This conflation is not limited to individual studies. As a review of Chinese urban vitality research notes, "some studies used POI data as the representation of urban vitality while some others use POI data as an explanatory variable for modelling urban vitality" - the same data type arbitrarily switches between supply and demand roles across studies, rendering coefficients incomparable and causal pathways uninterpretable (Y. Jiang et al., 2023). Even ostensibly demand-side proxies suffer from hidden supply contamination. Nighttime light (NTL) data, widely used as an economic vitality proxy, reflects not only human economic activity but also electrical infrastructure coverage and streetlight density. When NTL serves as DV in BE regression, coefficients may capture "infrastructure quality → NTL intensity" rather than "human activity → NTL intensity" - a conflation invisible in standard regression diagnostics. The practical consequence is validated by Williams et al. (2019), who identified China's "ghost cities" precisely by decoupling amenity supply from behavioral demand - a distinction that single-index approaches inherently obscure. Where composite vitality scores indicated thriving districts, the supply-demand decoupling revealed empty apartment blocks surrounded by completed infrastructure: supply without demand. While the critique above targets the construction of vitality proxies, it is sustained by the statistical architectures that analyze them - creating a methodological bottleneck that further distances measurement from the generative reality of urban vitality. Section 2.2 examines how the correlationist paradigm's standard toolkit reinforces this bottleneck.
+
+
+
+The Limits of the “Correlationist” Paradigm in Urban Vitality
+
+Drawing on S.-Y. Huang's (2025) framework, we can identify an analogous epistemological distinction within urban vitality research. Huang argues that architectural intelligence is undergoing a transition from symbolic rationality to connectionist rationality, where design knowledge move from predefined rules, fixed typologies, and expert-defined geometric schemata to earned directly from data through probabilistic inference, and form emerges from the navigation of latent probability fields rather than the application of explicit rules. We argue that urban vitality research has arrived at a structurally similar juncture, though expressed through different methodological apparatus. What we term the "correlationist" paradigm - an adaptation of Huang's symbolic mode to the specific context of urban vitality studies. This paradigm commonly operates through the extraction of statistical associations between predefined variables, producing knowledge in the form of feature weights, regression coefficients, and ranked factor importance. The connectionist alternative, by contrast, would learn the geometry of the underlying urban data manifold through probabilistic inference, capturing the joint distribution of urban variables rather than isolating their individual contributions. This distinction provides the analytical lens for the critique that follows.
+
+Contemporary urban vitality research operates squarely within the symbolic-correlationist mode. Driven by the proliferation of multi-source big data, the field has achieved unprecedented quantification of urban phenomena but has simultaneously reinforced a paradigm that prioritizes statistical associations over generative mechanisms. Vitality is operationalized through digital traces: Location-based services and mobile signaling data capture human mobility (Kim, 2020; X. Li et al., 2022; Liu et al., 2019), social media check-ins and reviews serve as indicators of economic and cultural engagement (H. Liu et al., 2022; Qin et al., 2025; Scepanovic et al., 2021), and Point of Interests (POIs) density metrics quantify functional intensity (Y. Jiang et al., 2024; C. Wu et al., 2023). While this quantification has enabled analyses ranging from street-level grids to city-wide assessments (Pan et al., 2021; Xia et al., 2020), it often results in “conceptual reductionism”, where complex social interactions and experiential dimensions are flattened into digita signals (Doan & Zhang, 2025). As Section 2.1 demonstrated, these proxies not only reduce complexity but conflate structurally distinct supply and demand dimensions within the very vitality measures they construct. 
+
+However, this correlationist approach encounters an epistemic wall defined by two fundamental and interrelated limitations. First, it relies on an additivity assumption that treats urban factors as independent, linear contributors to vitality - failing to account for the non-linear dynamics, including interaction effects, synergies, and threshold behaviors, that characterize complex urban systems. As noted by Doan & Zhang (2025), " prevailing methods "operate under the assumptions of linearity, additivity, and homoscedasticity," assumptions that, as C. Wu et al. (2023) warn, produce "erroneous conclusions" when applied to systems where non-linear relationships are the norm. Recently, Tan et al. (2026) deployed a multi-method framework, connecting Random Forest with SHAP explanations, Partial Dependence Plots, Interpretative Structural Modeling, and Bayesian Networks, demonstrate threshold dynamics that render linear coefficients qualitatively misleading (e.g. Floor Area Ratio must exceed 0.25 for complementary amenities to generate significant vitality gains). 
+
+Second, the paradigm suffers from context stripping along two axes. Statistically, urban variables are analyzed in isolation rather than co-occurring features of the same urban configuration, losing the relational structure of how these attributes jointly distribute across the city. Spatially, geographic units are treated as isolated observations, severing the cross-boundary interdependencies that shape lived urban experience. Both dimensions are empirically consequential. Spatial econometric studies have established that vitality exhibits significant spatial autocorrelation, violating the independence assumptions of standard models (Y. Jiang et al., 2023; X. Li et al., 2022). Together, these limitations highlight that the correlationist paradigm structurally cannot access the emergent properties that foundational theorists identify as the essence of urban vitality.
+
+In sum, the correlationist paradigm generates actionable feature lists but offers limited insight into the joint probability distributions and generative processes that produce vibrant urban environments. This creates a fundamental epistemological dissonance with the theoretical roots established in Section 2.1. Jacobs, Landry, and Montgomery define urban vitality as an emergent property, a "sense of place" arising from the dynamic interplay of social, economic, and physical elements, while the correlationist paradigm attempts to predict this emergence using linear, additive drivers. It is this failure to transcend the predict-and-optimize paradigm - even within computational methods - that necessitates a shift toward connectionist modeling, where urban vitality is reconceived as an adaptive capacity grounded in probabilistic inference rather than explicit rule optimization. Section 2.3 examines the theoretical properties of diffusion models that enable such a reframing.
+
+
+
+Diffusion Models: From Image Synthesis to Manifold Learning
+
+The emergence of DDPMs offers a theoretical pathway beyond correlation, shifting focus from deterministic mapping to stochastic manifold learning. Unlike traditional generative models, DDPMs operate through probabilistic inference, reversing a diffusion process to learn the gradient of the data’s log probability density (P. Wang et al., 2025). This mechanism is underpinned by the Manifold Assumption (Chapelle et al., 2006), which posits that high-dimensional urban data resides on low-dimensional manifolds governed by intrinsic, albeit often unobservable, constraints. In classical learning theory, accurately capturing this underlying distribution is the prerequisite for generalization (Vapnik, 2000). Diffusion models succeed not by memorizing pixel-level correlations, but by learning the geometry of this manifold. As P. Wang et al. (2025) demonstrate, optimizing diffusion training is mathematically equivalent to solving a canonical subspace clustering problem - an unsupervised method for identifying and grouping data points that lie on low-dimensional subspaces within high-dimensional space. Crucially, the learned subspace basis vectors align with "semantically meaningful directions," enabling controllable generation of attributes such as gender, hairstyle, and color without additional training. This suggests that diffusion models do not merely replicate training instances but discover meaningful structural sub-organizations in the data (Kadkhodaie et al., 2024). Furthermore, (Zhang et al., 2024) demonstrate that diffusion models exhibit a unique property of "model reproducibility": different model architectures, trained on non-overlapping data subsets, converge to consistent generated outputs when given the same noise input - implying that all models learn the same score function, capturing robust generative laws rather than dataset-specific artifacts.
+
+Two theoretical properties make diffusion models particularly potent for urban analysis. First, they fundamentally address the "curse of dimensionality." P. Wang et al. (2025) demonstrate that the mathematical equivalence between diffusion training and subspace clustering means the model automatically identifies the intrinsic dimensionality of the data. This aligns with findings by Cole & Lu (2024) that score-based models can learn distributions with sample complexities scaling linearly with the data's intrinsic dimension - suggesting that even with minimal datasets that meet the intrinsic dimensional threshold, the model can organize data into meaningful regimes without human supervision.
+
+Second, and most critical for our hypothesis, is the phenomenon of implicit dynamical regularization. While large models are capable of a "memorization regime" - learning the empirical score to perfectly reproduce training data, they do not start there (Biroli et al., 2024; S. Li et al., 2024). Instead, Bonnaire et al. (2025) identify a distinct “generalization window”: a training phase where the model generates structured, generalizable outputs before transitioning to memorization. This behavior is quantified through the f_mem metric, which measures the fraction of generated samples whose nearest-neighbor distance ratio falls below a threshold, distinguishing memorized outputs from generalized ones. The generalization window is driven by "spectral bias," where neural networks learn low-frequency, structural patterns significantly faster than high-frequency noise (Rahaman et al., 2019; B. Wang & Pehlevan, 2025). It should be noted that these theoretical properties have been validated primarily on controlled datasets: on CelebA (32×32 grayscale, downsampled) and synthetic Gaussian mixtures (Bonnaire et al., 2025); on MNIST, FashionMNIST, CIFAR-10, FFHQ, CelebA, and AFHQ (P. Wang et al., 2025); primarily on CIFAR-10 (Zhang et al., 2024). The central empirical concern of this paper is whether these properties transfer to complex, high-dimensional urban geospatial data remains an open question. 
+
+This provides a crucial methodological opening for urban vitality research. Because the internal logic of the model’s learned representation remains opaque, we cannot directly observe how it encodes urban structure. However, we can probe the model's behavior through its inputs and outputs. By sampling from the model at checkpoints throughout training, particularly during the generalization window, and analyzing the stability of generated forms, we can infer the structural essence of the urban built environment: features that remain constant during this window represent the learned structural signal, while those that appear only later represent memorized noise (Y.-H. Wu et al., 2025). This probing can be operationalized through nearest-neighbor analysis between generated and training samples, and through RGB channel decomposition of generated images to examine what the model has learned along each urban dimension. This approach reframes the analytical question: rather than asking "which factors predict vitality?", we ask "what structure does the model internalize as essential?"
+
+Despite this potential, current applications in urban planning largely treat diffusion models as black box generators. A systematic review of 120 generative urban design papers by F. Jiang et al. (2024) found that the field exclusively frames generative models as tools for automated design synthesis and visualization, with no discussion of analytical or epistemic uses. This is exemplified by recent "Text-to-Sth" frameworks that utilize diffusion models primarily for generating urban form from text prompts (M. He et al., 2026; Q. Wang et al., 2025; Zhuang et al., 2024). These studies often focus on instrumental metrics of visual fidelity, inadvertently pushing models into the memorization regime where they risk becoming engines of "digital forgery" (Carlini et al., 2023; Somepalli et al., 2022). By treating the model solely as a drafting tool, the field neglects its internal clustering and generalization behaviors (George et al., 2025). Even more structurally focused approaches, such as GNN-based models like GlobalMapper and COHO (L. He & Aliaga, 2023, 2024), which demonstrate that learned latent representations can predict local socio-economic metrics with over 75% accuracy, treat the model's analytical capacity as a byproduct of design generation rather than as the primary object of inquiry. Consequently, the opportunity to use generative models as computational laboratories for identifying the hidden structures of the city remains largely unexplored. Section 2.4 examines how the theoretical properties identified here can be operationalized into a generative epistemology for urban vitality research. 
+
+
+
+Bridging the Gap: A Generative Episemology for Urban Vitality
+
+To transcend the limitations of the correlationist paradigm, this research reframes the diffusion model as what we term a “structure-preserving compressor” of urban complexity. In this framework, the forward diffusion process systematically abstracts the high-dimensional “urban surface” - the noisy amalgam of built form, infrastructure and functional data - while the reverse process learns to reconstruct the underlying data-generating mechanism. As demonstrated by P. Wang et al. (2025), this learning is mathematically equivalent to subspace clustering: the model does not learn to reproduce individual data points but to identify the low-dimensional subspaces on which they reside. By capturing the joint probability distribution of urban elements, the model directly addresses the first limitation in Section 2.2, non-linearity and additivity, because the joint distribution preserves interaction effects and threshold dynamics that linear models must specify a priori. It also partially addresses the statistical dimension of context stripping: each data point is embedded within a relational structure defined by its position on the learned manifold, preserving how urban variables co-occur across configurations. However, the spatial dimension of context stripping - cross-boundary spillover and neighborhood effects - falls outside the current methodology, which treats each geographic unit as an independent input. This boundary is acknowledged as a genuine limitation and discussed in Section 5. However, operationalizing this theoretical promise presents a critical representational challenge: converting multidimensional geospatial data into the two-dimensional tensor format required by vision-based diffusion architectures without reverting to the very reductionism the approach seeks to overcome.
+
+The danger is subtle but decisive. If the methodology relies on pre-computing a composite vitality score to generate a single-channel input, it effectively bakes the correlationist assumptions catalogued in Section 2.2 into the data itself, leaving the model learn the researcher's prior analytical choices instead of the data's intrinsic structure. To partially circumvent this, we propose RGB channel synthesis: a method that maps distinct, rasterized dimensions of the urban built environment into the three channels of a standard RGB image. Specifically, building density (physical mass) is encoded into the Red channel, road accessibility (connectivity infrastructure) into the Green channel, and Point of Interest diversity (functional intensity) into the Blue channel. This encoding preserves the raw, unweighted relationships between urban variables, forcing the model to discover the mixing logic in its learned manifold rather than having it imposed through pre-processing. Each channel is, by design, a lossy compression of complex geospatial information — but the object of manifold learning is not per-channel fidelity. It is the synergies between channels, the cross-dimensional relationships that no single variable can express in isolation, that constitute the structure the model must internalize. This is a deliberate epistemological choice: where the correlationist paradigm imposes structure through feature engineering and model specification, the generative approach withholds it, tasking the model with discovering which relationships are essential and which are incidental.
+
+Drawing on the theoretical properties identified in Section 2.3, this generative epistemology can be operationalized through a single core postulate. We posit that the diffusion model's generalization window, which is where structural patterns are learned before memorization sets in, functions as an epistemic filter for urban structure. Whatever morphological or functional characteristics remain consistent in generated outputs during this window constitute the learned structural signal: the robust, generalizable patterns of urban built environment organization. On the other hand, as the model transitions toward memorization, features that emerge only later represent idiosyncratic noise - the incidental particulars of specific locales rather than structural laws (Biroli et al., 2024; S. Li et al., 2024).  This reframes the analytical question at the heart of urban vitality research: rather than asking "which factors predict vitality?", we ask "what structure does the model internalize as essential?" The postulate can be probed through three complementary channels: sampling at training checkpoints to track what is learned and when; nearest-neighbor analysis between generated and training samples, following Zhang et al.'s (2024) reproducibility framework; and RGB channel decomposition of generated images to examine what the model has learned along each urban dimension independently. It is important to note that this initial study focuses exclusively on the supply-side of urban vitality - the built environment dimensions encoded in the RGB channels - following the supply-demand distinction established in Section 2.1. The integration of demand-side data (human activity patterns) into a joint supply-demand manifold represents a significant extension reserved for future work. This framing aligns with S.-Y. Huang's (2025) observation that contemporary generative practice redefines the architect's role from originator of form to curator of datasets and interpreter of model outputs, where epistemic agency is exercised not through the specification of feature weights, but through the deliberate selection, encoding, and probing of urban data.
+
+
+
+Methods
+
+Research Framework
+
+This section presents the methodology for operationalizing the generative epistemology proposed in Section 2.4. The pipeline comprises four modules: data preparation, model architecture, training with structured checkpointing, and evaluation via sampling and analysis. Before detailing each, we outline how these modules connect to the epistemic probe framework. 
+
+The data preparation module (Section 3.2) encodes three supply-side built environment dimensions as RGB image channels. This encoding deliberately avoids composite scoring or pre-computed vitality indices, which would embed the very correlationist assumptions critiqued in Section 2.2 into the input data. Instead, each dimension is preserved as a raw, unweighted channel, requiring the model to discover any relationships between them independently. 
+
+The model architecture module (Section 3.3) specifies a Denoising Diffusion Probabilistic Model (DDPM) trained on these RGB images as a structure-preserving compressor — learning the joint distribution of the three built environment dimensions rather than optimizing for generation quality. Section 3.4 details the noise schedule options, and Section 3.5 describes the training protocol designed to capture the generalization window identified in Section 2.3.
+
+	The evaluation module (Sections 3.6–3.8) probes what the model has learned through four complementary lenses, each answering a distinct question: memorization fraction identifies when the model transitions from structural learning to memorization; distributional fidelity measures how well each channel's marginal distribution is reproduced; inter-channel synergy analysis which is the core of our epistemic probe, tests whether the model captures the joint distribution across channels; and irreducible characteristics detection identifies what the model internalizes as essential urban structure.
+
+
+
+Data Preparation
+
+Rasterization
+
+The input data comprises three geospatial vector layers in shapefile format: building footprints (polygons), road networks (polylines), and points of interest (points). Each layer is converted from vector to raster format through a process informed by a critical distinction between two spatial scales. 
+
+The cell size (1 km) defines the physical extent of each image tile which is the unit the model processes. The calculation unit (50 m) defines the resolution at which urban attributes are computed within each cell. This distinction is consequential: a calculation unit that is too large blurs spatial detail, while one that is too small produces sparse attribute values. At 50 m resolution, each 1 km cell contains a 20 × 20 grid of calculation units. 
+
+For each calculation unit, a scalar attribute is computed from the corresponding geospatial layer: Building density (Blue channel): Continuous building footprint coverage within a 150 m buffer around each unit. This captures the physical mass concentration of the local walkable neighborhood; POI diversity (Green channel): Shannon entropy index of POI categories within a 150 m buffer. The Shannon index is chosen over simple density counts because it captures category-level heterogeneity; Road accessibility (Red channel): Gravity-model distance decay to the road network, with decay parameter β = 0.3/km and a 3,000 m cutoff. The gravity model reflects connectivity infrastructure reach. The result is three sets of 20 × 20 raster grids per 1 km cell, each representing one built environment dimension.
+
+
+
+RGB Fusion
+
+The three 20 × 20 raster grids are upsampled to 128 × 128 pixels via bilinear interpolation and combined into a single RGB image. The choice of 128 × 128 resolution balances spatial granularity against computational feasibility: 32 × 32 (CIFAR-10 standard) is too coarse to capture urban spatial patterns, while 256 × 256 and above would require substantially greater model capacity and training time.
+
+Each channel is normalized independently using a global 95th percentile clipping strategy: the 95th percentile value across all cells is mapped to 1.0, values are clipped to [0, 1], then scaled to [0, 255]. Global (not per-cell) normalization ensures inter-cell comparability. The 95th percentile, rather than the maximum, mitigates outlier distortion from extreme values in dense urban cores. The convention is consistent across channels: white indicates denser, more accessible, or more diverse; black indicates absence.
+
+The channel assignment is: R = accessibility, G = POI diversity, B = building density. Three channels are then stacked into a single 128 × 128 × 3 tensor.
+
+Each channel is a lossy compression of complex geospatial data. Building density loses vertical information and building-level geometry. POI diversity (Shannon index) loses category-level detail and spatial distribution within the buffer. Road accessibility (gravity model) loses network topology. However, as argued in Section 2.4, the epistemologically significant question is not per-channel fidelity but whether the model captures the synergies between channels - the joint distribution P(density, diversity, accessibility). The RGB encoding withholds any researcher-imposed weighting or mixing logic, requiring the model to discover these relationships independently.
+
+
+
+Pre-encoding Analysis
+
+The study area is Ho Chi Minh City (HCMC), covered by a 1 km fishnet grid producing 8,436 total cells. After filtering cells with no built environment data (empty water bodies, undeveloped periphery), 731 non-empty cells remain. These are split deterministically (seed = 42) into 584 training, 73 validation, and 74 test images (80/10/10). Image values are normalized from [0, 255] to [−1, 1] following standard DDPM preprocessing.
+
+No data augmentation (horizontal flip, rotation) is applied. This is a deliberate choice involving a recognized trade-off. Yoon et al. (2023) demonstrate that increasing effective dataset size, even with dummy data carrying no meaningful content, can push a diffusion model past its memorization capacity and induce generalization. Augmentation would similarly increase the effective dataset, potentially widening the generalization window. However, augmentation adds no new structural information, only transformed views of existing data. Without augmentation, the model's natural learning dynamics are preserved, even though the generalization window may be narrower and harder to detect. This trade-off is accepted for observational honesty.
+
+A pre-encoding analysis of the dataset, including principal component analysis, intrinsic dimension estimation, and typology classification using the three-dimensional channel statistics, is a necessary part of the methodology but has not yet been performed. This analysis would characterize the dataset's distributional composition, identify dominant urban typologies, and inform decisions about dataset curation and augmentation for future comparative experiments.
+
+
+
+Model Architecture
+
+Denoising Diffusion Probablistic Model
+
+We adopt the standard DDPM formulation (Ho et al., 2020). The forward process progressively corrupts a data point x₀ by adding Gaussian noise over T = 1,000 discrete timesteps:
+
+
+
+where β_t is the noise schedule (Section 3.4). Over the full sequence, this process gradually transforms the structured urban image into pure Gaussian noise.
+
+The reverse process learns to denoise where a neural network ε_θ is trained to predict the noise ε that was added at each timestep:
+
+
+
+This is a mean-squared error between the true noise and the predicted noise. The training process does not generate complete images and compare them to the training data; instead, it learns to reverse individual noise steps. Distributional alignment with the training data emerges from this process where  Ho et al. (2020) proved that the noise prediction objective is equivalent to maximizing a variational lower bound on the data log-likelihood. What the model prioritizes during learning, which structural features it captures first, and when memorization begins, is not directly engineered but emerges from the training dynamics. This is precisely what the epistemic probe aims to observe.
+
+Two architectural choices distinguish our setup. First, we use a pixel-space DDPM rather than a latent diffusion model (LDM). LDMs compress images into a lower-dimensional latent space before applying the diffusion process, which improves computational efficiency for generation tasks (Rombach et al., 2022). Our objective, however, is not efficient generation but manifold learning, hence analyzing what the model internalizes about the data at full resolution.
+
+Second, we use discrete timesteps (t ∈ {0, 1, ..., 999}) rather than a continuous-time SDE formulation. This choice is an implementation alignment with key references rather than a methodological necessity for the epistemic probe. The probe observes what the model learns - the converged manifold rather than the optimization path used to reach it. Whether noise is added in 1,000 discrete steps or along a continuous SDE trajectory does not change the data distribution the model must ultimately learn. We adopt discrete time because our primary memorization metric (F_mem, Section 3.7.1) is inherited from Bonnaire et al. (2025), whose framework operates in discrete DDPM; Yoon et al. (2023) similarly use discrete time. Using the same formulation is a form of controlled variable, ensuring our results are directly comparable with the theoretical foundations we build upon.
+
+
+
+U-Net Noise Prediction Network
+
+The noise prediction network ε_θ is a U-Net (DDPMUnet) with time-conditioned residual blocks. The exact specification is shown in Table 1.
+
+Self-attention is disabled at all resolution levels, at 128 × 128, the resolution does not warrant the computational cost of attention layers. Group normalization (32 groups) and dropout (0.1) provide regularization.
+
+The model capacity of 157.8M parameters was determined empirically. An earlier configuration (v2) with base channels = 32 (9.88M parameters, 50K training steps) failed to converge: after 50,000 steps, training loss was still decreasing, and generated samples showed multi-colored noise rather than matching the dark-red-dominated training distribution. The current configuration (v3, base channels = 128) converged at approximately 86,000 steps, confirming that urban RGB data requires significantly more model capacity than benchmark datasets such as MNIST or CIFAR-10.
+
+
+
+Table 1
+
+U-Net Parameters
+
+Parameters
+
+Value
+
+Base Channels
+
+128
+
+Total Parameters
+
+~157.8M
+
+Channel multipliers
+
+[1, 2, 2, 2] at four resolution levels
+
+Self-attention
+
+Disabled at all levels
+
+Residual blocks per level
+
+2
+
+Group normalization
+
+32 groups
+
+Activation
+
+SiLU
+
+Time embedding dimension
+
+512
+
+Dropout
+
+0.1
+
+
+
+Noise Schedules
+
+The noise schedule β_t determines how quickly signal is destroyed during the forward process and consequently shapes what the model learns and when memorization begins. Four discrete schedules are implemented in the codebase as shown in Table 2.
+
+The linear schedule interpolates β uniformly from 1e-4 to 2e-2 over 1,000 timesteps, producing a constant rate of noise addition. The VP schedule (discretized from Song et al.'s continuous SDE) preserves total variance throughout the forward process, with signal-to-noise ratio changing geometrically. The VE schedule allows variance to grow without bound through an exponential progression.
+
+Two schedules were considered but not adopted. The cosine schedule (Dhariwal & Nichol, 2021) was initially implemented but removed due to numerical instability: beta values approaching 1.0 at late timesteps produce black images during sampling, and neither of the primary research references (Bonnaire et al., 2025; P. Wang et al., 2025) uses cosine. The EDM schedule (Karras et al., 2022) was consciously skipped as a natively continuous-time formulation that would add complexity to the discrete framework without clear benefit for generalization window analysis.
+
+The linear schedule serves as the baseline for three reasons: it is the most standard DDPM schedule with the largest body of comparative literature; it is directly comparable with Bonnaire et al.'s generalization window findings; and its uniform noise progression is the simplest to interpret when analyzing training dynamics.
+
+VP and VE schedules are retained for future comparison experiments, with VP preserves variance while VE allows explosion. They represent fundamentally different noise geometries and whether these geometric differences affect the timing and nature of the generalization window remains an open question.
+
+
+
+Table 2
+
+Noise Scheules
+
+Schedule
+
+Source
+
+Status
+
+Linear
+
+(Ho et al., 2020)
+
+Active (v3 baseline)
+
+VP (Variance Preserving)
+
+(Song et al., 2021)
+
+Implemented, not yet trained
+
+VE (Variance Exploding)
+
+(Song et al., 2021)
+
+Implemented, not yet trained
+
+Fixed
+
+-
+
+Implemented
+
+
+
+Training Procedure and Checkpointing Strategy
+
+The training protocol is designed to capture the temporal evolution of learning — specifically, to identify the generalization window.
+
+AdamW optimizer with learning rate 1e-4, gradient clipping at max norm 1.0. The loss function is the standard DDPM noise prediction objective (MSE between true and predicted noise).
+
+Batch size is set to 8. On the available hardware (single NVIDIA RTX 5090, 32 GB VRAM, Windows 11), this configuration completes 500,000 steps in approximately 22 hours. This represents a deliberate trade-off: smaller batch sizes yield more gradient updates per epoch (408 updates per epoch with bs=8 versus 102 with bs=32), but produce noisier gradients and potentially less stable convergence. Larger batch sizes (bs=16 or 32) would provide smoother training at the cost of significantly longer runtimes. The 22-hour configuration prioritizes iteration speed for a feasibility study, with the recognition that convergence dynamics may differ at larger batch sizes.
+
+Model snapshots are saved at 14 points during training: dense in the early phase (steps 100, 250, 500, 1,000, 2,500, 5,000, 10,000, 20,000) where learning dynamics change most rapidly, and sparse in the later phase (50,000, 100,000, 200,000, 300,000, 400,000, 500,000) where changes are more incremental. This logarithmic spacing reflects the nature of diffusion model training: the most structurally significant learning — the transition from generating noise to capturing urban patterns — occurs in the early steps, analogous to how the first years of a new urban district see dramatic transformation while later decades bring incremental change. The generalization window is most likely to fall within this early phase, making dense early checkpointing essential for its detection.
+
+Validation loss is computed every 5,000 steps over 50 validation batches (73 images). Divergence between training and validation loss serves as a secondary signal for memorization onset.
+
+The v3 training run uses a single RTX 5090 on Windows 11. The earlier v2 run used dual RTX 3090 (24 GB each, NVLink interconnect) with PyTorch DataParallel. The eventual target is to migrate the full training pipeline back to dual RTX 3090 for reproducibility.
+
+Three experimental dimensions are identified for future investigation, designed around the core research question of what affects the generalization window:
+
+(1) U-Net capacity: ch = 32 (v2, 9.88M, failed to converge) / ch = 128 (v3, 157.8M, converged) / ch = 256 (future). Yoon et al. (2023) experiment with UNet-64/128/256, providing precedent for how model capacity interacts with memorization dynamics.
+
+(2) Batch size: bs = 8 (current, fastest) / bs = 16 / bs = 32 - tests the convergence stability versus training time trade-off.
+
+(3) Noise schedule: linear (baseline) / VP / VE - tests whether noise geometry affects generalization window dynamics.
+
+These are not intended as a full factorial design but as targeted comparisons addressing specific hypotheses about the generalization window.
+
+
+
+Sample Generation
+
+Two sampling methods are employed for different analysis purposes.
+
+DDPM sampling (1,000-step) performs the full stochastic denoising process, starting from pure Gaussian noise and reversing all 1,000 diffusion timesteps. This produces the highest-quality samples and is used for memorization fraction computation and visual quality assessment.
+
+DDIM sampling (50-step) follows a deterministic denoising trajectory (Song et al., 2021), generating samples approximately 20 times faster. This is used for large-scale distribution analysis where sample quantity matters more than per-sample fidelity.
+
+For each checkpoint within the generalization window, 30–100 samples are generated to track the temporal evolution of the model's learned structure. This sample range balances statistical reliability against computational cost.
+
+
+
+Evaluation Metrics
+
+Four complementary metrics probe different facets of what the model learns. Together, they operationalize the epistemic probe framework.
+
+
+
+Memorization Fraction
+
+The memorization fraction quantifies whether the model generates novel samples that reflect the learned distribution, or copies of individual training images. Following Bonnaire et al. (2025), the metric operates as follows: for each generated sample, its nearest neighbor in the training set (NN_train) and its nearest neighbor among other generated samples (NN_gen) are identified using L2 distance. The gap ratio is computed as d(sample, NN_train) / d(sample, NN_gen). If this ratio falls below a threshold (0.333), the sample is classified as "memorized", meaning it is closer to a specific training image than to other generated samples, indicating replication rather than generalization.
+
+F_mem is the fraction of memorized samples across all generated images at a given checkpoint. F_mem ≈ 0 indicates generalization: the model has learned the data distribution rather than individual data points. F_mem → 1 indicates memorization. The transition from low to high F_mem identifies the generalization window boundary.
+
+
+
+Distributional Fidelity
+
+Distributional fidelity measures how well generated samples reproduce the marginal distribution of each RGB channel - the per-channel histogram. For each channel (B = building density, G = POI diversity, R = road accessibility), the Wasserstein-1 distance (Earth Mover's Distance) is computed between the generated and training channel distributions. Lower distance indicates better fidelity. Computed per-channel, this metric reveals which dimensions are learned faster or more accurately.
+
+It is important to clarify what this metric does and does not capture. It evaluates each channel independently, for example does the model's building density distribution match the real building density distribution? This is a marginal analysis. A model could reproduce each marginal accurately while failing to capture how the channels co-vary. For instance, generating images with correct building density and correct POI diversity distributions independently, but without the correlation that in real cities, dense areas tend to have diverse POIs. Capturing this co-variation is the role of inter-channel synergy analysis (Section 3.7.4).
+
+Spatial autocorrelation (Moran's I) is computed per channel as a supplementary check on whether generated images contain spatially coherent patterns rather than random noise. Moran's I measures whether neighboring pixels in an image are more similar than distant pixel pairs, where values near 1 indicate spatial clustering while values near 0 indicate randomness. However, an important caveat applies: Moran's I operates at the intra-cell pixel level (128 × 128), measuring clustering within a single 1 km cell. The urban spatial structure that ultimately matters, such as inter-cell relationships, street patterns, neighborhood form, operates at a larger scale. Our model treats each cell as an independent input, so intra-cell pixel clustering is the only spatial metric available. Moran's I should be treated as a supplementary coherence signal rather than primary evidence of urban structure learning.
+
+
+
+Fréchet Inception Distance (FID)
+
+FID measures the distributional distance between generated and real images in the feature space of a pretrained Inception-v3 network (Heusel et al., 2018). It is the standard quality metric for generative models.
+
+In our context, FID serves as a supplementary quality indicator rather than a primary metric. FID is designed for natural images and its applicability to RGB-encoded urban rasters where pixel values represent computed geospatial attributes rather than visual appearance is not well established. (Zhou et al., 2024; Zhuang et al., 2024) report FID evaluations on black-and-white urban layouts, suggesting some applicability, but our RGB fusion results differ in kind. We report FID for comparability with the diffusion model literature but do not weight it as heavily as memorization fraction and synergy analysis.
+
+
+
+Inter-Channel Synergy Analysis
+
+The inter-channel synergy analysis is the core epistemic probe. While distributional fidelity (Section 3.7.2) evaluates each channel's marginal distribution independently, synergy analysis evaluates the joint distribution. For example, whether the model learns that building density, POI diversity, and road accessibility co-vary in structured ways, as they do in real cities.
+
+The method operates as follows. For each generated image, the spatial mean of each channel is computed after converting from [−1, 1] to [0, 1], yielding a three-dimensional point (B_mean, G_mean, R_mean). Across all generated images at a checkpoint, pairwise correlations between these spatial means are computed using Pearson's r (linear relationship), Spearman's ρ (monotonic relationship), and mutual information (non-linear dependency).
+
+Based on pairwise |r| thresholds, the model's learning regime is classified:
+
+(1) Coupled: all channel pairs exhibit |r| > 0.5, indicating the model has learned the full joint distribution.
+
+(2) {X}-driven: one channel pair dominates (e.g., diversity-driven indicates strong G–R correlation but weak B–R and B–G), indicating partial joint learning.
+
+(3) Fragmented: all pairs exhibit |r| < 0.3, indicating channels learned independently with no synergy.
+
+Tracking regime evolution across training checkpoints reveals when synergy emerges. Comparing the generated synergy structure with the training data's synergy structure reveals whether the model's learned joint distribution matches reality.
+
+This metric directly tests whether the DDPM captures the inter-dimensional synergies that correlationist methods miss. As argued in Section 2.2, the correlationist paradigm treats density, accessibility, and diversity as independent variables, losing the relational structure of how they jointly distribute across the city. The synergy analysis probes whether the model recovers this relational structure from the data alone.
+
+
+
+Irreducible Characteristics Detection
+
+Features that remain stable across the generalization window represent what the model internalizes as essential urban structure, in other words, the irreducible properties of the data manifold that the model cannot ignore if it is to generalize.
+
+The detection method operates as follows. For each checkpoint within the generalization window, per-channel statistics (mean, standard deviation) and inter-channel correlations are computed across generated samples. The coefficient of variation (CV = std/mean) of each statistic is tracked across checkpoints. Characteristics with low CV are classified as stable indicates that the model has converged on these features as irreducible structural properties. Characteristics with high CV are classified as evolving means that the model has not yet settled on these aspects.
+
+The epistemic significance of irreducible characteristics is that they answer the core research question: what does the model consider essential about urban form? These are the features that persist even as training continues, suggesting they represent fundamental properties of the data manifold rather than noise or incidental particulars. If the model consistently treats certain density-accessibility-diversity relationships as irreducible across the generalization window, this constitutes evidence that these relationships are structural features of the urban data distribution, features that a correlationist analysis might overlook or flatten into linear coefficients.
+
+
+
+Experiments (WIP)
+
+The mathematical and real-world dataset gap (CelebA dataset – 32x32 pixels, CIFAR-10 dataset – 32x32 pixels, ImageNet – 64x64 pixels)
+
+
+
+U-net architecture with different base ch (pixel level diffusion training leverages 32-256 channels is the limit, while stable diffusion (latent diffusion) uses base 320 channels and scale up to 1280 channels to learn 512x512 resolution images)
+
+
+
+Conclusions (WIP)
+
+
+
+Lit review on kaiming he’s (MIT) ‘back to basic’, advocating for moving from predicting noise or flow speed to directly predicting pixels
+
+
+
+The way we slice a city into non-overlapping images to form the dataset, is exactly the same approach what Vision Transformers (ViT) do. In Vision Transformers (ViTs), an image is divided into a sequence of non-overlapping patches, and each patch is processed as a single "token". 
+
+
+
+So future work have two directions to go, one is switching current image encoder to geospatial data encoder to encode building footprint, road networks, and POIs – resulting in an multi-modal diffusion model. 
+
+
+
+Another one is use less cropping across the city to retain large scale urban context, and still use image encoder, and do comparative study on U-net backbone, VAE backbone, and JiT backbone. 
+
+
+
+
+
+References
+
+Biroli, G., Bonnaire, T., Bortoli, V. de, & Mézard, M. (2024). Dynamical Regimes of Diffusion Models. Nature Communications, 15(1), 9957. https://doi.org/10.1038/s41467-024-54281-3
+
+Bonnaire, T., Urfin, R., Biroli, G., & Mézard, M. (2025). Why Diffusion Models Don’t Memorize: The Role of Implicit Dynamical Regularization in Training (arXiv:2505.17638). arXiv. https://doi.org/10.48550/arXiv.2505.17638
+
+Carlini, N., Hayes, J., Nasr, M., Jagielski, M., Sehwag, V., Tramèr, F., Balle, B., Ippolito, D., & Wallace, E. (2023). Extracting Training Data from Diffusion Models (arXiv:2301.13188). arXiv. https://doi.org/10.48550/arXiv.2301.13188
+
+Chapelle, O., Zien, A., & Schölkopf, B. (Eds.). (2006). Semi-supervised learning. MIT Press.
+
+Chen, W., Wu, A. N., & Biljecki, F. (2021). Classification of urban morphology with deep learning: Application on urban vitality. Computers, Environment and Urban Systems, 90, 101706. https://doi.org/10.1016/j.compenvurbsys.2021.101706
+
+Cole, F., & Lu, Y. (2024). Score-based generative models break the curse of dimensionality in learning a family of sub-Gaussian probability distributions (arXiv:2402.08082). arXiv. https://doi.org/10.48550/arXiv.2402.08082
+
+Dhariwal, P., & Nichol, A. (2021). Diffusion Models Beat GANs on Image Synthesis (arXiv:2105.05233). arXiv. http://arxiv.org/abs/2105.05233
+
+Doan, Q. C., & Zhang, X. (2025). A systematic review of urban vitality studies: Trends and research opportunities. Land Use Policy, 158, 107745. https://doi.org/10.1016/j.landusepol.2025.107745
+
+Dogan, O., & Lee, S. (2024). Jane Jacobs’s urban vitality focusing on three-facet criteria and its confluence with urban physical complexity. Cities, 155, 105446. https://doi.org/10.1016/j.cities.2024.105446
+
+George, A. J., Veiga, R., & Macris, N. (2025). Denoising Score Matching with Random Features: Insights on Diffusion Models from Precise Learning Curves (arXiv:2502.00336). arXiv. https://doi.org/10.48550/arXiv.2502.00336
+
+Gómez-Varo, I., Delclòs-Alió, X., & Miralles-Guasch, C. (2022). Jane Jacobs reloaded: A contemporary operationalization of urban vitality in a district in Barcelona. Cities, 123, 103565. https://doi.org/10.1016/j.cities.2022.103565
+
+He, L., & Aliaga, D. (2023). GlobalMapper: Arbitrary-Shaped Urban Layout Generation. 2023 IEEE/CVF International Conference on Computer Vision (ICCV), 454–464. https://doi.org/10.1109/ICCV51070.2023.00048
+
+He, L., & Aliaga, D. (2024). COHO: Context-Sensitive City-Scale Hierarchical Urban Layout Generation (arXiv:2407.11294). arXiv. https://doi.org/10.48550/arXiv.2407.11294
+
+He, M., Liang, Y., Wang, S., Zheng, Y., Wang, Q., Zhuang, D., Tian, L., & Zhao, J. (2026). Human-guided urban form generation using multimodal diffusion models. Building and Environment, 287, 113892. https://doi.org/10.1016/j.buildenv.2025.113892
+
+Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., & Hochreiter, S. (2018). GANs Trained by a Two Time-Scale Update Rule Converge to a Local Nash Equilibrium (arXiv:1706.08500). arXiv. https://doi.org/10.48550/arXiv.1706.08500
+
+Ho, J., Jain, A., & Abbeel, P. (2020). Denoising Diffusion Probabilistic Models (Version 2). arXiv. https://doi.org/10.48550/ARXIV.2006.11239
+
+Huang, S.-Y. (2025). The Connectionist Turn: How Contemporary Generative AI Reshapes Architectural Rationality. Architecture, 5(4), 132. https://doi.org/10.3390/architecture5040132
+
+Jiang, F., Ma, J., Webster, C. J., Chiaradia, A. J. F., Zhou, Y., Zhao, Z., & Zhang, X. (2024). Generative urban design: A systematic review on problem formulation, design generation, and decision-making. Progress in Planning, 180, 100795. https://doi.org/10.1016/j.progress.2023.100795
+
+Jiang, Y., Huang, Z., Zhou, X., & Chen, X. (2024). Evaluating the impact of urban morphology on urban vitality: An exploratory study using big geo-data. International Journal of Digital Earth, 17(1), 2327571. https://doi.org/10.1080/17538947.2024.2327571
+
+Jiang, Y., Zhang, Y., Liu, Y., & Huang, Z. (2023). A review of urban vitality research in the Chinese world. Transactions in Urban Data, Science, and Technology, 2(2–3), 81–99. https://doi.org/10.1177/27541231231154705
+
+Kadkhodaie, Z., Guth, F., Simoncelli, E. P., & Mallat, S. (2024). Generalization in diffusion models arises from geometry-adaptive harmonic representations (arXiv:2310.02557). arXiv. https://doi.org/10.48550/arXiv.2310.02557
+
+Karras, T., Aittala, M., Aila, T., & Laine, S. (2022). Elucidating the Design Space of Diffusion-Based Generative Models (arXiv:2206.00364). arXiv. https://doi.org/10.48550/arXiv.2206.00364
+
+Kim, S. (2020). Urban Vitality, Urban Form, and Land Use: Their Relations within a Geographical Boundary for Walkers. Sustainability, 12(24), 10633. https://doi.org/10.3390/su122410633
+
+Landry, C. (2007). The creative city: A toolkit for urban innovators (Repr). Earthscan [u.a.].
+
+Li, Q., Cui, C., Liu, F., Wu, Q., Run, Y., & Han, Z. (2021). Multidimensional Urban Vitality on Streets: Spatial Patterns and Influence Factor Identification Using Multisource Urban Data. ISPRS International Journal of Geo-Information, 11(1), 2. https://doi.org/10.3390/ijgi11010002
+
+Li, S., Chen, S., & Li, Q. (2024). A Good Score Does not Lead to A Good Generative Model (arXiv:2401.04856). arXiv. https://doi.org/10.48550/arXiv.2401.04856
+
+Li, X., Li, Y., Jia, T., Zhou, L., & Hijazi, I. H. (2022). The six dimensions of built environment on urban vitality: Fusion evidence from multi-source data. Cities, 121, 103482. https://doi.org/10.1016/j.cities.2021.103482
+
+Liu, H., Gou, P., & Xiong, J. (2022). Vital triangle: A new concept to evaluate urban vitality. Computers, Environment and Urban Systems, 98, 101886. https://doi.org/10.1016/j.compenvurbsys.2022.101886
+
+Liu, X., Yang, N., & Tian, R. (2024). Reinventing Planting Design in Landscape Architecture: A Generative AI Approach. Wichmann Verlag. https://doi.org/10.14627/537752020
+
+Liu, Zhang, & Long. (2019). Urban Vitality Area Identification and Pattern Analysis from the Perspective of Time and Space Fusion. Sustainability, 11(15), 4032. https://doi.org/10.3390/su11154032
+
+Lynch, K. (1981). A Theory of Good city form (Nachdr.). MIT Press.
+
+Maas, P. R. (1984). Towards a theory of urban vitality. https://doi.org/10.14288/1.0096212
+
+Montgomery, J. (1998). Making a city: Urbanity, vitality and urban design. Journal of Urban Design, 3(1), 93–116. https://doi.org/10.1080/13574809808724418
+
+Mouratidis, K., & Poortinga, W. (2020). Built environment, urban vitality and social cohesion: Do vibrant neighborhoods foster strong communities? Landscape and Urban Planning, 204, 103951. https://doi.org/10.1016/j.landurbplan.2020.103951
+
+Pan, H., Yang, C., Quan, L., & Liao, L. (2021). A New Insight into Understanding Urban Vitality: A Case Study in the Chengdu-Chongqing Area Twin-City Economic Circle, China. Sustainability, 13(18), 10068. https://doi.org/10.3390/su131810068
+
+Qin, J., Wang, Z., Sheng, Y., Xue, L., Cai, X., & Zhang, K. (2025). Relationship between the built environment and urban vitality of Nanjing’s central urban area based on multi-source data. Environment and Planning B: Urban Analytics and City Science, 52(1), 168–185. https://doi.org/10.1177/23998083241256246
+
+Rahaman, N., Baratin, A., Arpit, D., Draxler, F., Lin, M., Hamprecht, F. A., Bengio, Y., & Courville, A. (2019). On the Spectral Bias of Neural Networks (arXiv:1806.08734). arXiv. https://doi.org/10.48550/arXiv.1806.08734
+
+Rombach, R., Blattmann, A., Lorenz, D., Esser, P., & Ommer, B. (2022). High-Resolution Image Synthesis with Latent Diffusion Models (arXiv:2112.10752). arXiv. http://arxiv.org/abs/2112.10752
+
+Scepanovic, S., Joglekar, S., Law, S., & Quercia, D. (2021). Jane Jacobs in the Sky: Predicting Urban Vitality with Open Satellite Data. Proceedings of the ACM on Human-Computer Interaction, 5(CSCW1), 1–25. https://doi.org/10.1145/3449257
+
+Somepalli, G., Singla, V., Goldblum, M., Geiping, J., & Goldstein, T. (2022). Diffusion Art or Digital Forgery? Investigating Data Replication in Diffusion Models (arXiv:2212.03860). arXiv. https://doi.org/10.48550/arXiv.2212.03860
+
+Song, Y., Sohl-Dickstein, J., Kingma, D. P., Kumar, A., Ermon, S., & Poole, B. (2021). Score-Based Generative Modeling through Stochastic Differential Equations (arXiv:2011.13456). arXiv. https://doi.org/10.48550/arXiv.2011.13456
+
+Tan, Y., Song, J., Bai, Y., & Li, Y. (2026). Beyond objective features: Integrating subjective perceptions to decipher urban vitality via multimodal machine learning. Habitat International, 168, 103676. https://doi.org/10.1016/j.habitatint.2025.103676
+
+Vapnik, V. N. (2000). The Nature of Statistical Learning Theory. Springer New York. https://doi.org/10.1007/978-1-4757-3264-1
+
+Wang, B., & Pehlevan, C. (2025). An Analytical Theory of Spectral Bias in the Learning Dynamics of Diffusion Models (arXiv:2503.03206). arXiv. https://doi.org/10.48550/arXiv.2503.03206
+
+Wang, M., Zhao, J., Zhang, D., Xiong, Z., Sun, C., Zhang, M., & Fan, C. (2025). Assessing urban vitality in high-density cities: A spatial accessibility approach using POI reviews and residential data. Humanities and Social Sciences Communications, 12(1), 1119. https://doi.org/10.1057/s41599-025-05459-7
+
+Wang, P., Zhang, H., Zhang, Z., Chen, S., Ma, Y., & Qu, Q. (2025). Diffusion Models Learn Low-Dimensional Distributions via Subspace Clustering (arXiv:2409.02426). arXiv. https://doi.org/10.48550/arXiv.2409.02426
+
+Wang, Q., Liang, Y., Zheng, Y., Xu, K., Zhao, J., & Wang, S. (2025). Generative AI for urban planning: Synthesizing satellite imagery via diffusion models. Computers, Environment and Urban Systems, 122, 102339. https://doi.org/10.1016/j.compenvurbsys.2025.102339
+
+Whyte, W. H. (1980). The social life of small urban spaces (7. print). Project for Public Spaces.
+
+Williams, S., Xu, W., Tan, S. B., Foster, M. J., & Chen, C. (2019). Ghost cities of China: Identifying urban vacancy through social media data. Cities, 94, 275–285. https://doi.org/10.1016/j.cities.2019.05.006
+
+Wu, C., Ye, Y., Gao, F., & Ye, X. (2023). Using street view images to examine the association between human perceptions of locale and urban vitality in Shenzhen, China. Sustainable Cities and Society, 88, 104291. https://doi.org/10.1016/j.scs.2022.104291
+
+Wu, Y.-H., Marion, P., Biau, G., & Boyer, C. (2025). Taking a Big Step: Large Learning Rates in Denoising Score Matching Prevent Memorization (arXiv:2502.03435). arXiv. https://doi.org/10.48550/arXiv.2502.03435
+
+Xia, C., Yeh, A. G.-O., & Zhang, A. (2020). Analyzing spatial relationships between urban land use intensity and urban vitality at street block level: A case study of five Chinese megacities. Landscape and Urban Planning, 193, 103669. https://doi.org/10.1016/j.landurbplan.2019.103669
+
+Yoon, T., Choi, J. Y., Kwon, S., & Ryu, E. K. (2023). Diffusion Probabilistic Models Generalize when They Fail to Memorize. ICML Workshop on Structured Probabilistic Inference & Generative Modeling.
+
+Zeng, C., Song, Y., He, Q., & Shen, F. (2018). Spatially explicit assessment on urban vitality: Case studies in Chicago and Wuhan. Sustainable Cities and Society, 40, 296–306. https://doi.org/10.1016/j.scs.2018.04.021
+
+Zhang, H., Zhou, J., Lu, Y., Guo, M., Wang, P., Shen, L., & Qu, Q. (2024). The Emergence of Reproducibility and Generalizability in Diffusion Models (arXiv:2310.05264). arXiv. https://doi.org/10.48550/arXiv.2310.05264
+
+Zhou, F., Li, H., Xu, L., Hu, R., Wu, S., Xu, L., Feng, H., & Du, Z. (2024). From Geometric Mimicry to Comprehensive Generation: A Context-Informed Multimodal Diffusion Model for Urban Morphology Synthesis (Version 3). arXiv. https://doi.org/10.48550/ARXIV.2409.17049
+
+Zhuang, J., Li, G., Xu, H., Xu, J., & Tian, R. (2024). Text-to-City: Controllable 3D Urban Block Generation With Latent Diffusion Model. 169–178. https://doi.org/10.52842/conf.caadria.2024.2.169

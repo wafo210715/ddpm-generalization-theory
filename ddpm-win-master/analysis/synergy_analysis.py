@@ -548,7 +548,10 @@ def _load_model_and_sample(
     ddpm = DDPM(config.timesteps, ddpm_unet, diffusion_config=diffusion_config)
 
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    if "eps_model" in checkpoint or "beta" in checkpoint:
+    # Training checkpoint format: {"step": ..., "eps_model": unet_state, "optimizer": ...}
+    if "optimizer" in checkpoint:
+        ddpm.eps_model.load_state_dict(checkpoint["eps_model"])
+    elif "eps_model" in checkpoint or "beta" in checkpoint:
         ddpm.load_state_dict(checkpoint)
     else:
         ddpm.eps_model.load_state_dict(checkpoint)
@@ -1091,6 +1094,48 @@ def _generate_report(
 
 
 # ======================================================================
+# Sample saving helper
+# ======================================================================
+
+
+def _save_samples(
+    images: torch.Tensor, output_dir: str, step: int, grid_size: int = 4
+) -> None:
+    """Save individual samples and a grid composite for a checkpoint.
+
+    Args:
+        images: Tensor (N, C, H, W) in [-1, 1] range.
+        output_dir: Base output directory.
+        step: Checkpoint step number.
+        grid_size: Number of images per row in the grid composite.
+    """
+    from PIL import Image as PILImage
+    from torchvision.utils import make_grid
+
+    sample_dir = os.path.join(output_dir, f"samples_step{step}")
+    os.makedirs(sample_dir, exist_ok=True)
+
+    # Convert [-1, 1] -> [0, 255] uint8
+    x = ((images + 1) / 2).clamp(0, 1)
+    x = (x * 255).to(torch.uint8)
+
+    # Save individual images
+    for i in range(x.shape[0]):
+        img_np = x[i].permute(1, 2, 0).cpu().numpy()
+        PILImage.fromarray(img_np, mode="RGB").save(
+            os.path.join(sample_dir, f"sample_{i:04d}.png")
+        )
+
+    # Save grid composite
+    n_show = min(grid_size * grid_size, x.shape[0])
+    grid = make_grid(x[:n_show], nrow=grid_size, padding=2)
+    grid_np = grid.permute(1, 2, 0).cpu().numpy()
+    PILImage.fromarray(grid_np, mode="RGB").save(
+        os.path.join(sample_dir, f"grid_step{step}.png")
+    )
+
+
+# ======================================================================
 # CLI
 # ======================================================================
 
@@ -1157,6 +1202,11 @@ def parse_args() -> argparse.Namespace:
         "--test",
         action="store_true",
         help="Run in test mode with synthetic mock data (no GPU required).",
+    )
+    p.add_argument(
+        "--save_samples",
+        action="store_true",
+        help="Save generated samples as individual PNGs and grid composites.",
     )
     return p.parse_args()
 
@@ -1390,6 +1440,9 @@ def main() -> None:
         # Sweet spot detection
         sweet = detect_vitality_sweet_spot(generated, training_images)
 
+        if args.save_samples:
+            _save_samples(generated, args.output_dir, step)
+
         # Store results
         all_synergy_metrics[step] = synergy_metrics
         all_comparisons[step] = comparison
@@ -1503,6 +1556,38 @@ def main() -> None:
             }
             writer.writerow(row)
     print(f"CSV saved to {csv_path}")
+
+    # --- Save per-pair CSV for downstream visualization ---
+    metrics_csv_path = os.path.join(args.output_dir, "synergy_metrics.csv")
+    pair_fieldnames = [
+        "step",
+        "pair",
+        "pearson_r",
+        "pearson_p",
+        "spearman_r",
+        "spearman_p",
+        "mi_histogram",
+        "regime",
+    ]
+    with open(metrics_csv_path, "w", newline="", encoding="utf-8") as f:
+        pair_writer = csv.DictWriter(f, fieldnames=pair_fieldnames)
+        pair_writer.writeheader()
+        for step in sorted(all_synergy_metrics.keys()):
+            m = all_synergy_metrics[step]
+            regime = all_regimes[step]
+            for pair_name in ("BG", "BR", "GR"):
+                pm = m[pair_name]
+                pair_writer.writerow({
+                    "step": step,
+                    "pair": pair_name,
+                    "pearson_r": pm["pearson_r"],
+                    "pearson_p": pm["pearson_p"],
+                    "spearman_r": pm["spearman_r"],
+                    "spearman_p": pm["spearman_p"],
+                    "mi_histogram": pm["mi_histogram"],
+                    "regime": regime,
+                })
+    print(f"Per-pair CSV saved to {metrics_csv_path}")
 
     # --- Generate report ---
     report_path = _generate_report(

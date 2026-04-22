@@ -222,9 +222,14 @@ def evaluate_checkpoint_memorization(
     ddpm_unet = DDPMUnet(config.img_channels, config.model_channels)
     ddpm = DDPM(config.timesteps, ddpm_unet, diffusion_config=diffusion_config)
 
-    if "eps_model" in checkpoint or "beta" in checkpoint:
+    if isinstance(checkpoint, dict) and "optimizer" in checkpoint:
+        # Training checkpoint format: {"step": ..., "eps_model": unet_state, "optimizer": ...}
+        ddpm.eps_model.load_state_dict(checkpoint["eps_model"])
+    elif "eps_model" in checkpoint or "beta" in checkpoint:
+        # Full DDPM state dict format
         ddpm.load_state_dict(checkpoint)
     else:
+        # Raw U-Net state dict format
         ddpm.eps_model.load_state_dict(checkpoint)
 
     ddpm = ddpm.to(device)

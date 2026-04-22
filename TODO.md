@@ -49,6 +49,12 @@
 - [x] Create `configs/hcmc_vitality.yaml` for 256×256 3-channel training
 - [x] Validate: loader returns correct shapes, values in [0,1] or [-1,1]
 - [ ] Dataset characterization: marginal histograms per channel, joint scatter plots, PCA variance explained
+  - [x] DONE: channel_histograms.png, channel_scatter.png, pca_scree.png all generated
+  - [ ] **Channel data quality issue**: G (diversity) is 95% near-zero, R (accessibility) 57% near-zero. Need to investigate rasterization + normalization. Options: increase POI buffer radius, log-scale entropy, per-channel loss weighting, merge diversity into combined metric.
+- [ ] **Re-clustering with better features**: Current k=3 on (B_mean, G_mean, R_mean) is not distinctive enough. Two approaches proposed:
+  - [ ] Method 1: Per-image 3D feature clustering (B_mean, G_mean, R_mean) — visualize 3D scatter first, choose k-means vs DBSCAN
+  - [ ] Method 2: Per-pixel 3D feature clustering (each 50m pixel) — DBSCAN → image typology = composition of pixel clusters
+  - [ ] Extended features: B_std, G_std, R_std, spatial autocorrelation, not just mean
 - [ ] **Data augmentation** (conditional): Do NOT augment blindly. First find intrinsic dimension (Step 1.3). If dataset is insufficient, then add augmentation as a controlled experiment:
   - [ ] 90°/180°/270° rotations (urban structure is rotation-invariant at this scale)
   - [ ] Horizontal/vertical flips
@@ -57,21 +63,32 @@
   - [ ] **Note**: Augmentation via rotation/flip does not add variance — it's a regularization technique. Since we want to *observe* generalization behavior, treat augmentation as an experimental variable, not a default.
 
 ### Step 1.3: DDPM Training
-- [ ] **GPU**: Start DDPM training (20K-50K steps, logarithmic checkpointing)
-- [ ] Monitor: train loss, checkpoint at logarithmic intervals (100, 250, 500, 1K, 2.5K, 5K, 10K, 20K, 40K)
-- [ ] **CPU (parallel)**: Pre-classify training images by channel statistics (cluster into vitality tiers)
-- [ ] **CPU (parallel)**: Compute intrinsic dimension via PCA/MLE on training set
-- [ ] **CPU (parallel)**: Prepare evaluation scripts (see Step 1.4)
-- [ ] **EMA consideration**: Evaluate whether EMA (Exponential Moving Average) is needed based on training dynamics. If overfitting oscillations appear on 609 images, implement EMA in `train.py`. (EDM codebase uses EMA; ddpm-win-master currently doesn't.)
+- [x] **GPU**: v3 training completed (500K steps, base_ch=128, 157.8M params, linear schedule, 128×128×3)
+- [x] Monitor: train loss, checkpoint at logarithmic intervals (19 checkpoints saved)
+- [x] **CPU**: Pre-encoding analysis completed (intrinsic dim=33, k=3 typologies, CLAUDE.md claims were wrong)
+- [x] **CPU**: F_mem evaluation across all 19 checkpoints (50 + 100 + 1000 samples)
+- [ ] **Investigate train/val loss divergence vs memorization onset gap**: Divergence occurs well before step 240K where memorization starts. Why is there such a large gap? Theoretical question — relates to implicit regularization in diffusion training.
+- [ ] **Resume training for longer**: Current 500K shows only 12/1000 memorized. Need longer training (1M–2M+) with smaller model (base_ch=32, ~10M params) to fully observe memorization window.
+- [ ] **Train/val loss logging fix**: train.py opens log with `"w"` (overwrite) on resume — should be `"a"` (append)
+- [ ] **U-Net depth and resolution tuning**: User considering deeper U-Net and 512×512 resolution (smaller batch size, less smooth convergence)
+- [ ] **EMA consideration**: Evaluate whether EMA (Exponential Moving Average) is needed based on training dynamics. (EDM codebase uses EMA; ddpm-win-master currently doesn't.)
 
 ### Step 1.4: Analysis & Evaluation
 - [ ] **Geospatial data loader**: Build and validate (see Step 1.2) — this is a prerequisite, not afterthought
 - [x] **DDIM sampling**: Implement DDIM for fast deterministic sampling (port from `Why-Diffusion-Models-Don-t-Memorize-main/Experiments/src/Utils/Diffusion.py`)
-- [x] **Memorization tracking** (PRIMARY METRIC): Port `compute_fmem.py` (k-NN gap ratio, threshold=0.333) — identifies generalization window. This is the domain-agnostic core metric.
-- [ ] **SSCD reproducibility** (PRIMARY METRIC): Port SSCD descriptors from `Diffusion-Model-Generalizability-main/edm/sscd.py` — reproducibility + memorization scores. More robust than FID for non-natural images.
+- [x] **DDPM sampling**: Implement DDPM 1000-step sampling (Algorithm 2, Ho et al. 2020)
+- [x] **Memorization tracking** (PRIMARY METRIC): Port `compute_fmem.py` (k-NN gap ratio, threshold=0.333). Verified correct against reference. Ran 50/100/1000 samples per checkpoint.
+- [ ] **Gap ratio distribution tracking** (NOVEL CONTRIBUTION): Track gap ratio histograms, percentile curves (p5/p25/p50/p75/p95), and distribution shape evolution across training. Literature review confirms zero precedent — all existing papers use F_mem as binary classifier only. Data source: `gap_ratios_1000samples.csv` (19,000 rows).
+- [ ] **F_mem 10,000 samples**: For publication quality. Not urgent — wait for dataset curation and adequate model training.
+- [ ] **Feature-space F_mem**: Compute gap ratios in U-Net bottleneck embeddings instead of raw 49K-dim pixels. Bypasses remaining dimensionality concerns.
+- [ ] **Latent walk**: Future evaluation technique (user to provide details). TBD.
 - [ ] ~~FID computation~~: **REMOVED.** FID uses InceptionV3 (ImageNet features) which has zero semantic overlap with urban rasters. The number it produces is uninterpretable for our data. Replaced with k-NN gap + SSCD as primary metrics.
 - [ ] **Jacobian rank analysis**: Port from `Diffusion-Model-Generalizability-main/edm/jacobian.py`, adapted for 256×256 using **Hutchinson trace estimator** (randomized rank estimation) or computed at U-Net bottleneck (16×16) instead of full input. Full SVD at 256×256×3 would require ~200K×200K matrix — infeasible.
 - [ ] **Intrinsic dimension estimation**: PCA + MLE on training set → identify saturation point
+  - [x] DONE: k95=33, k99=149, MLE=3.93 (pre_encoding_analysis.py on all 4,183 cells)
+  - [ ] **Minimal dataset**: Copy the ~33 representative images spanning intrinsic dimension to a curated folder
+  - [ ] **Cluster-balanced dataset**: Create datasets with equal samples from each typology (cluster 0/1/2)
+  - [ ] **Dense-core-only dataset**: 241 images from cluster 2 (dense urban core) only
 - [ ] Extract U-Net bottleneck features at key checkpoints
 - [ ] Distribution comparison: Wasserstein per channel, Moran's I on generated samples, MMD
 - [ ] **Baseline comparison**: Compare memorization dynamics with MNIST results (already available from ddpm-win-master testing) and Bonnaire et al. CelebA results for reference
@@ -91,11 +108,15 @@ These are ports from research repos into ddpm-win-master:
 
 ### Step 1.6: Visualization
 > High-dimensional embedding space analysis requires visualization at every stage. This is a cross-cutting concern, not a one-time task.
+> **IMPORTANT**: Separation of computation and visualization scripts. Computation scripts produce CSVs; visualization scripts read CSVs and produce plots. This enables future R/Python publication-ready figure generation.
 
+- [x] **Gap ratio distribution**: Histograms per checkpoint, percentile curves vs training step, F_mem comparison across sample counts
+- [x] **Channel statistics**: Per-channel mean/variance comparison (real vs generated)
+- [x] **Synergy analysis**: Inter-channel correlation evolution across checkpoints
 - [ ] **Training dynamics**: Loss curves per checkpoint, sample grid at each log-checkpoint
 - [ ] **Channel analysis**: Per-channel histogram comparison (real vs generated), spatial autocorrelation (Moran's I) on generated samples
 - [ ] **Latent space**: UMAP/t-SNE of U-Net bottleneck features, colored by channel statistics and cell origin
-- [ ] **Generalization window**: Plot memorization fraction vs training steps (the core thesis figure)
+- [ ] **Generalization window**: Plot memorization fraction vs training steps (the core thesis figure) — combine F_mem + gap ratio percentile curves
 - [ ] **Jacobian rank evolution**: Rank estimate vs training steps (validates low-rank manifold learning)
 - [ ] **Sample quality**: Side-by-side real vs generated cells at key checkpoints (early, mid, late training)
 - [ ] **Spatial structure**: Moran's I comparison between real and generated rasters at each checkpoint
@@ -293,10 +314,12 @@ Step 2 internal parallelism:
 
 ### Metrics Strategy
 - **Primary**: k-NN gap ratio (memorization fraction) — domain-agnostic, directly measures generalization window
+- **Primary**: Gap ratio distribution tracking (NOVEL) — percentile curves, histograms, shape evolution across training
 - **Primary**: SSCD reproducibility score — self-supervised descriptors, robust to non-natural images
 - **Removed**: FID — InceptionV3 features meaningless for urban rasters
-- **Supplementary**: Per-channel Wasserstein distance, Moran's I, MMD
+- **Supplementary**: Per-channel Wasserstein distance, Moran's I, MMD, synergy analysis
 - **Structural**: Jacobian rank (Hutchinson), intrinsic dimension (PCA/MLE)
+- **Future**: Latent walk evaluation (details TBD)
 
 ---
 
@@ -311,4 +334,6 @@ Step 2 internal parallelism:
 | `discussion/DDPM-experiment-design-framework.md` | Original experiment design (District 1 vs District 7) |
 | `progress-260409.md` | Brainstorming session: RGB encoding decisions, sprint plan |
 | `progress-260410.md` | Channel redesign: B=buildings, R=exponential decay, accessibility survey |
+| `progress_260420.md` | Post-training evaluation pipeline execution, F_mem ≈ 0 finding, synergy analysis |
+| `progress_260421.md` | F_mem 1000 samples (memorization confirmed), pre-encoding analysis, gap ratio novelty, channel imbalance |
 | `references/accessibility_measures_survey.md` | 630-line academic survey on accessibility measures |

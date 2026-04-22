@@ -1,0 +1,68 @@
+# HCMC Urban Vitality v3 — RTX 5090 Single GPU Configuration
+# Upgraded from dual RTX 3090 setup:
+#   - Single GPU (no DataParallel overhead)
+#   - Much larger batch size possible with 32GB VRAM
+#   - Expected ~5-10x throughput improvement over dual 3090
+
+# Device settings — single 5090, no DataParallel needed
+use_dual_gpu: false
+
+# Dataset settings
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 128
+batch_size: 16
+
+# Model (ch=128, ~157.8M params)
+model_channels: 128
+
+# Training (step-based)
+lr: 0.0001
+n_steps: 500000
+timesteps: 1000
+log_every: 100
+
+# Validation loss tracking
+val_every: 5000
+val_steps: 50
+
+# Diffusion schedule configuration
+schedule_type: "linear"
+# Linear schedule parameters (DDPM standard naming)
+b0: 0.0001
+bT: 0.02
+# Fixed schedule parameters
+beta: 0.006
+# VP schedule parameters (Song et al. SDE naming)
+beta_d: 19.9
+beta_min: 0.1
+# VE schedule parameters (Song et al. SDE naming)
+sigma_min: 0.02
+sigma_max: 100.0
+
+# Paths
+data_root: "../data-processing/data/hcmc/processed/cells"
+checkpoint_dir: "model_ckpts/hcmc_vitality_v3"
+log_dir: "logs/hcmc_vitality_v3"
+
+# Normalization
+center: true
+normalize: true
+
+# Checkpointing (logarithmic for generalization window analysis)
+save_initial:
+  - 100
+  - 250
+  - 500
+  - 1000
+  - 2500
+  - 5000
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 300000
+  - 400000
+  - 500000
+save_interval: 10000

@@ -321,9 +321,14 @@ def generate_samples_for_checkpoint(
     ddpm_unet = DDPMUnet(config.img_channels, config.model_channels)
     ddpm = DDPM(config.timesteps, ddpm_unet, diffusion_config=diffusion_config)
 
-    if "eps_model" in checkpoint or "beta" in checkpoint:
+    if isinstance(checkpoint, dict) and "optimizer" in checkpoint:
+        # Training checkpoint format: {"step": ..., "eps_model": unet_state, "optimizer": ...}
+        ddpm.eps_model.load_state_dict(checkpoint["eps_model"])
+    elif "eps_model" in checkpoint or "beta" in checkpoint:
+        # Full DDPM state dict format
         ddpm.load_state_dict(checkpoint)
     else:
+        # Raw U-Net state dict format
         ddpm.eps_model.load_state_dict(checkpoint)
 
     ddpm = ddpm.to(device)
@@ -729,6 +734,48 @@ def generate_report(
 
 
 # ======================================================================
+# Sample saving helper
+# ======================================================================
+
+
+def _save_samples(
+    images: torch.Tensor, output_dir: str, step: int, grid_size: int = 4
+) -> None:
+    """Save individual samples and a grid composite for a checkpoint.
+
+    Args:
+        images: Tensor (N, C, H, W) in [-1, 1] range.
+        output_dir: Base output directory.
+        step: Checkpoint step number.
+        grid_size: Number of images per row in the grid composite.
+    """
+    from PIL import Image as PILImage
+    from torchvision.utils import make_grid
+
+    sample_dir = os.path.join(output_dir, f"samples_step{step}")
+    os.makedirs(sample_dir, exist_ok=True)
+
+    # Convert [-1, 1] -> [0, 255] uint8
+    x = ((images + 1) / 2).clamp(0, 1)
+    x = (x * 255).to(torch.uint8)
+
+    # Save individual images
+    for i in range(x.shape[0]):
+        img_np = x[i].permute(1, 2, 0).cpu().numpy()
+        PILImage.fromarray(img_np, mode="RGB").save(
+            os.path.join(sample_dir, f"sample_{i:04d}.png")
+        )
+
+    # Save grid composite
+    n_show = min(grid_size * grid_size, x.shape[0])
+    grid = make_grid(x[:n_show], nrow=grid_size, padding=2)
+    grid_np = grid.permute(1, 2, 0).cpu().numpy()
+    PILImage.fromarray(grid_np, mode="RGB").save(
+        os.path.join(sample_dir, f"grid_step{step}.png")
+    )
+
+
+# ======================================================================
 # CLI
 # ======================================================================
 
@@ -803,6 +850,11 @@ def parse_args() -> argparse.Namespace:
         "--split",
         default="train",
         help="Dataset split for training images (default: train).",
+    )
+    p.add_argument(
+        "--save_samples",
+        action="store_true",
+        help="Save generated samples as individual PNGs and grid composites.",
     )
     return p.parse_args()
 
@@ -982,6 +1034,9 @@ def main() -> None:
             ch_2d = imgs_01[0, ch_idx, :, :].cpu().numpy()
             morans[key] = compute_morans_i(ch_2d)
         morans_i_by_step[step] = morans
+
+        if args.save_samples:
+            _save_samples(generated, args.output_dir, step)
 
         print(
             f"  B: mean={ch_stats['b_mean']:.4f} std={ch_stats['b_std']:.4f} "

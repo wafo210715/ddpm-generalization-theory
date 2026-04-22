@@ -174,83 +174,98 @@ def fetch_buildings(grid_gdf):
 
 def fetch_pois(grid_gdf):
     """Fetch POI nodes/ways from Overpass API.
-    Categories: amenity, shop, office, tourism, leisure. Cache to hcmc_pois_all.gpkg."""
+    Categories: amenity, shop, office, tourism, leisure.
+    Uses tile-splitting (4 tiles) to avoid Overpass timeouts.
+    Cache to hcmc_pois_all.gpkg."""
     cache_path = RAW_DIR / "hcmc_pois_all.gpkg"
     if cache_path.exists():
         pois = gpd.read_file(cache_path)
         log.info(f"Loaded {len(pois)} cached POIs")
         return pois
 
-    log.info("Fetching POIs from Overpass API...")
+    log.info("Fetching POIs from Overpass API (tile-split)...")
     grid_wgs84 = grid_gdf.to_crs(epsg=4326)
     bounds = grid_wgs84.total_bounds
-    bbox = (bounds[1], bounds[0], bounds[3], bounds[2])
+    bbox = (bounds[1], bounds[0], bounds[3], bounds[2])  # (lat_min, lon_min, lat_max, lon_max)
 
     overpass_url = "https://overpass-api.de/api/interpreter"
-    query = (
-        f'[out:json][timeout:300][maxsize:536870912];\n'
-        f'(\n'
-        f'  node["amenity"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  node["shop"~"supermarket|convenience|mall|clothes|electronics|bakery"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  node["office"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  node["tourism"~"hotel|hostel|museum|attraction|viewpoint|artwork"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  node["leisure"~"park|garden|playground|sports_centre|swimming_pool|fitness_centre"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  way["amenity"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  way["shop"~"supermarket|convenience|mall|clothes|electronics|bakery"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  way["office"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  way["tourism"~"hotel|hostel|museum|attraction|viewpoint|artwork"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f'  way["leisure"~"park|garden|playground|sports_centre|swimming_pool|fitness_centre"]({bbox[0]:.4f},{bbox[1]:.4f},{bbox[2]:.4f},{bbox[3]:.4f});\n'
-        f');\n'
-        f'out center;'
-    )
+    lat_step = (bbox[2] - bbox[0]) / 2
+    lon_step = (bbox[3] - bbox[1]) / 2
+    tiles = []
+    for i in range(2):
+        for j in range(2):
+            tile = (
+                bbox[0] + i * lat_step, bbox[1] + j * lon_step,
+                bbox[0] + (i + 1) * lat_step, bbox[1] + (j + 1) * lon_step,
+            )
+            tiles.append(tile)
 
-    log.info("  Sending Overpass query (nodes + ways)...")
-    data = {}
-    for attempt in range(3):
-        try:
-            resp = requests.post(overpass_url, data={"data": query}, timeout=600)
-            resp.raise_for_status()
-            data = resp.json()
-            break
-        except Exception as e:
-            log.warning(f"  Attempt {attempt + 1} failed: {e}")
-            if attempt < 2:
-                time.sleep(30 * (attempt + 1))
+    all_records = []
+    for t_idx, tile in enumerate(tiles):
+        log.info(f"  Querying POI tile {t_idx + 1}/{len(tiles)}")
+        query = (
+            f'[out:json][timeout:300][maxsize:536870912];\n'
+            f'(\n'
+            f'  node["amenity"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  node["shop"~"supermarket|convenience|mall|clothes|electronics|bakery"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  node["office"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  node["tourism"~"hotel|hostel|museum|attraction|viewpoint|artwork"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  node["leisure"~"park|garden|playground|sports_centre|swimming_pool|fitness_centre"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  way["amenity"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  way["shop"~"supermarket|convenience|mall|clothes|electronics|bakery"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  way["office"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  way["tourism"~"hotel|hostel|museum|attraction|viewpoint|artwork"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f'  way["leisure"~"park|garden|playground|sports_centre|swimming_pool|fitness_centre"]({tile[0]:.4f},{tile[1]:.4f},{tile[2]:.4f},{tile[3]:.4f});\n'
+            f');\n'
+            f'out center;'
+        )
+
+        data = {"elements": []}
+        for attempt in range(3):
+            try:
+                resp = requests.post(overpass_url, data={"data": query}, timeout=600)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                log.warning(f"    Attempt {attempt + 1} failed: {e}")
+                if attempt < 2:
+                    time.sleep(60 * (attempt + 1))
+                else:
+                    log.warning(f"    Skipping POI tile {t_idx + 1}")
+
+        for elem in data.get("elements", []):
+            tags = elem.get("tags", {})
+            if elem["type"] == "node":
+                lat, lon = elem.get("lat"), elem.get("lon")
             else:
-                raise
+                center = elem.get("center", {})
+                lat, lon = center.get("lat"), center.get("lon")
+            if lat is None or lon is None:
+                continue
+            category, poi_type = "unknown", "unknown"
+            if "amenity" in tags:
+                category, poi_type = tags["amenity"], "amenity"
+            elif "shop" in tags:
+                category, poi_type = tags["shop"], "shop"
+            elif "office" in tags:
+                category, poi_type = tags["office"], "office"
+            elif "tourism" in tags:
+                category, poi_type = tags["tourism"], "tourism"
+            elif "leisure" in tags:
+                category, poi_type = tags["leisure"], "leisure"
+            all_records.append({
+                "geometry": Point(lon, lat),
+                "poi_category": category,
+                "poi_type": poi_type,
+                "osm_type": elem["type"],
+            })
+        log.info(f"    POIs so far: {len(all_records)}")
 
-    records = []
-    for elem in data["elements"]:
-        tags = elem.get("tags", {})
-        if elem["type"] == "node":
-            lat, lon = elem.get("lat"), elem.get("lon")
-        else:
-            center = elem.get("center", {})
-            lat, lon = center.get("lat"), center.get("lon")
-        if lat is None or lon is None:
-            continue
-        category, poi_type = "unknown", "unknown"
-        if "amenity" in tags:
-            category, poi_type = tags["amenity"], "amenity"
-        elif "shop" in tags:
-            category, poi_type = tags["shop"], "shop"
-        elif "office" in tags:
-            category, poi_type = tags["office"], "office"
-        elif "tourism" in tags:
-            category, poi_type = tags["tourism"], "tourism"
-        elif "leisure" in tags:
-            category, poi_type = tags["leisure"], "leisure"
-        records.append({
-            "geometry": Point(lon, lat),
-            "poi_category": category,
-            "poi_type": poi_type,
-            "osm_type": elem["type"],
-        })
-
-    if not records:
+    if not all_records:
         raise RuntimeError("No POIs found from Overpass API")
 
-    pois = gpd.GeoDataFrame(records, crs="EPSG:4326")
+    pois = gpd.GeoDataFrame(all_records, crs="EPSG:4326")
     pois.to_file(cache_path, driver="GPKG")
     log.info(f"Total POIs: {len(pois)}")
     return pois

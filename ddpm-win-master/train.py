@@ -12,6 +12,7 @@ from torch.nn.parallel import DataParallel
 from torch.utils.data import DataLoader
 import argparse
 import os
+import csv
 import glob
 from tqdm.auto import tqdm
 
@@ -199,6 +200,16 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
     os.makedirs(config.checkpoint_dir, exist_ok=True)
     checkpoint_path = os.path.join(config.checkpoint_dir, f"{config.run_name}.pth")
 
+    # --- Training log setup ---
+    log_dir = os.path.join(config.log_dir, config.run_name)
+    os.makedirs(log_dir, exist_ok=True)
+    log_csv_path = os.path.join(log_dir, "training_log.csv")
+    log_file = open(log_csv_path, "w", newline="")
+    log_writer = csv.writer(log_file)
+    log_writer.writerow(["step", "loss", "val_loss"])
+    log_file.flush()
+    print(f"Training logs: {log_dir}")
+
     # Resume from checkpoint if provided
     start_step = 0
     if resume_from:
@@ -228,122 +239,144 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
 
     data_iter = iter(dataloader)
 
-    pbar = tqdm(range(start_step + 1, config.n_steps + 1), desc="Training",
-                initial=start_step, total=config.n_steps)
-    for step in pbar:
-        # Get batch (handle dataloader exhaustion)
-        try:
-            batch = next(data_iter)
-        except StopIteration:
-            data_iter = iter(dataloader)
-            batch = next(data_iter)
+    try:
+        pbar = tqdm(range(start_step + 1, config.n_steps + 1), desc="Training",
+                    initial=start_step, total=config.n_steps)
+        for step in pbar:
+            # Get batch (handle dataloader exhaustion)
+            try:
+                batch = next(data_iter)
+            except StopIteration:
+                data_iter = iter(dataloader)
+                batch = next(data_iter)
 
-        # Handle dataset that returns tuples (MNIST) vs single tensors vs dicts
-        x_0 = batch[0] if isinstance(batch, (list, tuple)) else batch
-        if isinstance(x_0, dict):
-            x_0 = x_0["image"]
-        x_0 = x_0.to(device)
+            # Handle dataset that returns tuples (MNIST) vs single tensors vs dicts
+            x_0 = batch[0] if isinstance(batch, (list, tuple)) else batch
+            if isinstance(x_0, dict):
+                x_0 = x_0["image"]
+            x_0 = x_0.to(device)
 
-        # Sample timestep and noise
-        t = torch.randint(0, ddpm.timesteps, (x_0.shape[0],), device=device)
-        eps = torch.randn_like(x_0, device=device)
+            # Sample timestep and noise
+            t = torch.randint(0, ddpm.timesteps, (x_0.shape[0],), device=device)
+            eps = torch.randn_like(x_0, device=device)
 
-        # Forward pass
-        x_t = ddpm.q_sample(x_0, t, eps)
-        eps_theta = ddpm.eps_model(x_t, t)
-        loss = loss_fn(eps_theta, eps)
+            # Forward pass
+            x_t = ddpm.q_sample(x_0, t, eps)
+            eps_theta = ddpm.eps_model(x_t, t)
+            loss = loss_fn(eps_theta, eps)
 
-        # Check for NaN loss
-        if torch.isnan(loss):
-            print(f"\n[WARNING] NaN loss detected at step {step}, skipping batch")
+            # Check for NaN loss
+            if torch.isnan(loss):
+                print(f"\n[WARNING] NaN loss detected at step {step}, skipping batch")
+                optimizer.zero_grad()
+                continue
+
+            # Backward pass
             optimizer.zero_grad()
-            continue
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(ddpm.parameters(), max_norm=1.0)
+            optimizer.step()
 
-        # Backward pass
-        optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(ddpm.parameters(), max_norm=1.0)
-        optimizer.step()
+            # Track metrics
+            losses.append(loss.item())
+            step_count += 1
 
-        # Track metrics
-        losses.append(loss.item())
-        step_count += 1
-
-        # Update progress bar
-        if step % config.log_every == 0:
-            avg_loss = sum(losses[-config.log_every :]) / min(
-                len(losses), config.log_every
-            )
-            pbar.set_postfix({"loss": f"{avg_loss:.6f}"})
-
-        # Validation loss (every val_every steps, no gradients)
-        if val_dataloader is not None and step % config.val_every == 0:
-            ddpm.eval()
-            val_losses = []
-            n_val_batches = min(config.val_steps, len(val_dataloader))
-            with torch.no_grad():
-                val_iter = iter(val_dataloader)
-                for _ in range(n_val_batches):
-                    try:
-                        val_batch = next(val_iter)
-                    except StopIteration:
-                        break
-                    val_x0 = (
-                        val_batch[0]
-                        if isinstance(val_batch, (list, tuple))
-                        else val_batch
-                    )
-                    if isinstance(val_x0, dict):
-                        val_x0 = val_x0["image"]
-                    val_x0 = val_x0.to(device)
-                    val_t = torch.randint(
-                        0, ddpm.timesteps, (val_x0.shape[0],), device=device
-                    )
-                    val_eps = torch.randn_like(val_x0, device=device)
-                    val_x_t = ddpm.q_sample(val_x0, val_t, val_eps)
-                    val_eps_theta = ddpm.eps_model(val_x_t, val_t)
-                    val_losses.append(loss_fn(val_eps_theta, val_eps).item())
-            ddpm.train()
-
-            if val_losses:
-                avg_val_loss = sum(val_losses) / len(val_losses)
-                print(
-                    f"[VAL] step {step}: val_loss={avg_val_loss:.6f}"
-                )
-                recent_loss = sum(losses[-config.log_every :]) / min(
+            # Update progress bar
+            if step % config.log_every == 0:
+                avg_loss = sum(losses[-config.log_every :]) / min(
                     len(losses), config.log_every
                 )
-                pbar.set_postfix(
-                    {"loss": f"{recent_loss:.6f}", "val_loss": f"{avg_val_loss:.6f}"}
-                )
+                pbar.set_postfix({"loss": f"{avg_loss:.6f}"})
+                log_writer.writerow([step, f"{avg_loss:.6f}", ""])
+                log_file.flush()
 
-        # Save checkpoints
-        if (
-            next_checkpoint_idx < len(checkpoint_steps)
-            and step == checkpoint_steps[next_checkpoint_idx]
-        ):
-            checkpoint_file = checkpoint_path.replace(".pth", f"_step{step}.pth")
-            save_model(ddpm, optimizer, step, checkpoint_file, config.use_dual_gpu)
-            print(f"\n[CHECKPOINT] Saved at step {step}: {checkpoint_file}")
-            next_checkpoint_idx += 1
+            # Validation loss (every val_every steps, no gradients)
+            if val_dataloader is not None and step % config.val_every == 0:
+                ddpm.eval()
+                val_losses = []
+                n_val_batches = min(config.val_steps, len(val_dataloader))
+                with torch.no_grad():
+                    val_iter = iter(val_dataloader)
+                    for _ in range(n_val_batches):
+                        try:
+                            val_batch = next(val_iter)
+                        except StopIteration:
+                            break
+                        val_x0 = (
+                            val_batch[0]
+                            if isinstance(val_batch, (list, tuple))
+                            else val_batch
+                        )
+                        if isinstance(val_x0, dict):
+                            val_x0 = val_x0["image"]
+                        val_x0 = val_x0.to(device)
+                        val_t = torch.randint(
+                            0, ddpm.timesteps, (val_x0.shape[0],), device=device
+                        )
+                        val_eps = torch.randn_like(val_x0, device=device)
+                        val_x_t = ddpm.q_sample(val_x0, val_t, val_eps)
+                        val_eps_theta = ddpm.eps_model(val_x_t, val_t)
+                        val_losses.append(loss_fn(val_eps_theta, val_eps).item())
+                ddpm.train()
 
-    # Final summary
-    print("\n" + "=" * 60)
-    print("TRAINING COMPLETE")
-    print("=" * 60)
-    print(f"Total steps: {step_count}")
-    print(f"Final loss: {losses[-1]:.6f}")
-    print(f"Average loss: {sum(losses) / len(losses):.6f}")
+                if val_losses:
+                    avg_val_loss = sum(val_losses) / len(val_losses)
+                    print(
+                        f"[VAL] step {step}: val_loss={avg_val_loss:.6f}"
+                    )
+                    recent_loss = sum(losses[-config.log_every :]) / min(
+                        len(losses), config.log_every
+                    )
+                    pbar.set_postfix(
+                        {"loss": f"{recent_loss:.6f}", "val_loss": f"{avg_val_loss:.6f}"}
+                    )
+                    log_writer.writerow([step, f"{recent_loss:.6f}", f"{avg_val_loss:.6f}"])
+                    log_file.flush()
 
-    # Save final model
-    save_model(ddpm, optimizer, config.n_steps, checkpoint_path, config.use_dual_gpu)
-    print(f"\nModel saved: {checkpoint_path}")
+            # Save checkpoints
+            if (
+                next_checkpoint_idx < len(checkpoint_steps)
+                and step == checkpoint_steps[next_checkpoint_idx]
+            ):
+                checkpoint_file = checkpoint_path.replace(".pth", f"_step{step}.pth")
+                save_model(ddpm, optimizer, step, checkpoint_file, config.use_dual_gpu)
+                print(f"\n[CHECKPOINT] Saved at step {step}: {checkpoint_file}")
+                next_checkpoint_idx += 1
 
-    # GPU memory info
-    if torch.cuda.is_available():
-        for i in range(torch.cuda.device_count()):
-            mem = torch.cuda.memory_allocated(i) / 1024**3
-            print(f"GPU {i} memory allocated: {mem:.2f} GB")
+        # Final summary
+        print("\n" + "=" * 60)
+        print("TRAINING COMPLETE")
+        print("=" * 60)
+        print(f"Total steps: {step_count}")
+        print(f"Final loss: {losses[-1]:.6f}")
+        print(f"Average loss: {sum(losses) / len(losses):.6f}")
+
+        # Save final model
+        save_model(ddpm, optimizer, config.n_steps, checkpoint_path, config.use_dual_gpu)
+        print(f"\nModel saved: {checkpoint_path}")
+
+        # GPU memory info
+        if torch.cuda.is_available():
+            for i in range(torch.cuda.device_count()):
+                mem = torch.cuda.memory_allocated(i) / 1024**3
+                print(f"GPU {i} memory allocated: {mem:.2f} GB")
+    finally:
+        log_file.close()
+
+    # Write training summary
+    summary_path = os.path.join(log_dir, "training_summary.txt")
+    with open(summary_path, "w") as f:
+        f.write(f"Training Summary: {config.run_name}\n")
+        f.write(f"{'=' * 40}\n")
+        f.write(f"Config: dataset={config.dataset_name}, img_size={config.img_size}, "
+                f"model_channels={config.model_channels}, lr={config.lr}\n")
+        f.write(f"Total steps: {step_count}\n")
+        f.write(f"Final loss: {losses[-1]:.6f}\n")
+        f.write(f"Average loss: {sum(losses) / len(losses):.6f}\n")
+        f.write(f"Min loss: {min(losses):.6f}\n")
+        f.write(f"Max loss: {max(losses):.6f}\n")
+        f.write(f"Checkpoints saved: {next_checkpoint_idx}\n")
+    print(f"Training summary saved: {summary_path}")
 
 
 def main():
