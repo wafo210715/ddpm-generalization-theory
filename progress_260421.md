@@ -194,37 +194,150 @@ Papers using gap ratio: Yoon et al. (2023) [originator], Gu et al. (2023) [adopt
 
 ### Track 1: Fix the Data (CRITICAL PATH — blocks everything else)
 
-1. **Fix channel data quality** — G (diversity) is 95% near-zero. Options:
-   - Increase POI buffer radius (150m → 300-500m)
-   - Log-scale entropy instead of linear
-   - Per-channel loss weighting to compensate imbalance
-   - Merge diversity into a combined "urban activity" metric
-2. **Re-cluster with better features** — Current k=3 on (B_mean, G_mean, R_mean) not distinctive enough:
-   - **Method 1**: Per-image 3D features → visualize 3D scatter → choose k-means vs DBSCAN
-   - **Method 2**: Per-pixel 3D features → DBSCAN → image typology = composition of pixel clusters
-   - Consider extended features: B_std, G_std, R_std, spatial autocorrelation (not just mean)
-3. **Curate comparative datasets** from `typology_labels.csv` (4,183 rows):
-   - Minimal dataset (~33 images spanning intrinsic dimension)
-   - Cluster-balanced dataset (equal samples from clusters 0, 1, 2)
-   - Dense-core-only dataset (241 images, cluster 2)
-4. **Consider 512×512 resolution** — tradeoff: higher resolution vs smaller batch size (less smooth convergence)
-5. **Consider smaller model** — base_ch=32 (~10M params) so memorization is actually reachable within training budget
+1. **Fix channel data quality** — G (diversity) is 95% near-zero.
+   - Channel stats evidence: B mean=8.1 (82% empty), G mean=2.2 (95% empty), R mean=22.3 (57% empty)
+   - Histogram: `data-processing/data/hcmc/reports/pre_encoding/channel_histograms.png`
+   - Rasterization code: `data-processing/scripts/build_hcmc_pipeline_v2.py`
+     - POI buffer radius hardcoded at ~line where `buffer` is set for POI entropy computation (search `"buffer"`, `"150"`, or `"distance"` in the G channel section)
+     - G channel = Shannon entropy of POI categories within 150m buffer rings, computed on 20×20 subcell grid, then upsampled to 128×128
+   - Normalization: global p95 normalization (search `"p95"` or `"percentile"` in the same file) — may suppress diversity signal
+   - Raw channel arrays before normalization: `data-processing/data/hcmc/processed/g_maps_raw.pkl` (26.1 MB, 4183 × 20×20 float arrays)
+   - Per-channel PNGs: `data-processing/data/hcmc/processed/channels/diversity/*.png` (4183 files, 128×128 grayscale)
+   - Options: increase POI buffer (150m→300-500m), log-scale entropy, per-channel loss weighting, merge diversity into combined metric
+
+2. **Re-cluster with better features** — Current k=3 on (B_mean, G_mean, R_mean) not distinctive enough.
+   - Current clustering script: `data-processing/scripts/pre_encoding_analysis.py` (840 lines)
+     - `classify_typology()` function: computes per-image (B_mean, G_mean, R_mean) then k-means with silhouette selection over k_range=[3,4,5,6,7]
+     - `cluster_stability()` function: plots silhouette score vs k
+   - Current results: `data-processing/data/hcmc/reports/pre_encoding/typology_labels.csv` (4183 rows, columns: filename, B_mean, G_mean, R_mean, cluster)
+   - Current plots: `data-processing/data/hcmc/reports/pre_encoding/cluster_stability.png`, `umap_typology.png`
+   - Representative examples: `data-processing/data/hcmc/reports/pre_encoding/representative_examples/cluster_{0,1,2}/`
+   - **Method 1**: Per-image 3D features → visualize 3D scatter (`channel_scatter.png` already exists but may not show clusters clearly) → decide k-means vs DBSCAN
+   - **Method 2**: Per-pixel clustering — no script exists yet. Raw data at `g_maps_raw.pkl` / `b_maps_raw.pkl` / `r_maps_raw.pkl` (each is 4183 arrays of shape 20×20). Each subcell has (b, g, r) features. DBSCAN on these 4183×20×20×3 = 5M points.
+   - Extended features to consider: not just (B_mean, G_mean, R_mean), but also per-channel std, spatial autocorrelation, edge density
+
+3. **Curate comparative datasets** from typology_labels.csv.
+   - Source CSV: `data-processing/data/hcmc/reports/pre_encoding/typology_labels.csv` (4183 rows)
+   - Intrinsic dim analysis: `data-processing/data/hcmc/reports/pre_encoding/intrinsic_dimension.txt` (PCA k95=33)
+   - PCA eigenvalues saved in `pca_scree.png` — exact component variances need to be re-extracted from the script's output or re-run
+   - Split files: `data-processing/data/hcmc/processed/cells/splits/train_cells.txt` (3259 filenames)
+   - All PNGs: `data-processing/data/hcmc/processed/cells/*.png` (4183 files, 128×128×3)
+   - Datasets to curate:
+     - Minimal dataset (~33 images spanning intrinsic dim) — copy to a new folder
+     - Cluster-balanced dataset (equal from clusters 0/1/2) — subsample cluster 1 (3069) down to ~241
+     - Dense-core-only dataset (241 images, cluster 2 only)
+
+4. **Consider 512×512 resolution** — tradeoff: higher resolution vs smaller batch size.
+   - Current resolution: 128×128, set in `ddpm-win-master/configs/hcmc_vitality_v3_5090.yaml` → `img_size: 128`
+   - Pipeline upsamples from 20×20 to 128×128: `build_hcmc_pipeline_v2.py` → search `"zoom"` or `"128"` or `"upsample"`
+   - U-Net: `ddpm-win-master/model/unet.py` — DDPMUnet class, `channel_mults=[1,2,2,2]`, 4 resolution levels
+   - At 512×512: 4 levels → 32×32 bottleneck. May need 5th level (`channel_mults=[1,2,2,2,4]`) or attention at deeper levels
+   - Memory: batch_size=16 at 128×128 uses ~20GB VRAM. At 512×512: 16× more pixels per image → batch_size=1-2 likely
+
+5. **Consider smaller model** — base_ch=32 (~10M params) so memorization is actually reachable.
+   - Current model: `ddpm-win-master/model/unet.py` → `DDPMUnet(in_channels=3, model_channels=128)` → 157.8M params
+   - Param formula: `p(d,W) = W(2d+13) + d + 6W²` where d=img_size=128, W=model_channels=128 → ~158M
+   - At W=32: p(128,32) = 32(2×128+13) + 128 + 6×32² = 32×269 + 128 + 6144 = 14,864 params (tiny)
+   - More realistic: `model_channels=64` → ~39M params. Or keep ch=128 but reduce depth (`channel_mults=[1,2]` → 2 levels) → ~17M
+   - v3 config: `ddpm-win-master/configs/hcmc_vitality_v3_5090.yaml` — change `model_channels: 128` → `32` or `64`
+   - Data: 3259 training images. Bonnaire et al. used n up to 32768 with p up to 16M. Our p/n ratio at 10M params = ~3000, which is in their "memorization regime"
+   - Bonnaire's scaling law: τ_mem ∝ n (memorization time linear in dataset size)
 
 ### Track 2: Train and Evaluate (after Track 1)
 
-6. **Train on curated datasets** — compare memorization dynamics across dataset compositions
-7. **Resume training or retrain** — with fixed data + possibly smaller model + longer (1M-2M steps)
-8. **F_mem 10,000 samples** — for publication quality, once model has actually memorized enough
-9. **Feature-space F_mem** — compute gap ratios in U-Net bottleneck embeddings instead of raw 49K-dim pixels
-10. **Investigate train/val loss divergence vs memorization gap** — divergence occurs well before step 240K where memorization starts. Why? Theoretical question related to implicit regularization in diffusion training.
+6. **Train on curated datasets** — compare memorization dynamics across dataset compositions.
+   - Training script: `ddpm-win-master/train.py` (411 lines)
+   - Config template: `ddpm-win-master/configs/hcmc_vitality_v3_5090.yaml`
+   - Config loader: `ddpm-win-master/config_loader.py` → `TrainingConfig.from_yaml()`
+   - Dataset loader: `ddpm-win-master/datasets/dataset.py` → `get_dataset('hcmc_vitality_v2', img_size=128, data_dir=..., split='train')`
+   - To train on curated subset: either modify split files or create new config pointing to subset directory
+   - Resume: `python train.py --config ... --resume model_ckpts/.../xxx_step500000.pth`
+
+7. **Resume training or retrain** — with fixed data + possibly smaller model + longer (1M-2M steps).
+   - Resume checkpoint loading: `ddpm-win-master/train.py` line 215-238 — loads step, optimizer, skips already-saved checkpoints
+   - Checkpoint schedule: `ddpm-win-master/config_loader.py` → `_generate_log_schedule()` — doubling until 100K, then ×1.5
+   - Log continuation bug: line 207 — `open(log_csv_path, "w")` should be `"a"` on resume
+   - All v3 checkpoints: `ddpm-win-master/model_ckpts/hcmc_vitality_v3/*.pth` (20 files, 19 with step numbers)
+   - VRAM: dual RTX 5090 (32GB each, NVLink) — batch_size=16 at 128×128 uses ~20GB
+
+8. **F_mem 10,000 samples** — for publication quality, once model has actually memorized enough.
+   - Computation script: `ddpm-win-master/scripts/compute_fmem_1000samples.py` — modify `N_SAMPLES = 1000` → `10000`, `GEN_BATCH = 100` → may need `50` for GPU memory
+   - Will produce: `fmem_curve_10000samples.csv` + `gap_ratios_10000samples.csv` (190,000 rows)
+   - Estimated runtime: ~9 hours on GPU (10× the 1000-sample run of 55 min)
+   - Not urgent — wait for curated dataset and model that actually memorizes
+
+9. **Feature-space F_mem** — compute gap ratios in U-Net bottleneck embeddings instead of raw 49K-dim pixels.
+   - Current F_mem: `ddpm-win-master/evaluation/memorization.py` line 100-113 — flattens images to 49152-dim vectors, computes `torch.cdist`
+   - U-Net bottleneck: `ddpm-win-master/model/unet.py` → `MiddleBlock` (line ~237) — outputs feature map at resolution bottleneck (128→64→32→16 = 16×16 spatial, 256 channels = 65536-dim)
+   - Need new script: extract bottleneck features for all training images and all generated images, then compute gap ratios in that space
+   - Potential issue: 65536-dim still high, but bottleneck features are more semantically meaningful than raw pixels
+
+10. **Investigate train/val loss divergence vs memorization gap** — divergence well before step 240K, why?
+    - Bonnaire et al. theoretical framework: memorization timescale τ_mem ∝ n (linear in dataset size), generalization timescale τ_gen = O(1) (architecture-dependent)
+    - Paper: arXiv:2505.17638v2 at `references/2505.17638v2.pdf` — Section 3 (theory) and Section 2 (dynamics)
+    - Key concept: "implicit dynamical regularization" — diffusion training naturally prevents memorization through the stochastic dynamics
+    - Our observation: train/val loss diverge early (maybe step ~50K-100K?) but memorization only starts at 240K — large gap
+    - Oracle consultation recommended for this theoretical question
 
 ### Track 3: Methodology & Paper (ongoing, not blocking)
 
-11. **Gap ratio distribution as novel contribution** — percentile curves, histogram evolution, leading indicators for memorization onset. Zero literature precedent (10+ papers checked — all use binary F_mem). Data source already exists: `gap_ratios_1000samples.csv` (19,000 rows).
-12. **Latent walk evaluation** — details TBD
-13. **Visualization at every step** — computation scripts produce CSVs, visualization scripts read CSVs and produce plots (already separated for future R/Python publication figures)
-14. **Fix resume training log bug** — `train.py` opens log with `"w"` (overwrite) instead of `"a"` (append) when resuming
+11. **Gap ratio distribution as novel contribution** — percentile curves, histogram evolution, leading indicators.
+    - Data source: `ddpm-win-master/analysis/section_2_4/gap_ratios_1000samples.csv` (19,000 rows, columns: step, sample_idx, gap_ratio, is_memorized)
+    - Summary: `ddpm-win-master/analysis/section_2_4/fmem_curve_1000samples.csv` (19 rows with percentiles)
+    - Visualization: `ddpm-win-master/scripts/plot_fmem_results.py` — produces 5 plots from CSVs
+    - Current plots: `ddpm-win-master/analysis/section_2_4/plots/*.png` (5 files)
+    - Key finding: p5 drops from 0.80→0.55 while F_mem stays near 0 — leading indicator
+    - Literature: Yoon et al. (2023) [originator of gap ratio], Gu et al. (2023) [adopter], Bonnaire et al. (2025), Buchanan et al. (2025), Kaiser et al. (2025), Fang et al. (2025), Favero et al. (2025) — ALL use binary F_mem only, zero track distribution
+
+12. **Latent walk evaluation** — details TBD from user
+
+13. **Visualization at every step** — computation scripts produce CSVs, visualization scripts read CSVs.
+    - Computation scripts (generate CSVs, no plots): `scripts/compute_fmem_1000samples.py`, `analysis/channel_statistics.py --save_samples`, `analysis/synergy_analysis.py --save_samples`
+    - Visualization scripts (read CSVs, produce plots, no GPU): `scripts/plot_fmem_results.py`
+    - Outputs: `analysis/section_2_4/plots/*.png`
+    - Future: R or Python for publication-ready figures — CSVs serve as the canonical data interface
+
+14. **Fix resume training log bug** — `train.py` line 207.
+    - File: `ddpm-win-master/train.py`
+    - Line 207: `log_file = open(log_csv_path, "w", newline="")` → should be `"a"` when resuming
+    - Resume check at line 215: `if resume_from:` — add conditional to choose `"w"` vs `"a"`
+    - Log path pattern: `logs/{run_name}/training_log.csv`
 
 ### Priority Order
 
 Track 1 is the critical path. Without better data quality and curated datasets, training more models or generating more samples won't produce meaningful results. The model is currently learning mostly "generate empty/rural cells" because that's 73% of the dataset.
+
+### Cross-Reference: Key File Inventory
+
+| Purpose | Path |
+|---------|------|
+| Data pipeline (rasterization) | `data-processing/scripts/build_hcmc_pipeline_v2.py` (821 lines) |
+| Raw channel arrays | `data-processing/data/hcmc/processed/{b,g,r}_maps_raw.pkl` (26 MB each) |
+| Fused RGB PNGs | `data-processing/data/hcmc/processed/cells/*.png` (4183 files) |
+| Per-channel PNGs | `data-processing/data/hcmc/processed/channels/{density,diversity,accessibility}/*.png` (4183 each) |
+| Splits | `data-processing/data/hcmc/processed/cells/splits/{train,val,test}_cells.txt` |
+| Pre-encoding analysis script | `data-processing/scripts/pre_encoding_analysis.py` (840 lines) |
+| Pre-encoding results | `data-processing/data/hcmc/reports/pre_encoding/` (all outputs) |
+| Typology labels | `data-processing/data/hcmc/reports/pre_encoding/typology_labels.csv` |
+| Model definition | `ddpm-win-master/model/unet.py` (DDPMUnet) |
+| DDPM core | `ddpm-win-master/model/ddpm.py` |
+| Diffusion config | `ddpm-win-master/model/diffusion_config.py` |
+| Training script | `ddpm-win-master/train.py` (411 lines) |
+| Active config | `ddpm-win-master/configs/hcmc_vitality_v3_5090.yaml` |
+| Config loader | `ddpm-win-master/config_loader.py` |
+| Dataset loader | `ddpm-win-master/datasets/dataset.py` |
+| F_mem evaluation | `ddpm-win-master/evaluation/memorization.py` |
+| DDIM sampling | `ddpm-win-master/sampling/ddim.py` |
+| DDPM sampling | `ddpm-win-master/sampling/ddpm_sample.py` |
+| F_mem 1000-sample script | `ddpm-win-master/scripts/compute_fmem_1000samples.py` |
+| F_mem viz script | `ddpm-win-master/scripts/plot_fmem_results.py` |
+| Gap ratio raw data | `ddpm-win-master/analysis/section_2_4/gap_ratios_1000samples.csv` (19K rows) |
+| F_mem summary CSVs | `ddpm-win-master/analysis/section_2_4/fmem_curve_{50,100,1000}samples.csv` |
+| Visualization plots | `ddpm-win-master/analysis/section_2_4/plots/*.png` (5 files) |
+| All v3 checkpoints | `ddpm-win-master/model_ckpts/hcmc_vitality_v3/*.pth` (20 files) |
+| Bonnaire reference | `Why-Diffusion-Models-Don-t-Memorize-main/Experiments/src/Evaluation/compute_fmem.py` |
+| Bonnaire paper | `references/2505.17638v2.pdf` (also at `discussion/2505.17638v2.pdf`) |
+| Progress reports | `progress_260420.md`, `progress_260421.md` (this file) |
+| TODO list | `TODO.md` |
+| Pre-encoding venv | `data-processing/.venv/` (sklearn 1.8.0, umap-learn 0.5.12, pandas, matplotlib) |
+| DDPM venv | `ddpm-win-master/.venv/` (torch 2.11.0+cu128, CUDA) |
