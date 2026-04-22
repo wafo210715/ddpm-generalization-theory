@@ -1,0 +1,62 @@
+{
+  "active_plan": "C:/Research_Data/LiGuanhong/ddpm-generalization-theory/.sisyphus/plans/post-training-evaluation.md",
+  "started_at": "2026-04-20T21:33:00+08:00",
+  "session_ids": [
+    "ses_25553ed15ffeiBA1MswuwoyKuW"
+  ],
+  "plan_name": "post-training-evaluation",
+  "session_origins": {
+    "ses_25553ed15ffeiBA1MswuwoyKuW": "direct"
+  },
+  "task_sessions": {
+    "bg_5d9c8518": "ses_254e4cda5ffeP0CXtpfQnS6Dmt",
+    "bg_7abfdd9f": "ses_254e47ce4ffe49tHPdEnh9tJzh",
+    "bg_8a38fb29": "ses_254e47cacffelHcodL0OZtfAKB",
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Pre-Encoding Analysis (Comprehensive)",
+      "session_id": "ses_254ce290effem2uCunOMrWE0BA",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-low",
+      "updated_at": "2026-04-20T14:02:24.301Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Run F_mem + Distributional Fidelity Evaluation (All Checkpoints)",
+      "session_id": "ses_254c84f3fffe9w8eXEPIcMsX05",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-20T14:20:26.413Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Run Inter-Channel Synergy Analysis (All Checkpoints)",
+      "session_id": "ses_254bb778fffe3LLMtX9dks1qs1",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-20T14:25:45.696Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Add --save_samples Flag to Evaluation Scripts",
+      "session_id": "ses_254b67f3cffebHHMWH40Y54ILe",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-20T14:28:20.863Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "Plan Compliance Audit — oracle",
+      "session_id": "ses_254a391bcffe4qaAdQPPLQ22v4",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-20T14:50:05.344Z"
+    }
+  },
+  "agent": "atlas"
+}
