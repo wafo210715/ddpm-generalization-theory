@@ -1,0 +1,6 @@
+2026-04-14 11:15:21,293 [INFO] ================================================== Step 1: Load Grid
+2026-04-14 11:15:21,408 [INFO] Loaded grid: 8436 cells, CRS=EPSG:4326
+2026-04-14 11:15:21,428 [INFO] ================================================== Step 2: Fetch OSM Data
+2026-04-14 11:15:21,834 [INFO] Loaded 110186 cached buildings
+2026-04-14 11:15:21,933 [INFO] Loaded 22621 cached POIs
+2026-04-14 11:15:22,263 [INFO] Loading cached street network
