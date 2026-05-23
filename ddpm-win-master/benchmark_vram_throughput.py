@@ -1,7 +1,11 @@
 """
 Comprehensive benchmark: VRAM + throughput (it/s) for ch=128 across multiple batch sizes.
 
-Tests bs=8,16,24,32,48,64,80,96 on dual RTX 3090 (24GB each).
+Adapts batch sizes to GPU VRAM:
+  - >= 80 GB (Pro 6000 Blackwell): tests up to bs=256
+  - >= 40 GB: tests up to bs=128
+  - < 40 GB: tests up to bs=96 (dual 3090 range)
+
 Reports peak VRAM per GPU, iterations/second, and estimated 500K training time.
 
 Usage:
@@ -25,10 +29,18 @@ def benchmark(model_channels: int = 128, img_size: int = 128):
 
     use_dual = n_gpus >= 2
 
-    batch_sizes = [8, 16, 24, 32, 48, 64, 80, 96]
+    # Adapt batch size range to GPU VRAM
+    gpu_vram_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    if gpu_vram_gb >= 80:
+        batch_sizes = [8, 16, 32, 64, 96, 128, 160]
+    elif gpu_vram_gb >= 40:
+        batch_sizes = [8, 16, 24, 32, 48, 64, 80, 96, 128]
+    else:
+        batch_sizes = [8, 16, 24, 32, 48, 64, 80, 96]
 
     print(f"{'='*80}")
     print(f"BENCHMARK: ch={model_channels}, {img_size}x{img_size}x3, {n_gpus} GPU(s)")
+    print(f"GPU: {torch.cuda.get_device_name(0)}, {gpu_vram_gb:.0f} GB VRAM")
     print(f"{'='*80}")
     print(f"{'BS':>4} | {'Per GPU':>8} | {'Peak VRAM':>10} | {'Reserved':>10} | {'it/s':>8} | {'500K time':>12} | {'Status'}")
     print(f"{'-'*4}-+-{'-'*8}-+-{'-'*10}-+-{'-'*10}-+-{'-'*8}-+-{'-'*12}-+-{'-'*8}")
@@ -111,9 +123,9 @@ def benchmark(model_channels: int = 128, img_size: int = 128):
             total_seconds = 500_000 / its
             hours = total_seconds / 3600
 
-            if peak_vram >= 24.0:
+            if peak_vram >= gpu_vram_gb:
                 status = "OOM"
-            elif peak_vram > 22.0:
+            elif peak_vram > gpu_vram_gb * 0.9:
                 status = "TIGHT"
             else:
                 status = "OK"
