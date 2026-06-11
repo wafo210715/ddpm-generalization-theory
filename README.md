@@ -1,6 +1,6 @@
 # DDPM Urban Vitality Research
 
-Diffusion models trained on urban geospatial data function as structure-preserving compressors that internalize the low-dimensional manifold of urban life. This repository investigates whether a "generalization window" exists during DDPM training, a period where structural concepts of urban vitality are learned before memorization sets in. By tracking memorization dynamics across logarithmic checkpoints with metrics derived from Bonnaire et al. (2025) and Wang et al. (2024), the project aims to isolate the irreducible structure of urban vitality from idiosyncratic noise in the data. The working dataset covers Ho Chi Minh City at 1km resolution (732 non-empty cells encoded as 128x128x3 RGB images), and the core tool is a discrete-time DDPM with a 9.88M parameter U-Net.
+Diffusion models trained on urban geospatial data function as structure-preserving compressors that internalize the low-dimensional manifold of urban life. This repository investigates whether a "generalization window" exists during DDPM training, a period where structural concepts of urban vitality are learned before memorization sets in. By tracking memorization dynamics across logarithmic checkpoints with metrics derived from Bonnaire et al. (2025) and Wang et al. (2024), the project aims to isolate the irreducible structure of urban vitality from idiosyncratic noise in the data. The working dataset covers Ho Chi Minh City at 1km resolution (4,182 non-empty cells encoded as 128x128x3 RGB images), and the core tool is a discrete-time DDPM with a 157.8M parameter U-Net (v3 architecture).
 
 ## Repository Structure
 
@@ -35,15 +35,16 @@ Prove the core hypothesis on real urban data. Train a DDPM on HCMC geospatial ce
 | Task | Status |
 |------|--------|
 | HCMC boundary + 1km fishnet grid (8,436 cells) | Done |
-| Data pipeline v2 (732 cells, 128x128x3, global p95 normalization) | Done |
+| Data pipeline v2 (4,182 cells, 128x128x3, global p95 normalization) | Done |
 | Pre-encoding analysis (intrinsic dim ~40, k=6 typologies, MI=0.485) | Done |
-| DDPM config + HCMC dataset loader (584/73/74 split) | Done |
+| DDPM config + HCMC dataset loader (3263/407/409 split) | Done |
 | Pilot GATE validation (3 resolutions, F_mem=0.0000) | Done |
 | F_mem batch computation pipeline | Done |
 | DDIM sampling | Done |
-| Full 50K-step training | Blocked on GPU |
-| Channel statistics on full checkpoints | Blocked on GPU |
-| Synergy analysis on full checkpoints | Blocked on GPU |
+| Full 500K-step training (v3, 157.8M params, pro6k) | Done |
+| Channel statistics on 19 checkpoints | Done |
+| Synergy analysis on 19 checkpoints | Done |
+| F_mem evaluation (50/100/1000 samples) | Done |
 
 ### Stage 2: Vector Embedding and Vitality Mapping
 

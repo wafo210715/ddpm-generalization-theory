@@ -153,7 +153,7 @@ The pre-encoding analysis script (`data-processing/scripts/pre_encoding_analysis
 ### New Scripts
 | File | Purpose | Lines |
 |------|---------|-------|
-| `sampling/ddpm_sample.py` | DDPM 1000-step sampling (Ho et al. Algorithm 2) | 139 |
+| `sampling/ddpm_sample.py` | DDPM 1000-step sampling (Ho et al. Algorithm 2) | 117 |
 | `analysis/multi_signal_window.py` | Multi-signal generalization window visualization | ~200 |
 | `scripts/generate_grids.py` | Publication-quality sample grid generator (3 modes) | ~200 |
 

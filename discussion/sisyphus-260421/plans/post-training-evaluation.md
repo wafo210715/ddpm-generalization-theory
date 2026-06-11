@@ -406,7 +406,7 @@ Execute the complete ISM report evaluation methodology on the v3 DDPM training r
 
 ---
 
-- [x] 6. Multi-Signal Generalization Window Visualization
+- [ ] 6. Multi-Signal Generalization Window Visualization
 
   **What to do**: Build `ddpm-win-master/analysis/multi_signal_window.py` that creates a combined visualization showing the generalization window from multiple signals simultaneously. This is the "triangulation" view: a 2x2 or stacked figure with: (a) F_mem curve with shaded generalization window (reuse data from channel_statistics.py CSV), (b) Wasserstein distance per channel evolution (reuse from channel_statistics.py), (c) Synergy regime evolution (reuse from synergy_analysis.py), (d) Combined summary panel showing all signals normalized to [0,1] on the same x-axis (training step). The script should READ the CSV/JSON outputs from Tasks 3-4, not re-run the analysis. This is a visualization-only script.
 
@@ -453,7 +453,7 @@ Execute the complete ISM report evaluation methodology on the v3 DDPM training r
 
 ---
 
-- [x] 7. Publication-Quality Sample Grid Generator
+- [ ] 7. Publication-Quality Sample Grid Generator
 
   **What to do**: Build `ddpm-win-master/scripts/generate_grids.py` that produces paper-quality sample grids from checkpoints. Features: (a) configurable checkpoint list (e.g., `--checkpoints 500,5000,50000,500000`), (b) configurable grid layout (e.g., `--grid_size 8` for 8x8), (c) real vs. generated side-by-side mode (`--mode comparison`), (d) per-channel decomposition mode (`--mode channels` — shows B, G, R separately), (e) memorized vs. non-memorized sample highlighting (requires F_mem gap ratios from Task 3), (f) consistent styling: checkpoint step label, resolution 300 DPI, font size appropriate for paper column width. Output: organized directory with named PNG files.
 
@@ -556,7 +556,7 @@ Execute the complete ISM report evaluation methodology on the v3 DDPM training r
 
 ---
 
-- [x] 9. Re-Run F_mem with 100 Samples on Window Checkpoints
+- [ ] 9. Re-Run F_mem with 100 Samples on Window Checkpoints
   **STATUS: BLOCKED** — F_mem ≈ 0 at all checkpoints (max 0.021 at step 360K). No generalization window detected. Cannot refine a window that doesn't exist. See experiments_summary.md §4 for multi-signal analysis.
 
   **What to do**: After Tasks 3-4 identify the generalization window (e.g., steps 5000-50000), re-run `channel_statistics.py` and `synergy_analysis.py` with `--n_samples 100` on ONLY the checkpoints within the generalization window. This provides higher statistical reliability (Pearson r SE drops from ~0.14 to ~0.10) for the most important analysis region. Also add `--save_samples` flag to capture the higher-quality samples.

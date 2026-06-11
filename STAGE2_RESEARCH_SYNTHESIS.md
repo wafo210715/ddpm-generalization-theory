@@ -106,7 +106,7 @@ Multi-modal encoders → unified 512-dim embedding → DDPM → decoders → str
 ## 4. Geospatial Encoding Methods
 
 ### Building Footprints
-- **Poly2Vec** (ICLR 2024): Polymorphic Fourier-based encoding, 128-256 dim, preserves topology/directionality
+- **Poly2Vec** (ICML 2025): Polymorphic Fourier-based encoding, 128-256 dim, preserves topology/directionality. Open source (github.com/USC-InfoLab/poly2vec), validated on OSM data.
 - **RegionDCL** (KDD 2023): Rasterize → ResNet18 → 512-dim features (our current approach in Stage 1)
 - **Pix2Poly** (WACV 2024): Transformer for polygon generation from images
 
@@ -230,7 +230,7 @@ POIs ─────────────────┤             Pedestri
 - ControlCity: Zhou et al., "ControlCity: Multimodal Diffusion for Urban Morphology Synthesis," 2024
 
 ### Geospatial Encoding
-- Poly2Vec: "Poly2Vec: A Polymorphic Fourier-based Encoding for Points, Polylines, and Polygons," ICLR 2024
+- Poly2Vec: "Poly2Vec: A Polymorphic Fourier-based Encoding for Points, Polylines, and Polygons," ICML 2025 (PMLR 267:55511-55532)
 - HiFiNet: "Hierarchical Frequency-Decomposition GNNs for Road Networks," 2025
 - DCA: "Dual Context Aware Neural Network for POI Representation," 2024
 - UrbanFusion: "UrbanFusion: Geo-Foundation Model with Stochastic Multimodal Fusion," 2025

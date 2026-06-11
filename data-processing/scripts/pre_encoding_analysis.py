@@ -282,6 +282,10 @@ def analyze_distributions(input_dir, output_dir):
 def estimate_mle_intrinsic_dim(X, k=10):
     """Estimate intrinsic dimension using Levina-Bickel (2004) MLE.
 
+    Uses the correct formula: for each point i, compute
+        m_k(i) = (k-2) / sum_{j=1}^{k-1} log(d_k(i) / d_j(i))
+    then average over all points.
+
     Args:
         X: ndarray (N, D) data matrix
         k: number of nearest neighbors to use (default 10)
@@ -294,15 +298,26 @@ def estimate_mle_intrinsic_dim(X, k=10):
     nn = NearestNeighbors(n_neighbors=k + 1).fit(X)
     distances, _ = nn.kneighbors(X)
     # distances[:, 0] = self-distance (0), distances[:, 1] = nearest, ..., distances[:, k] = k-th
-    # Use column k (k-th neighbor) and column 1 (nearest neighbor)
+    # Drop self (column 0)
+    distances = distances[:, 1:]  # now columns 0..k-1 = 1st..k-th neighbors
+
+    # d_k = k-th neighbor distance (farthest in k-NN)
+    d_k = distances[:, -1]  # column k-1
+
+    # Sum log(d_k / d_j) for j = 1..k-1 (columns 0..k-2)
     eps = 1e-10
-    log_ratios = np.log(distances[:, k] / (distances[:, 1] + eps) + eps)
-    # Levina-Bickel: d_hat = (1/((n-1)*k)) * sum_i sum_{j=1}^{k} log(T_k(i) / T_j(i))
-    # Simplified: average log ratio divided by harmonic mean correction
-    d_mle = len(X) / (np.sum(log_ratios) + eps)
+    log_ratios = np.zeros(len(X))
+    for j in range(k - 1):
+        log_ratios += np.log(d_k / (distances[:, j] + eps) + eps)
+
+    # Per-point estimate: m_k = (k-2) / sum_of_log_ratios
+    m_k = (k - 2) / (log_ratios + eps)
+
+    # Average over all points
+    d_mle = float(np.mean(m_k))
     # Clamp to reasonable range
-    d_mle = max(1.0, min(float(d_mle), X.shape[1]))
-    print(f"[MLE] Estimated intrinsic dimension: {d_mle:.2f}")
+    d_mle = max(1.0, min(d_mle, X.shape[1]))
+    print(f"[MLE] Estimated intrinsic dimension (k={k}): {d_mle:.2f}")
     return d_mle
 
 
