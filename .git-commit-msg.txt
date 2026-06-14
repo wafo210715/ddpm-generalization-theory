@@ -1,0 +1,3 @@
+restore progress reports 260409 and 260410 mistakenly deleted during cleanup
+
+These are research progress reports from brainstorming sessions, not junk files.

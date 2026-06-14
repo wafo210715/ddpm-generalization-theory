@@ -1,0 +1,64 @@
+# Task 5 Evidence: HCMC Vitality v2 DDPM Training Configuration & DataLoader
+
+## Date: 2026-04-13
+
+## Files Created
+- `ddpm-win-master/configs/hcmc_vitality_v2.yaml` — training config for HCMC vitality v2
+
+## Files Modified
+- `ddpm-win-master/config_loader.py` — added `model_channels` (default 64) and `data_root` fields to TrainingConfig; fixed UTF-8 encoding in from_yaml()
+- `ddpm-win-master/train.py` — GAP-1 fix: uses `config.model_channels` instead of hardcoded 64; wires `data_root` from config; handles dict returns from datasets
+- `ddpm-win-master/evaluation/memorization.py` — GAP-1 fix: uses `config.model_channels`; GAP-2 fix: handles dict returns in `_collect_images`
+- `ddpm-win-master/datasets/dataset.py` — added `HCMCVitalityV2Dataset` class; updated `get_dataset` factory
+
+## GAP Fixes
+- **GAP-1 FIXED**: `model_channels` now flows through config → TrainingConfig → train.py → DDPMUnet
+  - config_loader.py: Added `model_channels: int = 64` to TrainingConfig dataclass
+  - train.py:80: Changed `DDPMUnet(config.img_channels, 64)` → `DDPMUnet(config.img_channels, config.model_channels)`
+  - memorization.py:218: Same fix
+- **GAP-2 FIXED**: HCMCVitalityV2Dataset returns `{'image': Tensor, 'cell_id': str}`
+  - train.py handles dict returns: `x_0 = x_0["image"]` when batch is dict
+  - memorization.py `_collect_images` handles dict returns
+
+## HCMC Vitality v2 Config
+```yaml
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 128
+batch_size: 16
+model_channels: 32
+lr: 0.0001
+n_steps: 50000
+timesteps: 1000
+schedule_type: "linear"
+b0: 0.0001, bT: 0.02
+data_root: "../data-processing/data/hcmc/processed/cells"
+use_dual_gpu: true
+```
+
+## QA Results (ALL PASSED)
+```
+Config loaded: dataset_name=hcmc_vitality_v2, img_channels=3, img_size=128, model_channels=32
+Data resolved: C:\sd\ddpm-generalization-theory\data-processing\data\hcmc\processed\cells
+Dataset splits: train=584, val=73, test=74 (total=731 non-empty cells)
+Single item: type=dict, keys=['image', 'cell_id'], shape=(3,128,128), range=[-1.000, 0.114]
+DataLoader batch: shape=(4,3,128,128), range=[-1.000, 1.000], cell_ids=['075_042', '062_031', '066_027', '074_046']
+Split files: splits/train_cells.txt (584), splits/val_cells.txt (73), splits/test_cells.txt (74)
+get_dataset factory: works with 'hcmc_vitality_v2'
+DDPMUnet: created with model_channels=32
+```
+
+## Data Split Details
+- 732 PNGs in cells directory → 731 non-empty (max pixel > 10)
+- 1 cell excluded (entirely black/empty)
+- Split: 80/10/10 (seeded, reproducible)
+- Split files saved to: `data-processing/data/hcmc/processed/cells/splits/`
+
+## Non-empty Filtering
+- Threshold: max pixel value > 10 (uint8 scale, so > ~4% brightness)
+- Opens each PNG once during init to check
+- Split files persisted; subsequent loads skip re-scanning
+
+## Additional Fixes
+- `config_loader.py:from_yaml()` now uses `encoding='utf-8'` to avoid Windows GBK errors
+- `train.py` resolves `data_root` relative to script directory before passing to dataset

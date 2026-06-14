@@ -1,0 +1,16 @@
+QA1: Global Normalization Preserves Inter-Cell Differences
+Date: 2026-04-13
+Result: PASSED
+
+Cell count: 732 (>= 500 requirement met)
+Max range across 20 sample cells: [17, 255]
+- min(maxes) = 17 (NOT all 255, proving global normalization works)
+- max(maxes) = 255 (some cells saturate at top)
+- Values VARY across cells: inter-cell differences preserved
+
+Key normalization parameters:
+- B (density): p95=0.252375
+- G (diversity): p95=0.460501
+- R (accessibility): p95=48.418113
+
+This confirms GAP-6 fix: per-channel global percentile normalization.
