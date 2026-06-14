@@ -1,5 +1,5 @@
 # HCMC Urban Vitality v2 — DDPM training configuration
-# RGB cell images from data-processing pipeline v2 (732 non-empty 128x128 PNGs)
+# RGB cell images from data-processing pipeline v2 (4,182 non-empty 128x128 PNGs)
 # Channel order: R=accessibility, G=diversity, B=density
 
 # Device settings

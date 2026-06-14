@@ -230,7 +230,7 @@ POIs ─────────────────┤             Pedestri
 - ControlCity: Zhou et al., "ControlCity: Multimodal Diffusion for Urban Morphology Synthesis," 2024
 
 ### Geospatial Encoding
-- Poly2Vec: "Poly2Vec: A Polymorphic Fourier-based Encoding for Points, Polylines, and Polygons," ICML 2025 (PMLR 267:55511-55532)
+- Poly2Vec: "Poly2Vec: Polymorphic Fourier-Based Encoding of Geospatial Objects for GeoAI Applications," ICML 2025 (PMLR 267:55511-55532)
 - HiFiNet: "Hierarchical Frequency-Decomposition GNNs for Road Networks," 2025
 - DCA: "Dual Context Aware Neural Network for POI Representation," 2024
 - UrbanFusion: "UrbanFusion: Geo-Foundation Model with Stochastic Multimodal Fusion," 2025

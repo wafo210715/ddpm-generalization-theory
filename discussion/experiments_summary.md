@@ -1,9 +1,12 @@
 # Experiment Outputs Summary — ISM Report Section 4 Reference
 
 **Generated**: 2026-04-20
+**Updated**: 2026-06-14 (Section 4 re-evaluated with 1000-sample F_mem data)
 **Training run**: hcmc_vitality_v3, 500K steps, 157.8M params (base_ch=128), linear schedule
 **Checkpoints**: 20 logarithmic checkpoints (steps 100–500000)
-**Evaluation**: DDIM 50-step, 50 samples per checkpoint
+**Evaluation**: DDIM 50-step; F_mem originally 50 samples/checkpoint, re-evaluated at 1000 samples on 5/23
+
+> **6/14 changelog**: Section 4 (Generalization Window) reversed from "no window" → "window = 160K–240K (80K wide)" based on 1000-sample re-evaluation. Other sections unchanged.
 
 ---
 
@@ -12,13 +15,13 @@
 | ISM Section | Output File | Key Finding |
 |-------------|-------------|-------------|
 | 3.2.3 Pre-encoding analysis | `data-processing/scripts/pre_encoding_analysis.py` (extended, NOT yet run) | Script extended with MLE intrinsic dim, UMAP, MI heatmap, geographic clusters, curation guide. **Not yet executed on real data.** |
-| 3.6 Memorization (F_mem) | `analysis/section_2_4/fmem_curve.csv` | **F_mem ≈ 0 at all checkpoints** (max 0.021 at step 360K). No memorization detected. No generalization window. |
+| 3.6 Memorization (F_mem) | `analysis/section_2_4/fmem_curve_1000samples.csv` (1000-sample, supersedes 50-sample `fmem_curve.csv`) | **F_mem onset at 240K** (0.004, CI=[0.001,0.008]), rising to 0.012 at 500K. **Generalization window = 160K→240K** (80K wide). 50-sample data missed this due to statistical noise. |
 | 3.7.1 Distributional fidelity | `analysis/section_2_4/minimum_viable_report.md` | Wasserstein distances decrease from ~0.5 (early) to ~0.1 (late), showing distribution learning. All channel statistics still evolving (CV 0.12–0.90). |
 | 3.7.2 Channel statistics evolution | `analysis/section_2_4/channel_mean_evolution.png`, `channel_std_evolution.png` | Channel means oscillate early, stabilize around steps 80K–200K. Channel stds converge more slowly. |
 | 3.7.3 Irreducible characteristics | `analysis/section_2_4/minimum_viable_report.md` §4 | **No stable characteristics** — all 6 metrics (B/G/R mean and std) are still evolving at 500K steps (CV range 0.12–0.90). |
 | 3.7.4 Inter-channel synergy | `analysis/section_2_4/synergy/full_report.md`, `synergy_metrics.csv` | Synergy evolves through regimes: fragmented → diversity-driven → **coupled** (160K–200K, 300K, 500K). 11 phase transitions detected. |
 | 3.7.5 Synergy evolution | `analysis/section_2_4/synergy/regime_evolution.png`, `synergy_correlation_evolution.png` | Final state (500K) is **coupled** with GR r=0.87, BR r=0.75, BG r=0.65. Model learns joint structure without memorizing. |
-| Multi-signal triangulation | `analysis/section_2_4/multi_signal_window.png` | Combined view: F_mem flat ≈ 0, Wasserstein decreasing, synergy strengthening. **No generalization window via F_mem, but distributional learning is ongoing.** |
+| Multi-signal triangulation | `analysis/section_2_4/multi_signal_window.png` | Combined view: F_mem onset at 240K (1000-sample), Wasserstein decreasing, synergy coupled at 160K. **Generalization window = 160K→240K** (80K wide). |
 
 ---
 
@@ -28,7 +31,7 @@
 
 | File | Description | Proposed Caption |
 |------|-------------|------------------|
-| `analysis/section_2_4/fmem_curve_window.png` | F_mem vs training step with generalization window shading | "Memorization fraction (F_mem) across training. No memorization detected (F_mem < 0.05) at any checkpoint." |
+| `analysis/section_2_4/fmem_curve_window.png` | F_mem vs training step with generalization window shading | "Memorization fraction (F_mem) across training (1000 samples/checkpoint). Onset at step 240K (F_mem=0.004), rising to 0.012 at 500K. Generalization window: 160K–240K." |
 | `analysis/section_2_4/channel_mean_evolution.png` | B/G/R spatial mean across checkpoints | "Evolution of per-channel spatial means (density, diversity, accessibility) across training checkpoints." |
 | `analysis/section_2_4/channel_std_evolution.png` | B/G/R spatial std across checkpoints | "Evolution of per-channel spatial variability across training checkpoints." |
 | `analysis/section_2_4/wasserstein_evolution.png` | Wasserstein-1 distance per channel vs step | "Wasserstein distance (generated vs. training) per channel, showing distributional convergence." |
@@ -67,8 +70,23 @@
 
 ## 4. Generalization Window Assessment
 
-### F_mem Signal
-**No generalization window detected.** F_mem = 0.0000 at 17/19 checkpoints. Maximum F_mem = 0.0209 at step 360K (well below the 0.05 threshold). This means the model does not memorize individual training samples at any point during 500K steps of training.
+> **6/14 update**: This section originally (4/20) was based on 50-sample F_mem data and concluded "no window." The 5/23 1000-sample re-evaluation (`fmem_curve_1000samples.csv`) reverses that conclusion. Numbers below are from the 1000-sample evaluation unless noted.
+
+### F_mem Signal (1000-sample)
+**Generalization window = 160K → 240K (~80K wide).**
+
+| Step | F_mem | n_memorized | 95% CI |
+|------|-------|-------------|--------|
+| 100–200K | 0.000 | 0/1000 | — |
+| 240K | 0.00394 | 4/1000 | [0.001, 0.008] |
+| 300K | 0.00601 | 6/1000 | [0.002, 0.011] |
+| 360K | 0.00516 | 5/1000 | [0.001, 0.010] |
+| 400K | 0.01104 | 11/1000 | [0.005, 0.018] |
+| 500K | 0.01203 | 12/1000 | [0.006, 0.019] |
+
+**Onset**: F_mem first > 0 at step 240K (CI excludes 0 → statistically robust onset).
+**Plateau**: F_mem rises to ~0.012 by 500K; 360K shows small dip (0.006 → 0.005).
+**Open question**: Absolute memorization level (< 1.2%) is low — untrained-baseline comparison needed (Phase 0 Task 0.8 in progress_260611.md).
 
 ### Wasserstein Signal
 Wasserstein distances decrease from early checkpoints (~0.5–1.4) to late checkpoints (~0.05–0.28), indicating the model IS learning the data distribution. The steepest decrease occurs between steps 10K–80K. The lowest combined Wasserstein is at step 200K (B: 0.090, G: 0.080, R: 0.088).
@@ -79,15 +97,26 @@ Synergy regime evolves through a clear trajectory:
 2. **Steps 5000–40000**: Fragmented (regression — model loses inter-channel structure)
 3. **Steps 50000–100000**: Diversity-driven (GR pair re-emerges as anchor)
 4. **Steps 160000–200000**: **Coupled** (all pairs r > 0.5 — model captures full joint structure)
-5. **Step 240000**: Density-driven (transient shift)
+5. **Step 240000**: **Density-driven** (transient shift — coincides with F_mem onset)
 6. **Step 300000**: Coupled
 7. **Steps 360000–400000**: Diversity-driven
 8. **Step 500000**: **Coupled** (final convergence, strongest correlations: GR r=0.87)
 
-### Multi-Signal Conclusion
-The model learns the data distribution without memorizing individual samples. The "generalization window" concept — a phase where the model generalizes before memorizing — does not manifest for this dataset/model combination. Instead, the model appears to generalize throughout training, with synergy structure emerging gradually and stabilizing at the coupled regime by step 160K.
+**Threshold disclosure**: Coupled regime requires all pairwise |r| > 0.5 (`synergy_analysis.py:351-356`). Changing this threshold shifts window boundaries.
 
-**Task 9 (window refinement with 100 samples) is BLOCKED** — there is no window to refine since F_mem never exceeds threshold. Future work should investigate whether this is a property of the dataset (731 samples, low intrinsic dimension), the model capacity (157.8M params), or the evaluation methodology (DDIM 50-step sampling with k-NN gap ratio).
+### Multi-Signal Conclusion (updated)
+**A generalization window exists, bounded by two independent signals:**
+- **Window start** (structure learning onset): synergy first reaches coupled regime at **160K**
+- **Window end** (memorization onset): F_mem first > 0 at **240K**
+- **Window width**: 80K steps (160K → 240K)
+
+**Key tension**: At step 240K (F_mem onset), synergy has already regressed from coupled to density-driven. Memorization onset coincides with structural coupling degradation — not with stable coupled state. This departs from Bonnaire et al.'s framework where memorization is expected within coupled state. Two interpretations:
+- (a) Density-driven at 240K is a precursor signal of impending memorization
+- (b) Synergy and F_mem are more weakly coupled than theory predicts for this dataset
+
+Future work should investigate whether the 80K window width matches Bonnaire et al.'s theoretical predictions for n=4,182 samples and 157.8M parameters.
+
+**Task 9 (window refinement)**: Unblocked — the window is now well-defined. Next refinement: untrained baseline (Task 0.8) + per-channel Moran's I on training data (Task 0.7) to diagnose whether B/G channel degradation (97.5% zeros on G, 92.7% zeros on B) limits what the model can learn.
 
 ---
 
@@ -153,7 +182,7 @@ The pre-encoding analysis script (`data-processing/scripts/pre_encoding_analysis
 ### New Scripts
 | File | Purpose | Lines |
 |------|---------|-------|
-| `sampling/ddpm_sample.py` | DDPM 1000-step sampling (Ho et al. Algorithm 2) | 117 |
+| `sampling/ddpm_sample.py` | DDPM 1000-step sampling (Ho et al. Algorithm 2) | 139 |
 | `analysis/multi_signal_window.py` | Multi-signal generalization window visualization | ~200 |
 | `scripts/generate_grids.py` | Publication-quality sample grid generator (3 modes) | ~200 |
 
@@ -176,5 +205,5 @@ The pre-encoding analysis script (`data-processing/scripts/pre_encoding_analysis
 2. **DDPM 1000-step sampling** — Implementation complete (`ddpm_sample.py`) but not run on v3 checkpoints. DDPM sampling would produce higher-quality samples for final evaluation.
 3. **Publication grids** — `generate_grids.py` created but not run on checkpoints. Requires GPU.
 4. **100-sample refinement (Task 9)** — Blocked by no-window finding. Could be adapted to re-run on "coupled regime" checkpoints (160K, 200K, 300K, 500K) for higher precision synergy analysis.
-5. **Training loss curve** — Training logs were lost (train.py never wrote to file). train.py now has logging capability for future retraining.
+5. **Training loss curve** — `training_log.csv` exists and runs through step 500K (2653 rows). However `training_summary.txt` shows "Total steps: 260000" — a mid-training snapshot that was never updated. The full loss curve is recoverable from `training_log.csv`.
 6. **Missing checkpoint** — Only 19 of 20 expected checkpoints discovered. Step 240000 may have naming mismatch.
