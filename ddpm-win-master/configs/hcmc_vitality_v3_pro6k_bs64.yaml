@@ -1,0 +1,62 @@
+# HCMC Urban Vitality v3 — Batch Size Ablation: bs=64 (8M samples target)
+#
+# Phase 1.5.3 bs ablation: bs=16/32/64/128 all at 8M samples (matches 5090 setup's 500K steps at bs=16).
+# Fixed LR=1e-4 (adaptive: bump to 3e-4 if underfitting detected).
+#
+# Wall time: ~24h at 1.47 it/s on Pro 6000 Blackwell.
+# run_name auto-generated: hcmc_vitality_v2_128x128_steps125000.
+
+use_dual_gpu: false
+
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 128
+batch_size: 64
+
+model_channels: 128
+
+lr: 0.0001
+n_steps: 125000
+timesteps: 1000
+log_every: 100
+
+val_every: 5000
+val_steps: 50
+
+schedule_type: "linear"
+b0: 0.0001
+bT: 0.02
+beta: 0.006
+beta_d: 19.9
+beta_min: 0.1
+sigma_min: 0.02
+sigma_max: 100.0
+
+data_root: "../data-processing/data/hcmc/processed/cells"
+checkpoint_dir: "model_ckpts/hcmc_vitality_v3_pro6k_bs64"
+log_dir: "logs/hcmc_vitality_v3_pro6k_bs64"
+
+center: true
+normalize: true
+
+# Checkpointing — samples-seen grid aligned with bs=16 baseline.
+save_initial:
+  - 13       # 800 samples
+  - 31       # 2K samples
+  - 63       # 4K samples
+  - 125      # 8K samples
+  - 313      # 20K samples
+  - 625      # 40K samples
+  - 1250     # 80K samples
+  - 2500     # 160K samples
+  - 6250     # 400K samples
+  - 12500    # 800K samples
+  - 25000    # 1.6M samples
+  - 37500    # 2.4M samples
+  - 50000    # 3.2M samples
+  - 62500    # 4M samples (= v3_pro6k's full training endpoint)
+  - 78125    # 5M samples
+  - 93750    # 6M samples
+  - 109375   # 7M samples
+  - 125000   # 8M samples (final)
+save_interval: 1000000

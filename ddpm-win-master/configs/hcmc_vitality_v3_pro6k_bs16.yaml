@@ -1,0 +1,68 @@
+# HCMC Urban Vitality v3 — bs=16 Baseline (5090 setup inherited, Pro 6000 Blackwell)
+#
+# Inherits 5090's setup (bs=16, n_steps=500000) per user direction (6/14):
+#   - bs=16 is the original experimental design intent (5090 was Singapore pilot, only 7 checkpoints to step10000)
+#   - bs=8 (v3_pro6k) was wall-time optimization, kept as reference but not primary baseline
+#   - This run trains bs=16 fresh on Pro 6000 Blackwell, 8M samples total
+#
+# Part of Phase 1.5.3 bs ablation: bs=16/32/64/128 all at 8M samples.
+# Wall time: ~24.5h at 5.67 it/s on Pro 6000 Blackwell.
+# run_name auto-generated: hcmc_vitality_v2_128x128_steps500000 (NOTE: same as v3_pro6k's
+# run_name! checkpoint_dir differs to prevent collision).
+
+use_dual_gpu: false
+
+dataset_name: "hcmc_vitality_v2"
+img_channels: 3
+img_size: 128
+batch_size: 16
+
+model_channels: 128
+
+lr: 0.0001
+n_steps: 500000
+timesteps: 1000
+log_every: 100
+
+val_every: 5000
+val_steps: 50
+
+schedule_type: "linear"
+b0: 0.0001
+bT: 0.02
+beta: 0.006
+beta_d: 19.9
+beta_min: 0.1
+sigma_min: 0.02
+sigma_max: 100.0
+
+data_root: "../data-processing/data/hcmc/processed/cells"
+checkpoint_dir: "model_ckpts/hcmc_vitality_v3_pro6k_bs16"
+log_dir: "logs/hcmc_vitality_v3_pro6k_bs16"
+
+center: true
+normalize: true
+
+# Checkpointing — samples-seen grid: 800, 2K, 4K, 8K, 20K, 40K, 80K, 160K, 400K,
+# 800K, 1.6M, 2.4M, 3.2M, 4M, 5M, 6M, 7M, 8M (final).
+# Steps = samples / 16.
+save_initial:
+  - 50       # 800 samples
+  - 125      # 2K samples
+  - 250      # 4K samples
+  - 500      # 8K samples
+  - 1250     # 20K samples
+  - 2500     # 40K samples
+  - 5000     # 80K samples
+  - 10000    # 160K samples
+  - 25000    # 400K samples
+  - 50000    # 800K samples
+  - 100000   # 1.6M samples
+  - 150000   # 2.4M samples
+  - 200000   # 3.2M samples
+  - 250000   # 4M samples (= v3_pro6k's full training endpoint)
+  - 312500   # 5M samples
+  - 375000   # 6M samples
+  - 437500   # 7M samples
+  - 500000   # 8M samples (final)
+save_interval: 1000000
