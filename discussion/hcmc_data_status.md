@@ -125,6 +125,15 @@ see as the same thing.
   data, which needs Overpass. Run it with
   `--pois data/hcmc/raw/hcmc_pois_all.gpkg` or `--from_tiles` once the block
   lifts.
+
+  It has been exercised on synthetic POIs scattered uniformly over three tiles
+  at roughly HCMC-core density, purely to confirm the script runs: 40.9 % of
+  units had entropy defined at 50 m, 96.3 % at 100 m. **Do not read those as
+  an answer.** Uniform scatter is the best case for ring coverage; real POIs
+  cluster along streets and around markets, which leaves large parts of a tile
+  empty at every radius, and it is that clustering that produced the pilot's
+  97.5 %. The real numbers will be worse, and how much worse is the thing B6
+  is for.
 - **The four POI and road channels**, for the same reason.
 - **Accessibility on the road network.** Implemented — multi-source Dijkstra
   from POI-snapped graph nodes, exponential decay, cut off at three decay
