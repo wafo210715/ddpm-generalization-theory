@@ -1,0 +1,289 @@
+{
+  "device": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+  "torch": "2.14.0+cu130",
+  "args": {
+    "img_sizes": [
+      128,
+      256,
+      512,
+      1024
+    ],
+    "batch_sizes": null,
+    "img_channels": 6,
+    "model_channels": 128,
+    "timesteps": 1000,
+    "amp": "off",
+    "attn_at_bottleneck": false,
+    "n_warmup": 3,
+    "n_measure": 10,
+    "out": "benchmarks/unet_resolution_fp32.json"
+  },
+  "results": [
+    {
+      "img_size": 128,
+      "batch_size": 8,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 157.842566,
+      "it_per_s": 11.855497064161433,
+      "samples_per_s": 94.84397651329147,
+      "peak_vram_gb": 6.453548431396484,
+      "reserved_vram_gb": 7.3515625,
+      "status": "ok"
+    },
+    {
+      "img_size": 128,
+      "batch_size": 16,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 157.842566,
+      "it_per_s": 6.122951327759821,
+      "samples_per_s": 97.96722124415713,
+      "peak_vram_gb": 10.46078109741211,
+      "reserved_vram_gb": 12.515625,
+      "status": "ok"
+    },
+    {
+      "img_size": 128,
+      "batch_size": 32,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 157.842566,
+      "it_per_s": 3.0769511746943734,
+      "samples_per_s": 98.46243759021995,
+      "peak_vram_gb": 19.01106548309326,
+      "reserved_vram_gb": 22.169921875,
+      "status": "ok"
+    },
+    {
+      "img_size": 256,
+      "batch_size": 4,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 284.757126,
+      "it_per_s": 5.628817048596589,
+      "samples_per_s": 22.515268194386355,
+      "peak_vram_gb": 12.261310577392578,
+      "reserved_vram_gb": 14.1953125,
+      "status": "ok"
+    },
+    {
+      "img_size": 256,
+      "batch_size": 8,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 284.757126,
+      "it_per_s": 2.938403412864053,
+      "samples_per_s": 23.507227302912423,
+      "peak_vram_gb": 20.267943382263184,
+      "reserved_vram_gb": 23.3046875,
+      "status": "ok"
+    },
+    {
+      "img_size": 256,
+      "batch_size": 16,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 284.757126,
+      "it_per_s": 1.5343984428865036,
+      "samples_per_s": 24.550375086184058,
+      "peak_vram_gb": 37.272807121276855,
+      "reserved_vram_gb": 40.62890625,
+      "status": "ok"
+    },
+    {
+      "img_size": 512,
+      "batch_size": 2,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 411.671686,
+      "it_per_s": 2.7859171985905427,
+      "samples_per_s": 5.571834397181085,
+      "peak_vram_gb": 22.051581382751465,
+      "reserved_vram_gb": 25.5078125,
+      "status": "ok"
+    },
+    {
+      "img_size": 512,
+      "batch_size": 4,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 411.671686,
+      "it_per_s": 1.473261912312427,
+      "samples_per_s": 5.893047649249708,
+      "peak_vram_gb": 38.60983371734619,
+      "reserved_vram_gb": 43.716796875,
+      "status": "ok"
+    },
+    {
+      "img_size": 512,
+      "batch_size": 8,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 411.671686,
+      "it_per_s": 0.7538924494721193,
+      "samples_per_s": 6.0311395957769545,
+      "peak_vram_gb": 72.54577541351318,
+      "reserved_vram_gb": 79.392578125,
+      "status": "ok"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 1,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 538.586246,
+      "it_per_s": 1.372785626909063,
+      "samples_per_s": 1.372785626909063,
+      "peak_vram_gb": 40.01036214828491,
+      "reserved_vram_gb": 47.2109375,
+      "status": "ok"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 2,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 538.586246,
+      "it_per_s": 0.690181040006862,
+      "samples_per_s": 1.380362080013724,
+      "peak_vram_gb": 73.92839431762695,
+      "reserved_vram_gb": 85.125,
+      "status": "ok"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 4,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "off",
+      "params_m": 538.586246,
+      "status": "OOM"
+    }
+  ]
+}

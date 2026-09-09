@@ -1,0 +1,158 @@
+{
+  "device": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+  "torch": "2.14.0+cu130",
+  "args": {
+    "img_sizes": [
+      512,
+      1024
+    ],
+    "batch_sizes": [
+      2,
+      4,
+      8
+    ],
+    "img_channels": 6,
+    "model_channels": 128,
+    "timesteps": 1000,
+    "amp": "bf16",
+    "attn_at_bottleneck": false,
+    "n_warmup": 3,
+    "n_measure": 10,
+    "out": "benchmarks/unet_resolution_bf16.json"
+  },
+  "results": [
+    {
+      "img_size": 512,
+      "batch_size": 2,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 411.671686,
+      "it_per_s": 3.996375174220375,
+      "samples_per_s": 7.99275034844075,
+      "peak_vram_gb": 21.62467861175537,
+      "reserved_vram_gb": 22.490234375,
+      "status": "ok"
+    },
+    {
+      "img_size": 512,
+      "batch_size": 4,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 411.671686,
+      "it_per_s": 2.1349840114228167,
+      "samples_per_s": 8.539936045691267,
+      "peak_vram_gb": 36.25730276107788,
+      "reserved_vram_gb": 37.6328125,
+      "status": "ok"
+    },
+    {
+      "img_size": 512,
+      "batch_size": 8,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 411.671686,
+      "it_per_s": 1.107215582348329,
+      "samples_per_s": 8.857724658786632,
+      "peak_vram_gb": 65.52504396438599,
+      "reserved_vram_gb": 68.337890625,
+      "status": "ok"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 2,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 538.586246,
+      "it_per_s": 1.0247257698013166,
+      "samples_per_s": 2.049451539602633,
+      "peak_vram_gb": 67.62844753265381,
+      "reserved_vram_gb": 69.900390625,
+      "status": "ok"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 4,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 538.586246,
+      "status": "OOM"
+    },
+    {
+      "img_size": 1024,
+      "batch_size": 8,
+      "img_channels": 6,
+      "model_channels": 128,
+      "channel_mults": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+      ],
+      "bottleneck_px": 16,
+      "attn_at_bottleneck": false,
+      "amp": "bf16",
+      "params_m": 538.586246,
+      "status": "OOM"
+    }
+  ]
+}
