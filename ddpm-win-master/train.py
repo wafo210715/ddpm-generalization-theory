@@ -122,6 +122,7 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
         data_dir=data_dir,
         center=config.center,
         normalize=config.normalize,
+        channels=config.channels,
     )
     dataloader = DataLoader(
         dataset, batch_size=config.batch_size, shuffle=True, num_workers=0
@@ -136,6 +137,7 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
         split="val",
         center=config.center,
         normalize=config.normalize,
+        channels=config.channels,
     )
     if len(val_dataset) == 0:
         print("[WARNING] Validation dataset is empty — skipping validation tracking")
@@ -154,6 +156,9 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
         "n_steps": config.timesteps,
         "schedule_type": config.schedule_type,
         "device": config.device,
+        "shift_schedule": config.shift_schedule,
+        "img_size": config.img_size,
+        "ref_img_size": config.ref_img_size,
     }
 
     if config.schedule_type == "linear":
@@ -253,7 +258,8 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
             # Handle dataset that returns tuples (MNIST) vs single tensors vs dicts
             x_0 = batch[0] if isinstance(batch, (list, tuple)) else batch
             if isinstance(x_0, dict):
-                x_0 = x_0["image"]
+                # "tensor" for multi-channel cell stores, "image" for the PNG datasets
+                x_0 = x_0["tensor"] if "tensor" in x_0 else x_0["image"]
             x_0 = x_0.to(device)
 
             # Sample timestep and noise
@@ -308,7 +314,9 @@ def train_with_config(config: TrainingConfig, resume_from: str = None):
                             else val_batch
                         )
                         if isinstance(val_x0, dict):
-                            val_x0 = val_x0["image"]
+                            val_x0 = (
+                                val_x0["tensor"] if "tensor" in val_x0 else val_x0["image"]
+                            )
                         val_x0 = val_x0.to(device)
                         val_t = torch.randint(
                             0, ddpm.timesteps, (val_x0.shape[0],), device=device

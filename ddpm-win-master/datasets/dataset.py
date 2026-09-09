@@ -2,6 +2,8 @@
 Dataset loaders for DDPM training.
 
 Supports:
+  - "cell_tensors": multi-channel cell tensors of any channel count (B8 of the
+    v4 pipeline map) — see datasets/cell_tensors.py
   - "mnist": MNIST handwritten digits (via torchvision)
   - "geospatial": HCMC urban vitality cell images (PNG from data-processing pipeline)
   - "hcmc_vitality_v2": HCMC urban vitality v2 cell images with non-empty filtering,
@@ -21,6 +23,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from torchvision import datasets as tv_datasets
 from torchvision import transforms
+
+from datasets.cell_tensors import CellTensorDataset
 
 
 # ---------------------------------------------------------------------------
@@ -346,7 +350,8 @@ def get_dataset(
     Parameters
     ----------
     name : str
-        Dataset identifier: "mnist", "geospatial", or "hcmc_vitality_v2".
+        Dataset identifier: "cell_tensors", "mnist", "geospatial", or
+        "hcmc_vitality_v2".
     img_size : int
         Target image size (images will be resized to img_size x img_size).
     data_dir : str, optional
@@ -365,6 +370,25 @@ def get_dataset(
     Dataset  that yields (C, H, W) float32 tensors or dicts.
     """
     name = name.lower()
+
+    if name == "cell_tensors":
+        # Multi-channel store (B8).  Channel count comes from the store's
+        # manifest, not from a hard-coded 1 or 3, and `channels` selects a
+        # subset.  Standardization is the fitted B11 pipeline, so the
+        # center/normalize flags of the PNG loaders do not apply.
+        if data_dir is None:
+            raise ValueError(
+                "cell_tensors needs data_dir (or data_root in the config) "
+                "pointing at the store directory"
+            )
+        return CellTensorDataset(
+            root=data_dir,
+            split=split,
+            channels=kwargs.get("channels"),
+            standardize=kwargs.get("standardize", True),
+            cell_ids=kwargs.get("cell_ids"),
+            mmap=kwargs.get("mmap", False),
+        )
 
     if name == "mnist":
         return MNISTDataset(
@@ -393,5 +417,6 @@ def get_dataset(
         )
 
     raise ValueError(
-        f"Unknown dataset: {name!r}.  Supported: 'mnist', 'geospatial', 'hcmc_vitality_v2'."
+        f"Unknown dataset: {name!r}.  Supported: 'cell_tensors', 'mnist', "
+        f"'geospatial', 'hcmc_vitality_v2'."
     )

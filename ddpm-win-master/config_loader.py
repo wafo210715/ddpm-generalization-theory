@@ -19,6 +19,7 @@ class TrainingConfig:
     img_channels: int = 1
     img_size: int = 32
     batch_size: int = 128
+    channels: Optional[List[str]] = None  # Channel subset for cell_tensors stores
 
     # Model
     model_channels: int = 64  # U-Net base channel count
@@ -60,6 +61,10 @@ class TrainingConfig:
     # VE schedule parameters (Song et al. SDE naming)
     sigma_min: float = 0.02  # Minimum noise level
     sigma_max: float = 100.0  # Maximum noise level
+    # Resolution shift (Hoogeboom et al. 2023 Simple Diffusion; Chen 2023).
+    # B2/D1: at 1024 px the standard schedule under-noises and must be shifted.
+    shift_schedule: bool = False
+    ref_img_size: int = 64  # Resolution the base schedule was tuned for
 
     # Checkpointing (for generalization window)
     save_initial: List[int] = field(
@@ -123,6 +128,10 @@ class TrainingConfig:
         print("=" * 50)
         print(f"Dataset: {self.dataset_name}")
         print(f"Image: {self.img_channels} channels, {self.img_size}x{self.img_size}")
+        if self.channels:
+            print(f"Channel subset: {self.channels}")
+        if self.shift_schedule:
+            print(f"Schedule shifted for resolution: {self.ref_img_size} -> {self.img_size}")
         print(f"Batch size: {self.batch_size}")
         print(f"Learning rate: {self.lr}")
         print(f"Training steps: {self.n_steps}")
