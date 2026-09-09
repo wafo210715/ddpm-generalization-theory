@@ -58,6 +58,17 @@ CALC_UNIT_M = 50
 BUFFER_M = 150
 SUBDIV = 20
 TARGET_PX = 128
+
+# Overpass rejects the default python-requests User-Agent with 406 Not
+# Acceptable, so every query has to identify itself.  Contact details are part
+# of the Overpass usage policy, not decoration.
+OSM_HTTP_HEADERS = {
+    "User-Agent": (
+        "ddpm-generalization-theory/1.0 "
+        "(urban vitality research; contact wafo210715@gmail.com)"
+    )
+}
+
 NORM_PERCENTILE = 95
 
 ACCESSIBILITY_BETA = 0.3
@@ -131,7 +142,8 @@ def fetch_buildings(grid_gdf):
         data = {"elements": []}
         for attempt in range(3):
             try:
-                resp = requests.post(overpass_url, data={"data": query}, timeout=600)
+                resp = requests.post(overpass_url, data={"data": query},
+                                     headers=OSM_HTTP_HEADERS, timeout=600)
                 resp.raise_for_status()
                 data = resp.json()
                 break
@@ -223,7 +235,8 @@ def fetch_pois(grid_gdf):
         data = {"elements": []}
         for attempt in range(3):
             try:
-                resp = requests.post(overpass_url, data={"data": query}, timeout=600)
+                resp = requests.post(overpass_url, data={"data": query},
+                                     headers=OSM_HTTP_HEADERS, timeout=600)
                 resp.raise_for_status()
                 data = resp.json()
                 break

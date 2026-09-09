@@ -41,6 +41,16 @@ GRID_RES_M = 1000  # 1 km grid cells
 HCMC_OSM_RELATION_ID = 1973756
 HCMC_HISTORICAL_DATE = "2024-06-01T00:00:00Z"
 
+# Overpass rejects the default python-requests User-Agent with 406 Not
+# Acceptable, so every query has to identify itself.  Contact details are part
+# of the Overpass usage policy, not decoration.
+OSM_HTTP_HEADERS = {
+    "User-Agent": (
+        "ddpm-generalization-theory/1.0 "
+        "(urban vitality research; contact wafo210715@gmail.com)"
+    )
+}
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
 )
@@ -121,7 +131,8 @@ def get_hcmc_boundary():
 
     for attempt in range(3):
         try:
-            r = requests.post(url, data={"data": query}, timeout=180)
+            r = requests.post(url, data={"data": query},
+                              headers=OSM_HTTP_HEADERS, timeout=180)
             r.raise_for_status()
             data = r.json()
             break
