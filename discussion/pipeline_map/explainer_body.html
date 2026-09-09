@@ -1,0 +1,329 @@
+<main class="page doc">
+  <header class="masthead">
+    <p class="eyebrow">companion to the <a href="{{MAP_URL}}">Latent City Pipeline Map</a> · 9 Sep 2026</p>
+    <h1>Cells, Channels, Units</h1>
+    <p class="lede">Seven questions from the pipeline discussion, each answered with a picture: how big a tile is, why the unit is free above a floor, what a channel really is, how a sample gets unpacked, how to see what changed after training, where supply and demand sit in one tensor, and what direct encoding would add.</p>
+    <ul class="toc">
+      <li><a href="#tile">1 Tile size</a></li><li><a href="#unit">2 Unit and floor</a></li><li><a href="#channel">3 Channels</a></li>
+      <li><a href="#unpack">4 Unpacking</a></li><li><a href="#compare">5 Seeing the change</a></li><li><a href="#joint">6 Supply and demand</a></li><li><a href="#encoding">7 Raster or direct</a></li><li><a href="#terms">Terms</a></li>
+    </ul>
+  </header>
+
+  <section id="tile">
+    <h2><span class="num">1</span>How big is a zoom-15 tile</h2>
+    <p>Web Mercator tiles shrink with latitude. Width in metres is 40,075,017 × cos(latitude) ÷ 2<sup>zoom</sup>. Ho Chi Minh City spans 10.35° N at Cần Giờ to 11.16° N at Củ Chi, so every tile in the study area is within a quarter of a percent of the same size.</p>
+    <table class="t">
+      <thead><tr><th>Zoom</th><th>Cần Giờ 10.35° N</th><th>Centre 10.78° N</th><th>Củ Chi 11.16° N</th></tr></thead>
+      <tbody>
+        <tr><td>14</td><td>2,406 m</td><td>2,403 m</td><td>2,400 m</td></tr>
+        <tr><td>15</td><td class="hi">1,203 m</td><td class="hi">1,201 m</td><td class="hi">1,200 m</td></tr>
+        <tr><td>16</td><td>602 m</td><td>601 m</td><td>600 m</td></tr>
+      </tbody>
+    </table>
+    <p>A standard slippy-map tile image is 256 × 256 pixels. That is a rendering convention for web maps and says nothing about our raster. The resolution inside the tile is ours to choose. At zoom 15, each choice of image size fixes the unit, and the cost follows the pixel count:</p>
+    <table class="t">
+      <thead><tr><th>Image size</th><th>Unit per pixel</th><th>Pixels vs 128</th><th>Steps per second</th><th>500K steps</th></tr></thead>
+      <tbody>
+        <tr><td>128 px</td><td>9.39 m</td><td>×1</td><td>10.98 measured</td><td>0.5 days</td></tr>
+        <tr><td>256 px</td><td>4.69 m</td><td>×4</td><td>≈2.7</td><td>≈2 days</td></tr>
+        <tr><td>512 px</td><td>2.35 m</td><td>×16</td><td>≈0.7</td><td>≈8 days</td></tr>
+        <tr><td class="hi">1024 px</td><td class="hi">1.17 m</td><td>×64</td><td>≈0.17</td><td>≈34 days</td></tr>
+      </tbody>
+    </table>
+    <p class="callout">The last two columns scale the pilot's measured 10.98 steps per second at 128 px on the Pro 6000 by pixel count alone. Real numbers will differ, but the ratio holds: each doubling of resolution costs about four times the compute per step, and every dataset mutant is its own run.</p>
+  </section>
+
+  <section id="unit">
+    <h2><span class="num">2</span>The unit is free above a floor</h2>
+    <p>Your insertion is right, with one boundary. An indicator has two scales. The measurement scale is where it is computed: the decay radius of the gravity model, the ring around a point for POI diversity, the polygon itself for a footprint. The sampling unit is where its value is read: the pixel. Reading a smooth field at more points does not change what the field means. It only records more samples of the same thing.</p>
+    <figure>
+      <svg viewBox="0 0 760 484" role="img" aria-label="Top row: an accessibility field keeps its meaning when read on 50, 25 or 10 metre grids. Bottom row: four rowhouses with 3 metre alleys merge into one block at 10 metre pixels and stay separate at 2.3 metre pixels.">
+        <defs>
+          <pattern id="a-g40" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" class="f-grid"/></pattern>
+          <pattern id="a-g20" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="f-grid"/></pattern>
+          <pattern id="a-g10" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" class="f-grid"/></pattern>
+          <pattern id="a-g5" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M5 0H0V5" class="f-grid"/></pattern>
+        </defs>
+        <text x="12" y="16" class="f-lab">Smooth indicator · accessibility with a 300 m decay radius</text>
+        <g transform="translate(12,28)">
+          <rect width="160" height="160" class="f-panel"/>
+          <line x1="12" y1="140" x2="148" y2="36" class="f-road"/>
+          <circle cx="80" cy="88" r="68" class="f-a1"/><circle cx="80" cy="88" r="46" class="f-a2"/><circle cx="80" cy="88" r="24" class="f-a3"/>
+          <circle cx="80" cy="88" r="68" class="f-ring"/>
+          <text x="80" y="176" text-anchor="middle" class="f-cap">the field itself</text>
+          <text x="80" y="190" text-anchor="middle" class="f-cap">dashed ring = measurement scale</text>
+        </g>
+        <g transform="translate(200,28)">
+          <rect width="160" height="160" class="f-panel"/>
+          <line x1="12" y1="140" x2="148" y2="36" class="f-road"/>
+          <circle cx="80" cy="88" r="68" class="f-a1"/><circle cx="80" cy="88" r="46" class="f-a2"/><circle cx="80" cy="88" r="24" class="f-a3"/>
+          <rect width="160" height="160" fill="url(#a-g40)"/>
+          <text x="80" y="178" text-anchor="middle" class="f-cap">read at 50 m · 24 px per tile</text>
+        </g>
+        <g transform="translate(388,28)">
+          <rect width="160" height="160" class="f-panel"/>
+          <line x1="12" y1="140" x2="148" y2="36" class="f-road"/>
+          <circle cx="80" cy="88" r="68" class="f-a1"/><circle cx="80" cy="88" r="46" class="f-a2"/><circle cx="80" cy="88" r="24" class="f-a3"/>
+          <rect width="160" height="160" fill="url(#a-g20)"/>
+          <text x="80" y="178" text-anchor="middle" class="f-cap">read at 25 m · 48 px per tile</text>
+        </g>
+        <g transform="translate(576,28)">
+          <rect width="160" height="160" class="f-panel"/>
+          <line x1="12" y1="140" x2="148" y2="36" class="f-road"/>
+          <circle cx="80" cy="88" r="68" class="f-a1"/><circle cx="80" cy="88" r="46" class="f-a2"/><circle cx="80" cy="88" r="24" class="f-a3"/>
+          <rect width="160" height="160" fill="url(#a-g10)"/>
+          <text x="80" y="178" text-anchor="middle" class="f-cap">read at 10 m · 120 px per tile</text>
+        </g>
+        <text x="200" y="236" class="f-sm f-mute">Same field, more readings. The ring did not move, so the meaning did not either.</text>
+
+        <text x="12" y="266" class="f-lab">Sharp indicator · four rowhouses, 3 m alleys, and an L-shaped building</text>
+        <g transform="translate(12,278)">
+          <rect width="160" height="160" class="f-panel"/>
+          <rect x="20" y="24" width="10" height="34" class="f-bld"/><rect x="36" y="24" width="10" height="34" class="f-bld"/>
+          <rect x="52" y="24" width="10" height="34" class="f-bld"/><rect x="68" y="24" width="10" height="34" class="f-bld"/>
+          <polygon points="24,88 96,88 96,140 66,140 66,112 24,112" class="f-bld"/>
+          <text x="80" y="176" text-anchor="middle" class="f-cap">footprints as vectors</text>
+          <text x="80" y="190" text-anchor="middle" class="f-cap">1 px = 0.5 m</text>
+        </g>
+        <g transform="translate(200,278)">
+          <rect width="160" height="160" class="f-panel"/>
+          <rect x="20" y="20" width="60" height="40" class="f-blk"/>
+          <rect x="20" y="80" width="80" height="40" class="f-blk"/>
+          <rect x="60" y="120" width="40" height="20" class="f-blk"/>
+          <rect width="160" height="160" fill="url(#a-g20)"/>
+          <text x="80" y="176" text-anchor="middle" class="f-cap">10 m pixels</text>
+          <text x="80" y="190" text-anchor="middle" class="f-cap">houses and alleys become one block</text>
+        </g>
+        <g transform="translate(388,278)">
+          <rect width="160" height="160" class="f-panel"/>
+          <rect x="20" y="24" width="10" height="34" class="f-bld"/><rect x="36" y="24" width="10" height="34" class="f-bld"/>
+          <rect x="52" y="24" width="10" height="34" class="f-bld"/><rect x="68" y="24" width="10" height="34" class="f-bld"/>
+          <polygon points="24,88 96,88 96,140 66,140 66,112 24,112" class="f-bld"/>
+          <rect width="160" height="160" fill="url(#a-g5)"/>
+          <text x="80" y="176" text-anchor="middle" class="f-cap">2.3 m pixels</text>
+          <text x="80" y="190" text-anchor="middle" class="f-cap">alleys stay open</text>
+        </g>
+        <g transform="translate(576,278)">
+          <rect width="160" height="160" class="f-panel"/>
+          <text x="14" y="32" class="f-lab">The floor</text>
+          <text x="14" y="56" class="f-sm">The finest indicator sets</text>
+          <text x="14" y="72" class="f-sm">the smallest useful unit.</text>
+          <text x="14" y="98" class="f-sm">Here that is the footprint</text>
+          <text x="14" y="114" class="f-sm">channel, so</text>
+          <text x="14" y="134" class="f-lab f-acc">2 to 3 m per pixel.</text>
+          <text x="14" y="154" class="f-sm f-mute">Finer only costs compute.</text>
+        </g>
+      </svg>
+      <figcaption>Top: the accessibility field is computed once with its 300 m decay and merely read on coarser or finer grids. Bottom: footprints carry their information in shape and spacing, so the pixel must be smaller than an alley.</figcaption>
+    </figure>
+    <p>The boundary is the finest indicator. Ho Chi Minh City's rowhouses are 4 to 6 m wide and its alleys 2 to 4 m. Pixels of 10 m fuse a row of houses and their alleys into one block; pixels of 2 to 3 m keep them apart. Accessibility and diversity are smooth by construction and would be fine at 25 or 50 m, but every channel shares one grid, so the building channel sets the floor for all of them.</p>
+    <div class="verdict"><b>Decision.</b> 1024 px at zoom 15, a 1.17 m unit. Your call, given HCMC's ground conditions: at that size a 3 m alley is two to three pixels wide and a 5 m rowhouse keeps its outline. 512 px, at 2.35 m, is the first size that respects the footprints and serves as the calibration tier. Build and debug at 128 or 256 px, calibrate at 512, run the experiments at 1024.</div>
+    <p>Three things 1024 px commits you to. The standard DDPM noise schedule under-noises large images, so it must be shifted, and the U-Net needs more downsampling levels so that its attention block sees a small bottleneck; Simple Diffusion (Hoogeboom et al. 2023) trained 1024 px in pixel space with exactly these two changes, and Chen 2023 studies the schedule shift on its own. Compute per step is 64 times the pilot's, so a 500K-step run is weeks by naive scaling; smaller mutants reach their memorization onset sooner and need fewer steps, which helps. And nearest-neighbour distances get noisier in a space of six million numbers per cell, although the intrinsic dimension itself does not change with resolution (Haldar et al. 2024, already cited in the June plan).</p>
+  </section>
+
+  <section id="channel">
+    <h2><span class="num">3</span>What a channel is</h2>
+    <p>A cell is a stack of grids. Each grid holds one indicator's score for every unit in the cell. Six indicators, six grids. A single "pixel" is not a colour: it is the column of six scores that one patch of urban space receives. The pilot's RGB files were exactly this object with three grids, stored in an image format because the loader wanted one. The colours were never colours, and nothing about them was wasted or special.</p>
+    <figure>
+      <svg viewBox="0 0 760 340" role="img" aria-label="Left: one cell drawn as six stacked grids, one per indicator, with a probe through a single unit listing its six scores. Right: the pilot's RGB file drawn as the same object with three grids.">
+        <defs><pattern id="b-g" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M25 0H0V25" class="f-grid"/></pattern></defs>
+        <text x="12" y="16" class="f-lab">One cell = a stack of grids, one grid per indicator</text>
+        <g>
+          <rect x="100" y="30" width="150" height="64" class="f-panel"/><rect x="100" y="30" width="150" height="64" fill="url(#b-g)"/><text x="258" y="44" class="f-sm">H · night lights (activity)</text>
+          <rect x="86" y="68" width="150" height="64" class="f-panel"/><rect x="86" y="68" width="150" height="64" fill="url(#b-g)"/><text x="244" y="82" class="f-sm">G2 · POI count</text>
+          <rect x="72" y="106" width="150" height="64" class="f-panel"/><rect x="72" y="106" width="150" height="64" fill="url(#b-g)"/><text x="230" y="120" class="f-sm">G1 · POI diversity</text>
+          <rect x="58" y="144" width="150" height="64" class="f-panel"/><rect x="58" y="144" width="150" height="64" fill="url(#b-g)"/><text x="216" y="158" class="f-sm">R · road accessibility</text>
+          <rect x="44" y="182" width="150" height="64" class="f-panel"/><rect x="44" y="182" width="150" height="64" fill="url(#b-g)"/><text x="202" y="196" class="f-sm">B2 · building density</text>
+          <rect x="30" y="220" width="150" height="64" class="f-panel"/><rect x="30" y="220" width="150" height="64" fill="url(#b-g)"/><text x="188" y="234" class="f-sm">B1 · building footprint, binary</text>
+          <line x1="70" y1="264" x2="140" y2="74" class="f-edge-acc"/>
+          <rect x="136" y="70" width="8" height="8" class="f-probe"/><rect x="122" y="108" width="8" height="8" class="f-probe"/><rect x="108" y="146" width="8" height="8" class="f-probe"/>
+          <rect x="94" y="184" width="8" height="8" class="f-probe"/><rect x="80" y="222" width="8" height="8" class="f-probe"/><rect x="66" y="260" width="8" height="8" class="f-probe"/>
+          <text x="30" y="312" class="f-mono">one unit, six scores:</text>
+          <text x="30" y="330" class="f-mono f-acc">0.00 · 0.31 · 0.72 · 1.10 · 3 · 0.40</text>
+        </g>
+        <g>
+          <text x="470" y="16" class="f-lab">What the pilot's RGB file was</text>
+          <rect x="498" y="124" width="120" height="56" class="f-panel"/><rect x="498" y="124" width="120" height="56" fill="url(#b-g)"/><text x="626" y="138" class="f-sm">R · accessibility</text>
+          <rect x="484" y="162" width="120" height="56" class="f-panel"/><rect x="484" y="162" width="120" height="56" fill="url(#b-g)"/><text x="612" y="176" class="f-sm">G · diversity</text>
+          <rect x="470" y="200" width="120" height="56" class="f-panel"/><rect x="470" y="200" width="120" height="56" fill="url(#b-g)"/><text x="598" y="214" class="f-sm">B · density</text>
+          <text x="470" y="46" class="f-sm">A "pixel" is one unit's column of scores.</text>
+          <text x="470" y="64" class="f-sm">Three grids or six: same object, taller stack.</text>
+          <text x="470" y="82" class="f-sm">One grid also works. The MNIST baseline had one.</text>
+          <text x="470" y="292" class="f-sm f-mute">Three grids in a PNG.</text>
+          <text x="470" y="308" class="f-sm f-mute">The colours were never colours.</text>
+        </g>
+      </svg>
+      <figcaption>A cell tensor is C grids of H × W unit scores. The probe picks one unit and reads its score in every grid; that column is what a "pixel" means here.</figcaption>
+    </figure>
+    <p>So more channels are not wasteful, and three is not special. The U-Net takes any channel count, one included: the MNIST baseline in the same code trained on a single grid. The only things that change with the count are the loader, the per-channel standardization, and how you look at the result.</p>
+    <p>The same holds if the vitality literature hands you fourteen indicators. Fourteen grids at 1024 px are fourteen million numbers per cell, which the model does not mind: the first convolution absorbs any channel count, standardization gives each grid equal weight, and the intrinsic dimension barely moves because most published indicators are functions of the same underlying city. What changes is the work in the specification table. Each candidate gets sorted three ways. A field that varies within a tile becomes a grid. A value that is constant across a tile, which many published indicators are, becomes a condition attached to the cell. A near-duplicate of an indicator already present is dropped, and the correlationist baseline is where that shows. Expect fourteen candidates to become five to eight grids and a few conditions.</p>
+  </section>
+
+  <section id="unpack">
+    <h2><span class="num">4</span>Unpacking a sample</h2>
+    <p>The model generates a tensor of the same shape as the training tensors. Unpacking is mechanical: split off each grid and undo its standardization with the shift and scale stored at encoding time. That returns physical units, such as footprint area per unit or bits of POI entropy. Only then does the descriptor run, and it runs identically on real and generated cells. So yes, the descriptor is the comparison tool, and unpacking is the free step before it.</p>
+    <figure>
+      <svg viewBox="0 0 760 290" role="img" aria-label="Flow from Gaussian noise through the DDPM reverse process to a sample tensor, then undoing standardization, then three uses: looking at it, describing it with the descriptor for comparison, and later conditional sampling.">
+        <defs><marker id="c-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="f-arrow"/></marker></defs>
+        <rect x="16" y="36" width="130" height="64" rx="3" class="f-box"/>
+        <text x="81" y="62" text-anchor="middle" class="f-lab">Gaussian noise</text><text x="81" y="80" text-anchor="middle" class="f-sm f-mute">6 × 512 × 512</text>
+        <line x1="146" y1="68" x2="184" y2="68" class="f-edge" marker-end="url(#c-ar)"/><text x="165" y="28" text-anchor="middle" class="f-sm f-mute">1000 steps</text>
+        <rect x="186" y="36" width="150" height="64" rx="3" class="f-box"/>
+        <text x="261" y="62" text-anchor="middle" class="f-lab">DDPM reverse process</text><text x="261" y="80" text-anchor="middle" class="f-sm f-mute">denoise step by step</text>
+        <line x1="336" y1="68" x2="374" y2="68" class="f-edge" marker-end="url(#c-ar)"/><text x="355" y="28" text-anchor="middle" class="f-sm f-mute">model output</text>
+        <rect x="376" y="36" width="150" height="64" rx="3" class="f-box"/>
+        <text x="451" y="62" text-anchor="middle" class="f-lab">sample tensor</text><text x="451" y="80" text-anchor="middle" class="f-sm f-mute">standardized units</text>
+        <line x1="526" y1="68" x2="564" y2="68" class="f-edge" marker-end="url(#c-ar)"/><text x="545" y="28" text-anchor="middle" class="f-sm f-mute">unpack</text>
+        <rect x="566" y="36" width="178" height="64" rx="3" class="f-box"/>
+        <text x="655" y="62" text-anchor="middle" class="f-lab">undo standardization</text><text x="655" y="80" text-anchor="middle" class="f-sm f-mute">stored shift and scale, per channel</text>
+        <polyline points="655,100 655,144 127,144 127,184" class="f-edge" marker-end="url(#c-ar)"/>
+        <polyline points="655,100 655,144 381,144 381,184" class="f-edge" marker-end="url(#c-ar)"/>
+        <polyline points="655,100 655,144 635,144 635,184" class="f-edge" marker-end="url(#c-ar)"/>
+        <rect x="16" y="186" width="222" height="68" rx="3" class="f-box"/>
+        <text x="127" y="212" text-anchor="middle" class="f-lab">look</text><text x="127" y="232" text-anchor="middle" class="f-sm f-mute">small multiples, or any three grids as colour</text>
+        <rect x="262" y="186" width="238" height="68" rx="3" class="f-box-acc"/>
+        <text x="381" y="212" text-anchor="middle" class="f-lab">describe</text><text x="381" y="232" text-anchor="middle" class="f-sm">descriptor → histograms → compare with real</text>
+        <rect x="526" y="186" width="218" height="68" rx="3" class="f-box-dash"/>
+        <text x="635" y="212" text-anchor="middle" class="f-lab">later</text><text x="635" y="232" text-anchor="middle" class="f-sm f-mute">fix the form grids, sample the activity grids</text>
+        <text x="16" y="280" class="f-sm f-mute">Nothing on this page is learned except the DDPM itself.</text>
+      </svg>
+      <figcaption>Unpacking is the inverse of encoding, so it costs nothing and cannot be wrong. The descriptor is where interpretation begins.</figcaption>
+    </figure>
+    <p>Your thought experiment with six numbers per data point is the descriptor-level version of this. It is a legitimate and cheap baseline: a DDPM on per-cell six-vectors learns the joint distribution of the indicators without their spatial arrangement. The raster version learns that plus layout. Running both tells you how much layout matters, which is itself a finding.</p>
+  </section>
+
+  <section id="compare">
+    <h2><span class="num">5</span>Seeing the change after training</h2>
+    <p>Your idea, in two parts. First, flatten cells onto a two-dimensional map and watch where generated cells land relative to real ones, one grid at a time. Second, measure how the grids sit relative to each other in space, before and after training, so the change reads from what to what. Both were missing from the map; they are now C4b, E3b and E3c.</p>
+    <figure>
+      <svg viewBox="0 0 760 300" role="img" aria-label="Left: a two-dimensional map of real cells in grey with generated cells in amber; generated points fill one cluster, avoid a second, and pile onto a single spot in a third. Right: two cell drawings with an accessibility halo along a road; buildings line the road in the real cell and drift off it in the generated cell, with bivariate Moran's I labelled.">
+        <text x="12" y="16" class="f-lab">One grid on the real map</text>
+        <rect x="12" y="26" width="360" height="248" class="f-panel"/>
+        <g transform="translate(12,26)">{{SCATTER}}</g>
+        <circle cx="26" cy="44" r="3.2" class="f-pt"/><text x="34" y="48" class="f-sm f-mute">real</text>
+        <circle cx="70" cy="44" r="3.2" class="f-pt-gen"/><text x="78" y="48" class="f-sm f-mute">generated</text>
+        <text x="112" y="94" text-anchor="middle" class="f-sm">filled: this region was learned</text>
+        <text x="262" y="70" text-anchor="middle" class="f-sm">avoided: not learned</text>
+        <text x="264" y="228" class="f-sm">piled onto one</text><text x="264" y="242" class="f-sm">real cell: copying</text>
+
+        <text x="392" y="16" class="f-lab">Spatial relation between two grids</text>
+        <g transform="translate(392,40)">
+          <rect width="150" height="150" class="f-panel"/>
+          <line x1="10" y1="130" x2="140" y2="30" class="f-band"/><line x1="10" y1="130" x2="140" y2="30" class="f-band2"/><line x1="10" y1="130" x2="140" y2="30" class="f-road"/>
+          <rect x="34" y="122" width="8" height="8" class="f-bld"/><rect x="17" y="100" width="8" height="8" class="f-bld"/>
+          <rect x="53" y="107" width="8" height="8" class="f-bld"/><rect x="36" y="85" width="8" height="8" class="f-bld"/>
+          <rect x="73" y="92" width="8" height="8" class="f-bld"/><rect x="56" y="70" width="8" height="8" class="f-bld"/>
+          <rect x="92" y="77" width="8" height="8" class="f-bld"/><rect x="75" y="55" width="8" height="8" class="f-bld"/>
+          <rect x="112" y="62" width="8" height="8" class="f-bld"/><rect x="95" y="40" width="8" height="8" class="f-bld"/>
+          <rect x="131" y="47" width="8" height="8" class="f-bld"/><rect x="114" y="25" width="8" height="8" class="f-bld"/>
+          <text x="75" y="168" text-anchor="middle" class="f-cap">real cell</text>
+          <text x="75" y="182" text-anchor="middle" class="f-cap">buildings line the accessible units</text>
+          <text x="75" y="206" text-anchor="middle" class="f-mono f-acc">bivariate Moran's I ≈ 0.4</text>
+        </g>
+        <g transform="translate(598,40)">
+          <rect width="150" height="150" class="f-panel"/>
+          <line x1="10" y1="130" x2="140" y2="30" class="f-band"/><line x1="10" y1="130" x2="140" y2="30" class="f-band2"/><line x1="10" y1="130" x2="140" y2="30" class="f-road"/>
+          <rect x="18" y="24" width="8" height="8" class="f-bld"/><rect x="44" y="18" width="8" height="8" class="f-bld"/>
+          <rect x="66" y="36" width="8" height="8" class="f-bld"/><rect x="114" y="114" width="8" height="8" class="f-bld"/>
+          <rect x="91" y="131" width="8" height="8" class="f-bld"/><rect x="26" y="64" width="8" height="8" class="f-bld"/>
+          <rect x="128" y="84" width="8" height="8" class="f-bld"/><rect x="56" y="116" width="8" height="8" class="f-bld"/>
+          <rect x="136" y="128" width="8" height="8" class="f-bld"/><rect x="80" y="16" width="8" height="8" class="f-bld"/>
+          <text x="75" y="168" text-anchor="middle" class="f-cap">generated cell, one checkpoint</text>
+          <text x="75" y="182" text-anchor="middle" class="f-cap">buildings drift off the road</text>
+          <text x="75" y="206" text-anchor="middle" class="f-mono f-acc">bivariate Moran's I ≈ 0.1</text>
+        </g>
+        <text x="392" y="270" class="f-sm f-mute">Illustrative numbers. The real ones come from E3c, at every checkpoint.</text>
+      </svg>
+      <figcaption>Left: one fitted map, real cells in grey and generated cells in amber, read per grid. Right: the relation between the building grid and the accessibility grid, measured in space rather than as cell averages.</figcaption>
+    </figure>
+    <p>The map. Flatten each cell first to about fifty numbers with PCA, then to two with UMAP or t-SNE, fitted on the real cells only and before any model exists. That is the before picture, C4b, and it also shows whether the typologies separate. After training, project generated cells onto the same map, one grid at a time and one checkpoint at a time, E3b. Three patterns matter. Generated points that fill a real cluster mean that region was learned. A real cluster with no generated points near it was not. Generated points piled onto a single real cell are copying, which F_mem then confirms in numbers. Use UMAP rather than t-SNE for this, because UMAP can place new points on a map fitted earlier and t-SNE has to be refitted every time. Treat the picture as a picture: distances on it are not measurements.</p>
+    <p>The spatial relations. The pilot's synergy analysis correlated cell-level averages, which can say that dense cells tend to be accessible cells but not whether, inside a cell, the buildings sit on the accessible units. That is a question about two grids at once in space. Bivariate Moran's I answers it directly; co-location counts between unit classes and cross-correlograms by distance add detail. Compute them once on the real cells and at every checkpoint on generated cells, E3c, and the change reads as a number moving from one value to another over training.</p>
+  </section>
+
+  <section id="joint">
+    <h2><span class="num">6</span>Supply and demand in one tensor</h2>
+    <p>Putting form and activity into one tensor is not a category error. It is the point. A regression fits one function from supply to demand. The DDPM learns the joint distribution of both, and from a joint you can read either conditional: what activity accompanies a given form, or what forms host a given activity. Fixing the form grids and sampling only the activity grids, the inpainting trick, is how a trained model answers the first question directly. That is the intervention experiment your Stage 2 plan wanted, without a new architecture.</p>
+    <figure>
+      <svg viewBox="0 0 760 236" role="img" aria-label="A zoom-15 tile overlaid with 500 metre night-light cells shows only 2.4 cells across, so the layer is nearly flat inside a tile; beside it the same tile with 2.3 metre building pixels.">
+        <defs><pattern id="d-g" width="15" height="15" patternUnits="userSpaceOnUse"><path d="M15 0H0V15" class="f-grid"/></pattern></defs>
+        <g transform="translate(30,20)">
+          <rect x="0" y="0" width="75" height="75" class="f-v2"/><rect x="75" y="0" width="75" height="75" class="f-v3"/><rect x="150" y="0" width="30" height="75" class="f-v1"/>
+          <rect x="0" y="75" width="75" height="75" class="f-v1"/><rect x="75" y="75" width="75" height="75" class="f-v2"/><rect x="150" y="75" width="30" height="75" class="f-v3"/>
+          <rect x="0" y="150" width="75" height="30" class="f-v3"/><rect x="75" y="150" width="75" height="30" class="f-v1"/><rect x="150" y="150" width="30" height="30" class="f-v2"/>
+          <line x1="75" y1="0" x2="75" y2="180" class="f-grid"/><line x1="150" y1="0" x2="150" y2="180" class="f-grid"/>
+          <line x1="0" y1="75" x2="180" y2="75" class="f-grid"/><line x1="0" y1="150" x2="180" y2="150" class="f-grid"/>
+          <rect width="180" height="180" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <text x="90" y="200" text-anchor="middle" class="f-cap">night lights at 500 m · 2.4 cells per tile</text>
+        </g>
+        <g transform="translate(290,20)">
+          <rect width="180" height="180" class="f-panel"/><rect width="180" height="180" fill="url(#d-g)"/>
+          <rect x="30" y="40" width="9" height="30" class="f-bld"/><rect x="45" y="40" width="9" height="30" class="f-bld"/><rect x="60" y="40" width="9" height="30" class="f-bld"/>
+          <polygon points="90,100 150,100 150,150 120,150 120,120 90,120" class="f-bld"/>
+          <rect width="180" height="180" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <text x="90" y="200" text-anchor="middle" class="f-cap">buildings at 2.3 m · 512 px per tile</text>
+          <text x="90" y="214" text-anchor="middle" class="f-cap">grid drawn coarser than real</text>
+        </g>
+        <g transform="translate(510,20)">
+          <text x="0" y="24" class="f-lab">One tile, two resolutions</text>
+          <text x="0" y="52" class="f-sm">Inside a 1.2 km tile a 500 m layer</text>
+          <text x="0" y="68" class="f-sm">is almost flat. It behaves like a</text>
+          <text x="0" y="84" class="f-sm">label on the cell, not a field in it.</text>
+          <text x="0" y="112" class="f-sm">Two ways out:</text>
+          <text x="0" y="130" class="f-sm f-acc">attach it as a condition, or</text>
+          <text x="0" y="148" class="f-sm f-acc">find activity data at building scale.</text>
+          <text x="0" y="176" class="f-sm f-mute">Both keep the joint-distribution idea.</text>
+        </g>
+      </svg>
+      <figcaption>The joint model is sound; the caution is about resolution. A layer that barely varies inside a cell carries cell-level information and should be treated as such.</figcaption>
+    </figure>
+    <p>So the caution before adding activity layers is practical, not conceptual. VIIRS night lights come at about 500 m. A zoom-15 tile is 2.4 of those cells wide, so within a tile the layer is nearly constant. Either treat coarse layers as conditions attached to the whole cell, or look for activity proxies at building scale, such as POI visit counts or mobile-signal grids where they exist.</p>
+  </section>
+
+  <section id="encoding">
+    <h2><span class="num">7</span>Raster stack or direct encoding</h2>
+    <p>Your list is right: direct encoding needs a far more complex encoder, is less legible to urban readers, and drops the forced grid in favour of georeferencing. It also changes one thing you did not list. In the raster stack, the way back from a sample to indicators is free, because the encoding was a written rule. In direct encoding, the way back is a learned decoder that must itself be trained and validated, one per data type. That is the hardest part of the Stage 2 plan. It is also why JEPA-style representation learning is not a shortcut here: JEPA learns embeddings to predict with, not a space you can sample from and decode.</p>
+    <figure>
+      <svg viewBox="0 0 800 300" role="img" aria-label="Two paths side by side. Path one: geodata, rasterize by rule, cell tensor, DDPM, sample tensor, undo standardization, analysis. Path two: geodata, learned encoders, embedding, DDPM, sample embedding, learned decoders that must be trained, analysis. The learned decoders box is highlighted as the added component.">
+        <defs><marker id="e-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="f-arrow"/></marker></defs>
+        <text x="14" y="26" class="f-lab">1 · raster stack, this paper</text>
+        <rect x="14" y="44" width="96" height="60" rx="3" class="f-box"/><text x="62" y="70" text-anchor="middle" class="f-txt">geodata</text><text x="62" y="86" text-anchor="middle" class="f-sm f-mute">polygons, lines, points</text>
+        <line x1="110" y1="74" x2="126" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="126" y="44" width="96" height="60" rx="3" class="f-box"/><text x="174" y="70" text-anchor="middle" class="f-txt">rasterize</text><text x="174" y="86" text-anchor="middle" class="f-sm f-mute">hand-written rules</text>
+        <line x1="222" y1="74" x2="238" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="238" y="44" width="96" height="60" rx="3" class="f-box"/><text x="286" y="70" text-anchor="middle" class="f-txt">cell tensor</text><text x="286" y="86" text-anchor="middle" class="f-sm f-mute">C × H × W</text>
+        <line x1="334" y1="74" x2="350" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="350" y="44" width="96" height="60" rx="3" class="f-box"/><text x="398" y="70" text-anchor="middle" class="f-txt">DDPM</text><text x="398" y="86" text-anchor="middle" class="f-sm f-mute">learn, then sample</text>
+        <line x1="446" y1="74" x2="462" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="462" y="44" width="96" height="60" rx="3" class="f-box"/><text x="510" y="70" text-anchor="middle" class="f-txt">sample tensor</text><text x="510" y="86" text-anchor="middle" class="f-sm f-mute">same space as data</text>
+        <line x1="558" y1="74" x2="574" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="574" y="44" width="96" height="60" rx="3" class="f-box"/><text x="622" y="70" text-anchor="middle" class="f-txt">undo standardize</text><text x="622" y="86" text-anchor="middle" class="f-sm f-mute">nothing to train</text>
+        <line x1="670" y1="74" x2="686" y2="74" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="686" y="44" width="96" height="60" rx="3" class="f-box"/><text x="734" y="70" text-anchor="middle" class="f-txt">analysis</text><text x="734" y="86" text-anchor="middle" class="f-sm f-mute">descriptor, F_mem</text>
+        <text x="622" y="122" text-anchor="middle" class="f-sm f-mute">free</text>
+
+        <text x="14" y="166" class="f-lab">2 · direct encoding, Stage 2</text>
+        <rect x="14" y="184" width="96" height="60" rx="3" class="f-box"/><text x="62" y="210" text-anchor="middle" class="f-txt">geodata</text><text x="62" y="226" text-anchor="middle" class="f-sm f-mute">polygons, lines, points</text>
+        <line x1="110" y1="214" x2="126" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="126" y="184" width="96" height="60" rx="3" class="f-box"/><text x="174" y="210" text-anchor="middle" class="f-txt">learned encoders</text><text x="174" y="226" text-anchor="middle" class="f-sm f-mute">polygon · graph · point</text>
+        <line x1="222" y1="214" x2="238" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="238" y="184" width="96" height="60" rx="3" class="f-box"/><text x="286" y="210" text-anchor="middle" class="f-txt">embedding</text><text x="286" y="226" text-anchor="middle" class="f-sm f-mute">512 numbers</text>
+        <line x1="334" y1="214" x2="350" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="350" y="184" width="96" height="60" rx="3" class="f-box"/><text x="398" y="210" text-anchor="middle" class="f-txt">DDPM</text><text x="398" y="226" text-anchor="middle" class="f-sm f-mute">learn, then sample</text>
+        <line x1="446" y1="214" x2="462" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="462" y="184" width="96" height="60" rx="3" class="f-box"/><text x="510" y="210" text-anchor="middle" class="f-txt">sample embedding</text><text x="510" y="226" text-anchor="middle" class="f-sm f-mute">not readable</text>
+        <line x1="558" y1="214" x2="574" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="574" y="184" width="96" height="60" rx="3" class="f-box-acc"/><text x="622" y="210" text-anchor="middle" class="f-txt">learned decoders</text><text x="622" y="226" text-anchor="middle" class="f-sm">must be trained</text>
+        <line x1="670" y1="214" x2="686" y2="214" class="f-edge" marker-end="url(#e-ar)"/>
+        <rect x="686" y="184" width="96" height="60" rx="3" class="f-box"/><text x="734" y="210" text-anchor="middle" class="f-txt">analysis</text><text x="734" y="226" text-anchor="middle" class="f-sm f-mute">only after decoding</text>
+        <text x="622" y="266" text-anchor="middle" class="f-sm f-acc">the added component</text>
+      </svg>
+      <figcaption>The two paths share the DDPM. Path two replaces a written rule with two learned models, an encoder and a decoder, and the decoder is what makes generated samples readable at all.</figcaption>
+    </figure>
+    <p>The generalization theory you rely on is also defined in data space. A near-copy in a raster is unambiguous; a near-copy in a learned embedding depends on what the encoder chose to keep. Which is why, as you said, the generative model should at least generate something you can unpack and look at. Path one gives you that for free.</p>
+  </section>
+
+  <section id="terms" class="terms-section">
+    <h2>Terms in plain words</h2>
+    {{GLOSSARY}}
+  </section>
+</main>

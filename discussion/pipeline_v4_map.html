@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latent City Pipeline Map</title>
+<style>:root{
+  color-scheme:light;
+  --bg:#F3F5F0; --surface:#FFFFFF; --ink:#1B2426; --muted:#5C6B6D; --line:#B7C2C3;
+  --spine:#1F6F8B; --spine-soft:#DCE9EE; --gate:#B7791F; --gate-soft:#FBF2E0;
+  --future:#7F8D8F; --future-soft:#EEF1EE; --code-bg:#E6ECE7;
+  --shadow:0 1px 2px rgba(27,36,38,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#151A1B; --surface:#1E2527; --ink:#E4E9E7; --muted:#9AA8AA; --line:#3E4B4E;
+    --spine:#5FB3CF; --spine-soft:#1E3A44; --gate:#E0A93E; --gate-soft:#33291A;
+    --future:#6E7C7E; --future-soft:#1A2022; --code-bg:#263033;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#151A1B; --surface:#1E2527; --ink:#E4E9E7; --muted:#9AA8AA; --line:#3E4B4E;
+  --spine:#5FB3CF; --spine-soft:#1E3A44; --gate:#E0A93E; --gate-soft:#33291A;
+  --future:#6E7C7E; --future-soft:#1A2022; --code-bg:#263033;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 "Source Sans 3","Segoe UI",system-ui,sans-serif;}
+a{color:var(--spine)}
+.page{max-width:1160px;margin:0 auto;padding:40px 24px 72px;}
+.masthead{max-width:760px;margin:0 auto 36px;}
+.eyebrow{margin:0 0 10px;font:500 11px/1.4 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+h1{margin:0 0 12px;font:700 34px/1.1 "Archivo","Helvetica Neue",Arial,sans-serif;letter-spacing:-.01em;text-wrap:balance;}
+.lede{margin:0 0 20px;font-size:17px;max-width:62ch;color:var(--ink);}
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 14px;padding:0;list-style:none;font-size:13.5px;color:var(--muted);}
+.legend li{display:flex;align-items:center;gap:8px;}
+.sw{display:inline-block;width:22px;height:14px;border:1.5px solid var(--spine);background:var(--surface);}
+.sw.gate{border-color:var(--gate);background:var(--gate-soft);}
+.sw.future{border-style:dashed;border-color:var(--future);background:var(--future-soft);}
+.sw.par{width:30px;border:0;background:
+  linear-gradient(var(--line),var(--line)) 0 50%/100% 2px no-repeat,
+  linear-gradient(var(--line),var(--line)) 4px 0/2px 100% no-repeat,
+  linear-gradient(var(--line),var(--line)) 24px 0/2px 100% no-repeat;}
+.facts{display:inline-block;padding:8px 12px;background:var(--code-bg);font:500 12.5px/1.6 "IBM Plex Mono",ui-monospace,monospace;color:var(--ink);font-variant-numeric:tabular-nums;}
+.facts b{color:var(--spine);font-weight:500;}
+.links{margin:14px 0 0;font-size:14px;color:var(--muted)}
+
+.flow{position:relative;}
+.stub{width:2px;height:28px;background:var(--line);margin:0 auto;}
+.stage{display:flex;flex-direction:column;align-items:center;}
+.stage-label{display:flex;align-items:baseline;gap:12px;padding:9px 16px 9px 12px;border-left:4px solid var(--spine);background:var(--spine-soft);}
+.stage-label .letter{font:600 12px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.1em;color:var(--spine);}
+.stage-label .name{font:600 15px/1.2 "Archivo","Helvetica Neue",Arial,sans-serif;}
+.stage-label .ordinal{font-size:13px;color:var(--muted);}
+
+.row{position:relative;}
+.single{display:flex;flex-direction:column;align-items:center;}
+.single .node{width:min(100%,540px);}
+.lanes{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:24px;padding:14px 0;}
+.fork,.join{position:relative;height:14px;}
+.fork::before,.join::after{content:"";position:absolute;left:50%;top:0;width:2px;height:14px;background:var(--line);transform:translateX(-50%);}
+.fork i,.join i{position:absolute;height:2px;background:var(--line);
+  left:calc(100% / (2 * var(--n)) - (var(--n) - 1) * 24px / (2 * var(--n)));
+  right:calc(100% / (2 * var(--n)) - (var(--n) - 1) * 24px / (2 * var(--n)));}
+.fork i{bottom:-1px;} .join i{top:-1px;}
+.lanes .node::before,.lanes .node::after{content:"";position:absolute;left:50%;width:2px;height:15px;background:var(--line);transform:translateX(-50%);}
+.lanes .node::before{top:-15.5px;} .lanes .node::after{bottom:-15.5px;}
+.end{width:10px;height:10px;background:var(--spine);margin:0 auto;}
+
+.node{position:relative;background:var(--surface);border:1.5px solid var(--spine);border-radius:4px;padding:13px 16px 15px;box-shadow:var(--shadow);}
+.node.gate{border-color:var(--gate);background:var(--gate-soft);}
+.node.future{border-style:dashed;border-color:var(--future);background:var(--future-soft);}
+.node header{display:flex;gap:10px;align-items:baseline;font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.node header .code{color:var(--spine);}
+.node.gate header .code{color:var(--gate);}
+.node.future header .code{color:var(--future);}
+.node h3{margin:7px 0 10px;font:600 15.5px/1.3 "Archivo","Helvetica Neue",Arial,sans-serif;text-wrap:balance;}
+.why{margin:0 0 5px;font:600 10.5px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.node ul{margin:0;padding-left:16px;display:grid;gap:4px;font-size:13.5px;line-height:1.45;}
+.node li::marker{color:var(--line);}
+.node.gate li::marker{color:var(--gate);}
+.term{color:inherit;text-decoration:underline dotted var(--muted);text-decoration-thickness:1px;text-underline-offset:3px;}
+.term:hover{color:var(--spine)}
+
+/* document pages and shared sections */
+.doc{max-width:820px;margin:0 auto;}
+.doc h2{margin:48px 0 12px;font:700 22px/1.2 "Archivo","Helvetica Neue",Arial,sans-serif;text-wrap:balance;}
+.doc h2 .num{font:600 12px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.1em;color:var(--spine);margin-right:10px;vertical-align:middle}
+.doc p{max-width:68ch;margin:0 0 12px;}
+.doc sup{font-size:.75em}
+.toc{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0;padding:0;list-style:none;font-size:13.5px}
+.toc a{text-decoration:none;border-bottom:1px solid var(--line)}
+figure{margin:18px 0 6px;padding:16px;background:var(--surface);border:1px solid var(--line);overflow-x:auto;}
+figure svg{max-width:100%;height:auto;display:block;color:var(--ink);}
+figcaption{margin-top:10px;font-size:13px;color:var(--muted);max-width:72ch;}
+table.t{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px;margin:12px 0 16px;}
+table.t th,table.t td{padding:6px 14px 6px 0;border-bottom:1px solid var(--line);text-align:right;}
+table.t th:first-child,table.t td:first-child{text-align:left;padding-right:18px}
+table.t th{font:600 10.5px/1.4 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+table.t td.hi{color:var(--spine);font-weight:600}
+.callout{border-left:4px solid var(--gate);background:var(--gate-soft);padding:10px 14px;margin:14px 0;font-size:14px;max-width:72ch}
+.verdict{border-left:4px solid var(--spine);background:var(--spine-soft);padding:10px 14px;margin:14px 0;font-size:14.5px;max-width:72ch}
+dl.gloss{display:grid;grid-template-columns:max-content 1fr;gap:9px 18px;font-size:14px;margin:0}
+dl.gloss dt{font:600 13.5px/1.5 "Archivo","Helvetica Neue",Arial,sans-serif;color:var(--spine);scroll-margin-top:16px}
+dl.gloss dd{margin:0;max-width:70ch}
+dl.gloss dt:target{background:var(--spine-soft);outline:4px solid var(--spine-soft)}
+.terms-section{max-width:820px;margin:56px auto 0;padding-top:28px;border-top:1px solid var(--line)}
+.terms-section h2{margin:0 0 14px;font:700 20px/1.2 "Archivo","Helvetica Neue",Arial,sans-serif}
+footer{max-width:760px;margin:40px auto 0;font-size:13px;color:var(--muted);}
+footer code,.doc code{font:500 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--code-bg);padding:1px 5px;}
+
+/* figure primitives (inline SVG, themed through tokens) */
+.f-lab{fill:currentColor;font:600 12.5px "Archivo","Helvetica Neue",Arial,sans-serif}
+.f-cap{fill:var(--muted);font:11.5px "Source Sans 3",system-ui,sans-serif}
+.f-txt{fill:currentColor;font:12px "Source Sans 3",system-ui,sans-serif}
+.f-sm{fill:currentColor;font:11px "Source Sans 3",system-ui,sans-serif}
+.f-mono{fill:currentColor;font:500 11px "IBM Plex Mono",ui-monospace,monospace}
+.f-mute{fill:var(--muted)}
+.f-acc{fill:var(--spine)}
+.f-panel{fill:var(--surface);stroke:var(--line);stroke-width:1}
+.f-box{fill:var(--surface);stroke:currentColor;stroke-width:1.2}
+.f-box-acc{fill:var(--spine-soft);stroke:var(--spine);stroke-width:2}
+.f-box-dash{fill:var(--future-soft);stroke:var(--future);stroke-width:1.2;stroke-dasharray:5 4}
+.f-edge{fill:none;stroke:currentColor;stroke-width:1.4}
+.f-edge-acc{fill:none;stroke:var(--spine);stroke-width:1.6;stroke-dasharray:4 3}
+.f-grid{fill:none;stroke:var(--line);stroke-width:1}
+.f-road{fill:none;stroke:var(--spine);stroke-width:3;stroke-linecap:round}
+.f-a1{fill:var(--spine);fill-opacity:.12}
+.f-a2{fill:var(--spine);fill-opacity:.24}
+.f-a3{fill:var(--spine);fill-opacity:.40}
+.f-ring{fill:none;stroke:var(--gate);stroke-width:1.5;stroke-dasharray:5 4}
+.f-bld{fill:var(--ink);fill-opacity:.85;stroke:none}
+.f-blk{fill:var(--ink);fill-opacity:.55;stroke:var(--surface);stroke-width:1}
+.f-v1{fill:var(--spine);fill-opacity:.14} .f-v2{fill:var(--spine);fill-opacity:.30} .f-v3{fill:var(--spine);fill-opacity:.48}
+.f-probe{fill:var(--gate);stroke:var(--surface);stroke-width:1}
+.f-arrow{fill:currentColor}
+.f-arrow-acc{fill:var(--spine)}
+
+@media (max-width:720px){
+  .page{padding:28px 14px 56px}
+  h1{font-size:28px}
+  .lanes{grid-template-columns:1fr;gap:12px;padding:0}
+  .fork i,.join i,.lanes .node::before,.lanes .node::after{display:none}
+  .fork,.join{height:28px}
+  .fork::before,.join::after{height:28px}
+  .fork::after{content:"can run at the same time";position:absolute;left:50%;top:6px;transform:translateX(16px);font:500 10.5px/1.4 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .stage-label{flex-wrap:wrap;gap:6px 12px}
+  dl.gloss{grid-template-columns:1fr;gap:2px 0} dl.gloss dd{margin-bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.f-pt{fill:var(--muted);fill-opacity:.55;stroke:none}
+.f-pt-gen{fill:var(--gate);stroke:var(--surface);stroke-width:.8}
+.f-band{fill:none;stroke:var(--spine);stroke-opacity:.16;stroke-width:46;stroke-linecap:round}
+.f-band2{fill:none;stroke:var(--spine);stroke-opacity:.22;stroke-width:22;stroke-linecap:round}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <p class="eyebrow">DDPM urban vitality · pipeline v4 · decided 9 Sep 2026</p>
+    <h1>Latent City Pipeline Map</h1>
+    <p class="lede">One spine from raw vectors to the paper. Nodes side by side can run at the same time. Under every action sits the reason we chose it, so the argument travels with the task. Dotted words link to plain-language definitions at the bottom.</p>
+    <ul class="legend">
+      <li><span class="sw"></span>decided action</li>
+      <li><span class="sw gate"></span>checkpoint that gates the next step</li>
+      <li><span class="sw future"></span>later or optional</li>
+      <li><span class="sw par"></span>fork: run in parallel</li>
+    </ul>
+    <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 33 nodes, 3 checkpoints</p>
+    <p class="links">Companion page with the reasoning drawn out: <a href="https://claude.ai/code/artifact/a9c0370b-22af-4bab-83d4-246a80f7d562">Cells, Channels, Units</a> &nbsp;·&nbsp; <a href="#terms">Terms in plain words</a></p>
+  </header>
+  <section class="flow" aria-label="Pipeline stages A to F">
+  <div class="stage">
+    <div class="stage-label"><span class="letter">STAGE A</span><span class="name">Before any code</span><span class="ordinal">your first and second</span></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="A1">
+      <header><span class="code">A1</span><span class="kind">action</span></header>
+      <h3>Write the indicator specification table</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>A footprint is a data source. Binary raster, density, and floor-area ratio are three different indicators of it.</li>
+        <li>Each row fixes subject, source, formula, measurement scale, ring scale, and expected sparsity.</li>
+        <li>The row count sets the channel count, so this comes before any loader change.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="A2">
+      <header><span class="code">A2</span><span class="kind">action</span></header>
+      <h3>Search for human-centric layers for HCMC</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Your seventh stage: joint form and activity, the ISM proposal's original wording.</li>
+        <li>VIIRS night lights is the one layer known to be available, but at 500 m it is nearly flat inside a 1.2 km tile. Treat coarse layers as cell-level conditions, or find building-scale activity data.</li>
+        <li>Decides whether activity enters this paper or the next. The model no longer forces the choice.</li>
+      </ul>
+    </article>
+    <article class="node action" id="A3">
+      <header><span class="code">A3</span><span class="kind">action</span></header>
+      <h3>Move the raw HCMC vectors and the Python environment to the Linux box</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The 96 GB Pro 6000 is here. The OSM geopackages, grid, and venv are not.</li>
+        <li>The pilot's RGB cells need not come; the raw vectors must, since every channel is recomputed.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="stage">
+    <div class="stub"></div>
+    <div class="stage-label"><span class="letter">STAGE B</span><span class="name">Build the dataset</span><span class="ordinal">your third</span></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="B1">
+      <header><span class="code">B1</span><span class="kind">action</span></header>
+      <h3>Cut the study area into zoom-15 map tiles (1,201 m)</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>In <a class="term" href="#g-gentheory">generalization theory</a> (Bonnaire et al.) the <a class="term" href="#g-taumem">memorization onset</a> grows linearly with sample count. Four times the tiles of zoom 14 widens the observable <a class="term" href="#g-window">generalization window</a>.</li>
+        <li>Typology is assigned per cell. 1.2 km cells are purer than 2.4 km cells, which keeps <a class="term" href="#g-mutant">mutants</a> clean.</li>
+        <li>Reversible: four zoom-15 tiles merge into one zoom-14 tile. Tile addressing standardizes other cities later.</li>
+        <li>Verified: 1,200 to 1,203 m across all of HCMC. No overlapping windows: near-duplicates corrupt the <a class="term" href="#g-fmem">k-NN gap ratio</a>.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="B2">
+      <header><span class="code">B2</span><span class="kind">action</span></header>
+      <h3>Make the calculation unit equal to the pixel: 1024 px per tile, a 1.17 m unit</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The unit is where an indicator's value is read, not where it is measured. Measurement scale belongs to each indicator: its decay radius, its ring, the polygon itself. So the unit is free above a floor set by the finest indicator, the footprints.</li>
+        <li>Your call, given HCMC's ground conditions: at 1.17 m a 3 m alley is two to three pixels wide and a 5 m rowhouse keeps its outline. The pilot's 50 m units under 7.8 m pixels broke the definition.</li>
+        <li>Cost grows with pixel count, not meaning: 64× the pilot's compute per step, so a 500K-step run is weeks by naive scaling. Debug at 128 or 256, calibrate at 512, run the experiments at 1024. Smaller <a class="term" href="#g-mutant">mutants</a> memorize sooner and need fewer steps.</li>
+        <li>At this size the noise schedule must be shifted and the U-Net needs more levels; Simple Diffusion (Hoogeboom et al. 2023) trained 1024 px in pixel space exactly this way. Reasoning drawn in the companion page.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row parallel" style="--n:3">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="B3">
+      <header><span class="code">B3</span><span class="kind">action</span></header>
+      <h3>Buildings at 2 to 3 m: rasterize footprints, binary and density</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Rowhouses are 4 to 6 m wide and alleys 2 to 4 m. Coarser units fuse them into blocks.</li>
+        <li>The pilot's 150 m buffer coverage ratio flattened them to a scalar: <a class="term" href="#g-moran">Moran's I</a> near 0.</li>
+      </ul>
+    </article>
+    <article class="node action" id="B4">
+      <header><span class="code">B4</span><span class="kind">action</span></header>
+      <h3>Accessibility: gravity model on the road network, decay of a few hundred metres</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Exponential decay yields a smooth field. Its meaning lives in the decay radius, so reading it at 2.35 m costs nothing and loses nothing.</li>
+        <li>It was the only pilot channel with spatial structure (<a class="term" href="#g-moran">Moran's I</a> 0.25).</li>
+      </ul>
+    </article>
+    <article class="node action" id="B5">
+      <header><span class="code">B5</span><span class="kind">action</span></header>
+      <h3>Diversity: Shannon entropy over a ring of a few hundred metres, plus POI count</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Entropy needs at least two POIs and two categories. At 50 m the pilot channel was 97.5 % zeros.</li>
+        <li>Count travels as its own channel, so diversity does not collapse into density.</li>
+        <li>Semantic categories only if OSM coverage holds up. The checkpoint below decides.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node gate" id="B6">
+      <header><span class="code">B6</span><span class="kind">checkpoint</span></header>
+      <h3>Checkpoint: POI-per-ring coverage report</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The fraction of units whose ring is non-degenerate must be high before any training.</li>
+        <li>You asked for this check explicitly.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="B7">
+      <header><span class="code">B7</span><span class="kind">action</span></header>
+      <h3>Resample every channel to the common pixel grid (Liu et al. 2024)</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Each channel is computed at its natural scale first. Alignment happens only at the end.</li>
+        <li>Liu's image-to-image work fused independently rendered layers the same way.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="B8">
+      <header><span class="code">B8</span><span class="kind">action</span></header>
+      <h3>Store cells as multi-channel tensors, not RGB PNGs</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The U-Net reads its channel count from the config; one channel or six both work. Only the PNG loader forces three.</li>
+        <li>No fusion step to defend, and activity layers become extra channels later.</li>
+        <li>Cost: no single picture of all channels, and no pretrained perceptual metric. FID and SSCD were already unusable on urban rasters.</li>
+      </ul>
+    </article>
+    <article class="node action" id="B9">
+      <header><span class="code">B9</span><span class="kind">action</span></header>
+      <h3>Decide how multi-channel cells will be shown</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Six greyscale grids cannot be one picture. Fix the conventions before the first sample exists: <a class="term" href="#g-smallmult">small multiples</a>, one panel per channel; <a class="term" href="#g-falsecolour">false-colour composites</a>, any three channels to RGB, the remote-sensing habit; one perceptually uniform colour map per indicator.</li>
+        <li>Starting references, from memory, verify before citing: Tufte 1990, Envisioning Information, on small multiples; Crameri, Shephard and Heron 2020, Nature Communications, on colour maps; Munzner 2014, Visualization Analysis and Design, on encoding channels.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node gate" id="B10">
+      <header><span class="code">B10</span><span class="kind">checkpoint</span></header>
+      <h3>Checkpoint: per-channel marginals, zero fraction, skew, tails</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Chooses the transform for each channel.</li>
+        <li>Gaussianity is not required. The mixtures in the reference papers are solvable toy models, not data assumptions.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="B11">
+      <header><span class="code">B11</span><span class="kind">action</span></header>
+      <h3>Transform, then <a class="term" href="#g-standardize">standardize</a> each channel; store the parameters</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>A low-variance channel is pure noise over most of the diffusion trajectory. Standardization equalizes the signal-to-noise schedule across channels.</li>
+        <li>Sparse, heavy-tailed channels get log1p or a quantile map first.</li>
+        <li>The stored parameters are the decoder: unpacking a sample is just undoing this step.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="stage">
+    <div class="stub"></div>
+    <div class="stage-label"><span class="letter">STAGE C</span><span class="name">Pre-training analysis</span><span class="ordinal">your fourth</span></div>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="C1">
+      <header><span class="code">C1</span><span class="kind">action</span></header>
+      <h3>Correlationist baseline: correlations among indicators across the study area</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The control condition the paper argues against, on the same data.</li>
+        <li>Not feature selection. The network handles correlated, non-linear inputs by itself.</li>
+        <li>Flags near-duplicate channels. Pilot diversity and accessibility correlated at 0.88.</li>
+      </ul>
+    </article>
+    <article class="node action" id="C2">
+      <header><span class="code">C2</span><span class="kind">action</span></header>
+      <h3>Write the cell <a class="term" href="#g-descriptor">descriptor</a>: one function for real and generated cells</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Per-channel mean, std, zero fraction, <a class="term" href="#g-moran">Moran's I</a>, skewness; within-cell cross-channel correlation; unit-class composition.</li>
+        <li>Must be computable from the raster alone. Generated cells have no vectors behind them.</li>
+        <li>The pilot's statistics ran only on generated samples through separate code paths.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="C3">
+      <header><span class="code">C3</span><span class="kind">action</span></header>
+      <h3>Typology: <a class="term" href="#g-hdbscan">HDBSCAN</a> on per-unit indicator vectors, then cell composition</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>DBSCAN needs only a vector and a distance. A unit's column of scores is one point, never split into one-hots.</li>
+        <li>Never on raw full-resolution tensors, where distance is meaningless. HDBSCAN handles varying density.</li>
+        <li>Typologies are the <a class="term" href="#g-subspace">subspaces</a> of Wang et al. That unifies <a class="term" href="#g-id">intrinsic dimension</a>, minimal set, and <a class="term" href="#g-mutant">mutants</a>.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="C4">
+      <header><span class="code">C4</span><span class="kind">action</span></header>
+      <h3>Intrinsic dimension: global <a class="term" href="#g-pca">PCA k95</a>, <a class="term" href="#g-mle">Levina-Bickel MLE</a>, PCA inside each <a class="term" href="#g-typology">typology</a></h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>PCA is linear and overestimates on curved manifolds. MLE follows curvature; the formula bug is fixed.</li>
+        <li>Wang et al. size the minimal set by per-subspace dimension.</li>
+        <li>The pilot's k95 of 33 was accessibility-dominated and must be re-estimated.</li>
+      </ul>
+    </article>
+    <article class="node action" id="C4b">
+      <header><span class="code">C4b</span><span class="kind">action</span></header>
+      <h3>Map the real dataset in two dimensions, coloured by <a class="term" href="#g-typology">typology</a></h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>PCA to about 50 numbers per cell first, then UMAP or <a class="term" href="#g-umap">t-SNE</a>. One map for the whole stack and one per grid, fitted on real cells only.</li>
+        <li>Shows whether typologies separate and where the minimal set sits. It is the before picture, made before any model exists.</li>
+        <li>Use UMAP if generated cells must later land on this same map: UMAP can place new points on a fitted map, t-SNE cannot.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node gate" id="C5">
+      <header><span class="code">C5</span><span class="kind">checkpoint</span></header>
+      <h3>Checkpoint: does each <a class="term" href="#g-typology">typology</a> sit in a low-dimensional <a class="term" href="#g-subspace">subspace</a>?</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The Wang et al. assumption is a union of low-dimensional subspaces, a joint geometry, not marginal normality.</li>
+        <li>If not, revisit the clustering before sizing any dataset. Mirrored later by the denoiser's <a class="term" href="#g-jacobian">Jacobian rank</a>.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="C6">
+      <header><span class="code">C6</span><span class="kind">action</span></header>
+      <h3>Select the minimal baseline set by an explicit rule</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>PCA gives directions, not a subset. Use <a class="term" href="#g-kcenter">k-center greedy</a> in PCA space or one representative per <a class="term" href="#g-typology">typology</a>.</li>
+        <li>Sized per typology from C4.</li>
+        <li>Below the <a class="term" href="#g-id">intrinsic-dimension</a> threshold the model memorizes, so this set is the control where the <a class="term" href="#g-window">generalization window</a> should be short or absent.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="C7">
+      <header><span class="code">C7</span><span class="kind">action</span></header>
+      <h3>List the dataset <a class="term" href="#g-mutant">mutants</a>: baseline, +A, +B, −A, class-balanced, full</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The one place where correlationist and connectionist views can disagree.</li>
+        <li>Invariants across mutants are the irreducible structure.</li>
+        <li>Each mutant gets its own model size and steps, because the <a class="term" href="#g-taumem">memorization onset</a> scales with n. Hypotheses H1 to H4 from June.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="stage">
+    <div class="stub"></div>
+    <div class="stage-label"><span class="letter">STAGE D</span><span class="name">Train</span><span class="ordinal">your fifth</span></div>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="D1">
+      <header><span class="code">D1</span><span class="kind">action</span></header>
+      <h3>Train the DDPM directly on the cell tensors, with no latent space</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Noise is added to the indicator grids themselves, so what the model memorizes or generalizes is measured in the data, not in a black box. A learned VAE latent would move it there and impose natural-image priors.</li>
+        <li>"Pixel" here means unit, not colour. The tensor is C grids of unit scores; see the companion page.</li>
+        <li>Model size and steps per <a class="term" href="#g-mutant">mutant</a> follow from the <a class="term" href="#g-taumem">memorization onset</a> scaling with n. At 1024 px the noise schedule must be shifted and the U-Net needs more levels.</li>
+        <li>Runs on the Pro 6000 once A3 is done.</li>
+      </ul>
+    </article>
+    <article class="node action" id="D2">
+      <header><span class="code">D2</span><span class="kind">action</span></header>
+      <h3>Score <a class="term" href="#g-fmem">F_mem</a> on an untrained model to get the metric's <a class="term" href="#g-floor">noise floor</a></h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Random weights produce nonsense cells. Whatever memorization fraction they score is the floor; only values above it mean the trained model copied.</li>
+        <li>Independent of encoding, so it survives the redesign. Feeds the onset threshold in E4.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="stage">
+    <div class="stub"></div>
+    <div class="stage-label"><span class="letter">STAGE E</span><span class="name">Sample and analyze</span><span class="ordinal">your fifth and sixth</span></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="E1">
+      <header><span class="code">E1</span><span class="kind">action</span></header>
+      <h3>Sample every checkpoint; undo the <a class="term" href="#g-standardize">standardization</a></h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>A sample is a tensor in data space, not an embedding.</li>
+        <li>Unpacking is the stored shift and scale in reverse, plus an optional three-grid rendering for humans.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row parallel" style="--n:4">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="E2">
+      <header><span class="code">E2</span><span class="kind">action</span></header>
+      <h3>Memorization: <a class="term" href="#g-fmem">k-NN gap ratio</a> on the standardized tensors</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Raw distance is dominated by the highest-variance channel. The pilot measured accessibility memorization.</li>
+        <li>The <a class="term" href="#g-descriptor">descriptor</a> is too coarse to detect copying of a specific cell.</li>
+      </ul>
+    </article>
+    <article class="node action" id="E3">
+      <header><span class="code">E3</span><span class="kind">action</span></header>
+      <h3>Distribution: <a class="term" href="#g-descriptor">descriptor</a> on real vs generated, per <a class="term" href="#g-mutant">mutant</a>, per checkpoint</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Same function on both sides.</li>
+        <li>Irreducible characteristics: invariant across mutants and stable through the <a class="term" href="#g-window">generalization window</a>.</li>
+      </ul>
+    </article>
+    <article class="node action" id="E3b">
+      <header><span class="code">E3b</span><span class="kind">action</span></header>
+      <h3>Put generated cells on the real dataset's 2-D map, per grid and per checkpoint</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Same PCA and <a class="term" href="#g-umap">UMAP</a> fitted in C4b, so real and generated points share one map. Where generated points fill, avoid, or pile onto real ones shows what each grid learned.</li>
+        <li>Per grid isolates which indicator's distribution drifted. Repeated over checkpoints it becomes a film of the <a class="term" href="#g-window">generalization window</a>.</li>
+        <li>Qualitative: distances on such a map are not measurements. The <a class="term" href="#g-descriptor">descriptor</a> histograms and <a class="term" href="#g-wasserstein">Wasserstein</a> distances carry the numbers.</li>
+      </ul>
+    </article>
+    <article class="node action" id="E3c">
+      <header><span class="code">E3c</span><span class="kind">action</span></header>
+      <h3>Spatial relations between grids: real versus generated, before and after training</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Within a cell, how the grids sit relative to each other in space: <a class="term" href="#g-bimoran">bivariate <a class="term" href="#g-moran">Moran's I</a></a> between two grids, co-location of unit classes, cross-correlograms by distance.</li>
+        <li>The pilot's synergy analysis compared cell-level averages, which cannot tell whether buildings sit on accessible units or merely share a cell with them.</li>
+        <li>Computed once on real cells and at every checkpoint on generated cells, so the change reads from what to what.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node action" id="E4">
+      <header><span class="code">E4</span><span class="kind">action</span></header>
+      <h3>Locate the window per <a class="term" href="#g-mutant">mutant</a>: structure onset to <a class="term" href="#g-taumem">memorization onset</a> above the <a class="term" href="#g-floor">noise floor</a></h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Structure onset from E3, E3b and E3c; memorization onset from E2, above the D2 floor.</li>
+        <li>Disclose thresholds. The pilot's coupled threshold |r| &gt; 0.5 moved the boundary.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node future" id="E5">
+      <header><span class="code">E5</span><span class="kind">later</span></header>
+      <h3><a class="term" href="#g-jacobian">Jacobian rank</a> of the trained denoiser (<a class="term" href="#g-hutchinson">Hutchinson estimator</a>)</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Model-side test of the <a class="term" href="#g-subspace">subspace</a> structure from C5.</li>
+        <li>Full SVD is infeasible at this size.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="stage">
+    <div class="stub"></div>
+    <div class="stage-label"><span class="letter">STAGE F</span><span class="name">Paper</span><span class="ordinal">your seventh, as future work</span></div>
+  </div>
+  <div class="row parallel" style="--n:2">
+    <div class="fork"><i></i></div>
+    <div class="lanes">
+    <article class="node action" id="F1">
+      <header><span class="code">F1</span><span class="kind">action</span></header>
+      <h3>Contrast the correlationist baseline with the <a class="term" href="#g-mutant">mutant</a> invariants</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The falsifiable claim: features invariant across mutants and stable through the <a class="term" href="#g-window">generalization window</a> are structure. Correlation importance is the comparison.</li>
+      </ul>
+    </article>
+    <article class="node future" id="F2">
+      <header><span class="code">F2</span><span class="kind">later</span></header>
+      <h3>Joint form + activity run with extra channels</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>The ISM proposal's original wording. Depends on A2.</li>
+        <li>No architecture change: activity layers are more channels. Conditional sampling then answers "given this form, what activity?" directly.</li>
+      </ul>
+    </article>
+    </div>
+    <div class="join"><i></i></div>
+  </div>
+  <div class="stub"></div>
+  <div class="end" aria-hidden="true"></div>
+  </section>
+  <section id="terms" class="terms-section">
+    <h2>Terms in plain words</h2>
+    <dl class="gloss">
+  <dt id="g-cell">Cell</dt>
+  <dd>One map tile. One training example. Everything the model sees at once.</dd>
+  <dt id="g-unit">Unit</dt>
+  <dd>One pixel inside a cell: the patch of urban space that each indicator gives a score to.</dd>
+  <dt id="g-channel">Channel</dt>
+  <dd>One indicator's grid of unit scores for a cell. Six indicators make six greyscale grids. The pilot's RGB file was three of these in an image container; the colours were never colours.</dd>
+  <dt id="g-tensor">Tensor</dt>
+  <dd>The whole stack of grids for one cell. What the model learns from and what it generates.</dd>
+  <dt id="g-standardize">Standardization</dt>
+  <dd>Shifting and scaling each channel so its values centre on zero with a spread of one. The shift and scale are stored, so the step can be undone on a generated sample.</dd>
+  <dt id="g-descriptor">Descriptor</dt>
+  <dd>A fixed recipe that turns one cell into a short list of numbers: per-channel average, spread, share of empty units, spatial clumping, class mix. Run on real and generated cells alike, then the two lists of numbers are compared.</dd>
+  <dt id="g-fmem">F_mem, memorization fraction, k-NN gap ratio</dt>
+  <dd>The share of generated cells that are near-copies of a single training cell. Found by the gap ratio: distance to the nearest training cell divided by distance to the second nearest. A ratio below one third means the sample sits on top of one training cell and counts as a copy.</dd>
+  <dt id="g-floor">Noise floor</dt>
+  <dd>What F_mem reads on a model with random, never-trained weights. Only values above it mean the trained model actually copied.</dd>
+  <dt id="g-window">Generalization window</dt>
+  <dd>The stretch of training after the model has learned the structure of the data and before it starts copying individual cells.</dd>
+  <dt id="g-gentheory">Generalization theory</dt>
+  <dd>Bonnaire et al.'s account of diffusion training: the model first learns the shared structure of the data and only later starts copying individual cells. The window between the two is what we study; memorization is its far edge.</dd>
+  <dt id="g-taumem">Memorization onset, τ_mem</dt>
+  <dd>How many training steps pass before copying starts. Generalization theory shows it grows in proportion to the number of training cells, so bigger datasets stay in the window longer.</dd>
+  <dt id="g-id">Intrinsic dimension</dt>
+  <dd>How many independent knobs it takes to describe the dataset, even though each cell holds millions of numbers. The pilot estimated about 33 by PCA.</dd>
+  <dt id="g-pca">PCA k95</dt>
+  <dd>The number of straight-line directions needed to explain 95 percent of the dataset's spread. Overestimates when the data is curved.</dd>
+  <dt id="g-mle">Levina-Bickel MLE</dt>
+  <dd>An estimate of intrinsic dimension from how nearest-neighbour distances grow with rank. It follows curvature, so it usually gives a smaller number than PCA.</dd>
+  <dt id="g-typology">Typology</dt>
+  <dd>A group of cells that look alike, found by clustering. The building blocks for dataset mutants.</dd>
+  <dt id="g-hdbscan">HDBSCAN</dt>
+  <dd>A clustering method that finds groups of any shape, leaves stragglers unassigned, and copes with dense and sparse regions at the same time. Needs no preset number of clusters.</dd>
+  <dt id="g-subspace">Subspace</dt>
+  <dd>A flat, low-dimensional sheet inside the big space of all possible cells. Wang et al. assume each typology lies on its own sheet.</dd>
+  <dt id="g-kcenter">k-center greedy</dt>
+  <dd>A way to pick a small set of cells that spread out over the whole dataset: repeatedly add the cell farthest from those already chosen.</dd>
+  <dt id="g-mutant">Mutant</dt>
+  <dd>A training dataset made from the baseline by adding or removing whole typologies. Comparing models trained on mutants shows which structures survive.</dd>
+  <dt id="g-moran">Moran's I</dt>
+  <dd>A number for spatial clumping. Near 1, neighbouring units look alike; near 0, there is no spatial pattern at all.</dd>
+  <dt id="g-wasserstein">Wasserstein distance</dt>
+  <dd>How much material you would have to move to turn one histogram into another. A distance between two distributions.</dd>
+  <dt id="g-jacobian">Jacobian rank</dt>
+  <dd>How many directions the trained denoiser actually responds to. A low rank means it has learned a low-dimensional structure rather than reacting to every pixel independently.</dd>
+  <dt id="g-hutchinson">Hutchinson estimator</dt>
+  <dd>A trick to estimate that rank with random probes instead of computing the full matrix, which would be far too large.</dd>
+  <dt id="g-umap">UMAP and t-SNE</dt>
+  <dd>Two ways to flatten many-number cells onto a 2-D map so that cells which resemble each other land close together. Good for seeing clusters and gaps, bad for measuring: distances on the map are not distances in the data. UMAP can place new points on a map fitted earlier; t-SNE must be refitted from scratch.</dd>
+  <dt id="g-bimoran">Bivariate Moran's I</dt>
+  <dd>Moran's I between two grids: whether high values of one indicator sit next to high values of another in space. Near 1, buildings cluster around accessible units; near 0, the two grids ignore each other spatially.</dd>
+  <dt id="g-smallmult">Small multiples</dt>
+  <dd>Many small panels with the same layout side by side, one per channel, so the eye compares them.</dd>
+  <dt id="g-falsecolour">False-colour composite</dt>
+  <dd>Showing any three channels as red, green and blue. What remote sensing does with satellite bands.</dd>
+</dl>
+  </section>
+  <footer>
+    <p>Distilled from the planning discussions of 9 Sep 2026 and the June v3 plan in <code>progress_260611.md</code>. This order supersedes <code>TODO.md</code>. Generated by <code>discussion/pipeline_map/gen.py</code>; a draw.io copy sits beside it.</p>
+  </footer>
+</main>
+</body>
+</html>
