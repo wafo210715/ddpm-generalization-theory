@@ -176,6 +176,16 @@ either way: {d["total"]} numbers in one cell.</div>
             "circled on all six so you can read its six numbers. The colour "
             "picture on the right is three of the six forced into red, green "
             "and blue — a trick for human eyes. The model never sees colour.")}
+    <p>Laid out flat like that, it looks like six pictures. It is really one
+    object: every sheet covers the same ground, and a unit is a column straight
+    down through all of them. Stacked, that is easier to believe.</p>
+    {figure("cell_in_3d.png",
+            "The same cell as a stack, beside one the model invented. Both are "
+            "on a single shared colour scale, so a colour means the same number "
+            "in both. The red line is one unit going down through all six "
+            "sheets. Underneath, the same numbers again as distributions — "
+            "which is where the differences between real and generated are "
+            "easier to read than in the pictures.")}
   </section>
 
   <section id="in">
@@ -225,7 +235,27 @@ either way: {d["total"]} numbers in one cell.</div>
             "untrained network's output runs -790 to 746, after 1000 training "
             "steps -82 to 107, and real cells -2 to 7. The pictures barely "
             "change; the numbers move a long way.")}
-    <p>That last figure is also why we bother measuring what an untrained model
+    <p>One question worth answering while we are here: does the network know
+    that the first number in a unit's vector and the sixth are different things,
+    and does their order matter?</p>
+    {figure("how_the_unet_reads.png",
+            "How a convolution reads the stack. The cyan square is one filter's "
+            "field of view: 3 x 3 across the ground, but all the way through "
+            "every channel — 54 numbers in, one number out. The middle panel is "
+            "a real filter's actual trained weights, nine per channel.")}
+    <div class="plain">
+      <p><b>Does it tell the channels apart?</b> Yes. Every channel gets its own
+      set of weights, visible in the middle panel, and training pulls them
+      apart.</p>
+      <p><b>Does the order mean anything?</b> No. The filter slides left-right
+      and up-down across the ground. It does not slide down through the stack —
+      it adds the whole depth together at once. "Channel 6" is a name, not a
+      position. Relabel them all consistently, retrain, and you get the same
+      model.</p>
+      <p>Which is the exact opposite of the two map directions, where being next
+      to something is the whole point of sliding.</p>
+    </div>
+    <p>The figure above is also why we bother measuring what an untrained model
     scores. If nonsense scores 0.05 on a test, then a trained model scoring 0.05
     has not achieved anything either. It is a "do not get excited below this
     line" mark.</p>

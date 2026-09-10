@@ -628,16 +628,273 @@ def data_in_data_out(npz_path, out_path, traced="poi_count"):
     log.info(f"Wrote {out_path}")
 
 
+
+def cell_in_3d(npz_path, out_path, n=64):
+    """One cell drawn as what it is: six sheets stacked into a block.
+
+    The flat small-multiples view is honest but it hides the thing that makes a
+    cell one object rather than six pictures --- every sheet is the same square
+    of ground, and a unit is a column straight down through all of them.  Drawn
+    as a stack that becomes obvious.
+
+    Real and generated are drawn on one shared colour scale, so the comparison
+    is a comparison and not two separately-stretched pictures.
+    """
+    from matplotlib import cm
+    from matplotlib.colors import Normalize
+
+    d = np.load(npz_path, allow_pickle=True)
+    names = [str(x) for x in d["names"]]
+    real, gen = d["real_std"][0], d["gen_std"][0]
+
+    both = np.concatenate([real.ravel(), gen.ravel()])
+    norm = Normalize(vmin=float(np.percentile(both, .5)),
+                     vmax=float(np.percentile(both, 99.5)))
+    cmap = cm.magma
+    yy, xx = np.mgrid[0:n, 0:n]
+    GAP = 26
+
+    fig = plt.figure(figsize=(16.4, 9.6))
+    gs = fig.add_gridspec(2, 3, height_ratios=[2.5, 1], width_ratios=[1, 1, .05],
+                          hspace=.24, wspace=.06, top=.855, bottom=.07,
+                          left=.02, right=.93)
+
+    for col, (block, label, sub) in enumerate([
+        (real, "a real cell", "tile 15_26097_15392, pooled to 64 x 64"),
+        (gen, "a cell the model invented", "after a 10 000-step demo run"),
+    ]):
+        ax = fig.add_subplot(gs[0, col], projection="3d")
+        for k in range(len(names)):
+            z = np.full_like(xx, k * GAP, dtype=float)
+            ax.plot_surface(xx, yy, z, rstride=1, cstride=1, shade=False,
+                            facecolors=cmap(norm(block[k])), linewidth=0,
+                            antialiased=False)
+            ax.text(n + 13, n * .52, k * GAP, names[k], fontsize=8.5,
+                    color="#1B2426", zdir="y", ha="left", va="center")
+        # A unit is a column through every sheet, so draw one.
+        ux, uy = 22, 40
+        ax.plot([ux, ux], [uy, uy], [-GAP * .4, (len(names) - 1) * GAP + GAP * .4],
+                color="#D9534F", lw=2.2, zorder=10)
+        for k in range(len(names)):
+            ax.scatter([ux], [uy], [k * GAP], color="#D9534F", s=26,
+                       edgecolors="white", linewidths=.6, zorder=11)
+
+        ax.set_box_aspect((1, 1, .85))
+        ax.view_init(elev=20, azim=-62)
+        ax.set_axis_off()
+        # Room on the +x side for the channel labels, which otherwise clip.
+        ax.set_xlim(-2, n + 34)
+        ax.set_ylim(-2, n + 2)
+        ax.text2D(.5, 1.00, label, transform=ax.transAxes, ha="center",
+                  fontsize=13, fontweight="bold")
+        ax.text2D(.5, .955, sub, transform=ax.transAxes, ha="center",
+                  fontsize=9.5, color="#5C6B6D")
+        ax.text2D(.5, .04,
+                  f"numbers run {block.min():.1f} to {block.max():.1f}",
+                  transform=ax.transAxes, ha="center", fontsize=10.5,
+                  fontweight="bold", color="#2A7392")
+
+    cax = fig.add_subplot(gs[0, 2])
+    fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+    cax.set_title("standardized\nvalue", fontsize=9, color="#5C6B6D", pad=10)
+    cax.tick_params(labelsize=8)
+
+    ax = fig.add_subplot(gs[1, :2])
+    width = .38
+    pos = np.arange(len(names))
+    for offset, block, colour, label in ((-width / 2, real, "#2A7392", "real"),
+                                         (width / 2, gen, "#B7791F", "generated")):
+        parts = ax.violinplot([block[k].ravel() for k in range(len(names))],
+                              positions=pos + offset, widths=width,
+                              showextrema=False, showmedians=True)
+        for body in parts["bodies"]:
+            body.set_facecolor(colour); body.set_alpha(.7)
+        parts["cmedians"].set_color("#1B2426")
+        ax.plot([], [], color=colour, lw=6, alpha=.7, label=label)
+    ax.set_xticks(pos); ax.set_xticklabels(names, fontsize=9.5)
+    ax.set_ylabel("standardized value", fontsize=9.5)
+    ax.legend(fontsize=10, frameon=False, ncol=2, loc="upper right")
+    ax.tick_params(labelsize=8.5)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    ax.set_title("the same numbers as distributions, channel by channel",
+                 fontsize=10.5, color="#5C6B6D")
+
+    fig.suptitle(
+        "One cell, drawn as the stack it is" + NEWLINE
+        + "Six sheets, one per indicator, all covering the same 1.2 km square. "
+          "The red line is one unit — a column straight down through all six." + NEWLINE
+        + "Both blocks share one colour scale, so a colour means the same "
+          "number on the left and on the right.",
+        fontsize=13, y=.975)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
+
+def how_the_unet_reads(npz_path, out_path, n=16):
+    """How a convolution reads the stack, and whether channel order means anything.
+
+    The question this answers came up directly: does the model know that the
+    first number in a unit's vector and the sixth are different things, and
+    does their order matter?
+
+    The answer is visible in the first layer's own weights.  Every filter is
+    3 x 3 x C --- three by three across the ground, and all the way through the
+    stack --- so a filter reads a patch of every channel at once and adds the
+    results into one number.  Two consequences follow, and they pull in
+    opposite directions:
+
+      * The model absolutely distinguishes the channels, because each one gets
+        its own weights, and training drives those weights apart.
+      * The model has no notion of channel *order*.  The convolution slides
+        across width and height; it does not slide along the channel axis, it
+        sums over it.  Channel 6 is not "after" channel 1 in any sense the
+        arithmetic can see.  Relabel them consistently and retrain and you get
+        an equivalent model.
+
+    Which is the opposite of the two spatial axes, where "next to" is exactly
+    what the sliding is for.
+    """
+    from matplotlib import cm
+    from matplotlib.colors import Normalize, TwoSlopeNorm
+
+    d = np.load(npz_path, allow_pickle=True)
+    names = [str(x) for x in d["names"]]
+    block = d["real_std"][0]
+    w_init, w_trained = d["w_init"], d["w_trained"]
+    n_out, n_ch = w_trained.shape[0], w_trained.shape[1]
+
+    coarse = block[:, ::block.shape[-1] // n, ::block.shape[-1] // n][:, :n, :n]
+    yy, xx = np.mgrid[0:n, 0:n]
+    GAP, WIN = 7, 3
+    wx, wy = 6, 7
+
+    fig = plt.figure(figsize=(16.6, 9.8))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.62, 1], width_ratios=[1.25, 1, 1],
+                          hspace=.46, wspace=.24, top=.845, bottom=.06,
+                          left=.035, right=.975)
+
+    # --- the stack, with one 3x3 window lit through every sheet -------------
+    ax = fig.add_subplot(gs[0, 0], projection="3d")
+    norm = Normalize(*np.percentile(coarse, [1, 99]))
+    for k in range(len(names)):
+        z = np.full_like(xx, k * GAP, dtype=float)
+        faces = cm.magma(norm(coarse[k]))
+        faces[wy:wy + WIN, wx:wx + WIN] = [.0, .90, .95, 1.0]
+        ax.plot_surface(xx, yy, z, rstride=1, cstride=1, shade=False,
+                        facecolors=faces, linewidth=0, antialiased=False)
+        ax.text(n + 3, n * .5, k * GAP, names[k], fontsize=8, zdir="y",
+                ha="left", va="center")
+    ax.set_box_aspect((1, 1, .8)); ax.view_init(elev=20, azim=-62)
+    ax.set_axis_off(); ax.set_xlim(-1, n + 22); ax.set_ylim(-1, n + 1)
+    ax.text2D(.5, 1.0, "one filter's field of view", transform=ax.transAxes,
+              ha="center", fontsize=12.5, fontweight="bold")
+    ax.text2D(.5, .945,
+              f"3 x 3 across the ground, all {n_ch} channels deep",
+              transform=ax.transAxes, ha="center", fontsize=9.5, color="#5C6B6D")
+    ax.text2D(.5, .02,
+              f"{WIN} x {WIN} x {n_ch} = {WIN*WIN*n_ch} numbers in,  1 number out",
+              transform=ax.transAxes, ha="center", fontsize=11,
+              fontweight="bold", color="#0E8C99")
+
+    # --- one real filter, channel by channel -------------------------------
+    ax = fig.add_subplot(gs[0, 1])
+    ax.axis("off")
+    pick = int(np.argmax(np.abs(w_trained).sum(axis=(1, 2, 3))))
+    filt = w_trained[pick]
+    wnorm = TwoSlopeNorm(vcenter=0, vmin=filt.min(), vmax=filt.max())
+    for k in range(n_ch):
+        sub = ax.inset_axes([.06 + (k % 3) * .32, .58 - (k // 3) * .40, .27, .34])
+        sub.imshow(filt[k], cmap="RdBu_r", norm=wnorm, interpolation="nearest")
+        sub.set_xticks([]); sub.set_yticks([])
+        sub.set_title(names[k], fontsize=7.5, pad=3)
+        for r in range(3):
+            for c in range(3):
+                sub.text(c, r, f"{filt[k, r, c]:+.2f}", ha="center", va="center",
+                         fontsize=6.2,
+                         color="white" if abs(filt[k, r, c]) > abs(filt).max() * .55
+                         else "#1B2426")
+    ax.set_title(f"the weights of one real filter (#{pick} of {n_out})",
+                 fontsize=12.5, fontweight="bold", pad=12)
+    ax.text(.5, -.02, "every channel gets its own nine numbers.\n"
+                      "the filter multiplies, then adds all 54 together.",
+            transform=ax.transAxes, ha="center", va="top", fontsize=9.5,
+            color="#5C6B6D")
+
+    # --- does it treat the channels differently? ---------------------------
+    ax = fig.add_subplot(gs[0, 2])
+    ax.axis("off")
+    ax.text(0, 1.0,
+            "Does the model know channel 1" + NEWLINE
+            + "from channel 6?" + NEWLINE * 2
+            + "Yes. Each channel has its own" + NEWLINE
+            + "weights, and training pulls them" + NEWLINE
+            + "apart — see the chart below." + NEWLINE * 2
+            + "Does the ORDER mean anything?" + NEWLINE * 2
+            + "No. The filter slides across the" + NEWLINE
+            + "ground, left-right and up-down." + NEWLINE
+            + "It does not slide down through the" + NEWLINE
+            + "stack — it adds the whole depth up" + NEWLINE
+            + "at once." + NEWLINE * 2
+            + "So 'channel 6' is a name, not a" + NEWLINE
+            + "position. Relabel them all the same" + NEWLINE
+            + "way and retrain, and you get the" + NEWLINE
+            + "same model." + NEWLINE * 2
+            + "The opposite of the two map" + NEWLINE
+            + "directions, where being next to" + NEWLINE
+            + "something is the entire point.",
+            transform=ax.transAxes, va="top", fontsize=10.2, linespacing=1.52)
+
+    # --- weight strength per channel, before and after ---------------------
+    ax = fig.add_subplot(gs[1, :])
+    before = np.abs(w_init).mean(axis=(0, 2, 3))
+    after = np.abs(w_trained).mean(axis=(0, 2, 3))
+    pos = np.arange(n_ch); width = .38
+    ax.bar(pos - width / 2, before, width, color="#B22222", alpha=.55,
+           label="before training")
+    ax.bar(pos + width / 2, after, width, color="#2A7392", alpha=.85,
+           label="after 10 000 steps")
+    ax.set_xticks(pos); ax.set_xticklabels(names, fontsize=10)
+    ax.set_ylabel("average weight size", fontsize=9.5)
+    ax.legend(fontsize=10, frameon=False, ncol=2)
+    ax.tick_params(labelsize=8.5)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    spread = after.max() / after.min()
+    ax.set_title(
+        f"how hard the first layer leans on each channel, averaged over all "
+        f"{n_out} filters — even at the start, {spread:.1f}x apart after "
+        f"training (the per-filter patterns above differ far more than these "
+        f"averages do)",
+        fontsize=10, color="#5C6B6D", pad=10)
+
+    fig.suptitle(
+        "How the network reads the stack" + NEWLINE
+        + "A convolution is a small window that slides over the picture. Here "
+          "the window is 3 x 3 on the ground — but it goes all the way through "
+          "every channel," + NEWLINE
+        + "so at each position it reads 54 numbers and writes one. That is what "
+          "'the first convolution absorbs any channel count' means.",
+        fontsize=13, y=.975)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--what", default="all", choices=[
         "what_a_cell_is", "how_fmem_works", "what_independent_means",
-        "what_the_descriptor_loses", "untrained_vs_trained", "data_in_data_out", "all"])
+        "what_the_descriptor_loses", "untrained_vs_trained", "data_in_data_out", "cell_in_3d", "how_the_unet_reads", "all"])
     parser.add_argument("--store", default=str(PROC_DIR / "cells_z15_1024"))
     parser.add_argument("--cell_id", default="15_26097_15392")
     parser.add_argument("--probe", type=int, nargs=2, default=[470, 300],
                         help="Row and column of the pixel to read out.")
     parser.add_argument("--out_dir", default=str(REPORTS_DIR))
+    parser.add_argument("--demo_npz", default=None,
+                        help="Output of the 10k-step demo run.")
     parser.add_argument("--inout_npz", default=None,
                         help="Output of the in/out demo run.")
     parser.add_argument("--train_demo_npz", default=None,
@@ -659,6 +916,14 @@ def main() -> None:
     if args.what in ("what_the_descriptor_loses", "all"):
         what_the_descriptor_loses(args.store, args.cell_id,
                                   out_dir / "what_the_descriptor_loses.png")
+    if args.what == "cell_in_3d":
+        if not args.demo_npz:
+            raise SystemExit("cell_in_3d needs --demo_npz")
+        cell_in_3d(args.demo_npz, out_dir / "cell_in_3d.png")
+    if args.what == "how_the_unet_reads":
+        if not args.demo_npz:
+            raise SystemExit("how_the_unet_reads needs --demo_npz")
+        how_the_unet_reads(args.demo_npz, out_dir / "how_the_unet_reads.png")
     if args.what == "data_in_data_out":
         if not args.inout_npz:
             raise SystemExit("data_in_data_out needs --inout_npz")
