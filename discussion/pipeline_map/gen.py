@@ -75,8 +75,9 @@ N = {
  "B10": {"kind":"gate","title":"Checkpoint: per-channel marginals, zero fraction, skew, tails","why":[
    "Chooses the transform for each channel.",
    "Gaussianity is not required. The mixtures in the reference papers are solvable toy models, not data assumptions."]},
- "B10b": {"kind":"gate","title":"Checkpoint: the joint pattern of the six channels, not each one alone","why":[
-   "B10 reads each channel's histogram separately. Six channels that each look right can still combine in ways the city never does, and nothing in a set of marginals can see that.",
+ "B10b": {"kind":"gate","title":"Checkpoint: the joint pattern of the six channels, as well as each one alone","why":[
+   "Not a replacement for B10. Each channel's distribution across the whole city is its own finding, and stays one: it is what says whether an indicator is sparse, skewed, or flat, and it is what chooses the transform.",
+   "What it adds: six channels that each look right separately can still combine in ways the city never does, and nothing in a set of marginals can see that.",
    "A unit's six numbers are one point in six-dimensional space. The real city occupies only part of that space: dense building with no shops is ordinary, high entropy with no POIs is impossible by construction. The occupied region is itself a structure the model can get right or wrong.",
    "Same object as C3's clustering, which already treats a unit's column of scores as a point. This measures it as a distribution instead, so it can be compared against generated cells at E3.",
    "Read it twice: in data space to say what the combinations mean, and in standardized space for anything using distance, since otherwise the widest channel decides which units are alike."]},

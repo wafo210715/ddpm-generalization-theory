@@ -45,6 +45,15 @@ FONTS = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
          'family=IBM+Plex+Mono:wght@500;600&display=swap">')
 PLOTLY = "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js"
 
+UNITS_TEXT = {
+    "building_binary": "0 or 1",
+    "building_density": "share of ground, 0 to 1",
+    "accessibility_gravity": "gravity score",
+    "poi_count": "shops within 300 m",
+    "poi_entropy": "bits",
+    "road_density": "m per m2",
+}
+
 PLAIN = {
     "building_binary": "is there a building on this unit",
     "building_density": "how much building within 100 m",
@@ -97,23 +106,51 @@ def pool(a, factor):
 def build(demo_npz, out_path, size=64):
     d = np.load(demo_npz, allow_pickle=True)
     names = [str(x) for x in d["names"]]
-    real = d["real_std"][0]
-    gen = d["gen_std"][0]
-    if real.shape[-1] > size:
-        real = pool(real, real.shape[-1] // size)
-    if gen.shape[-1] > size:
-        gen = pool(gen, gen.shape[-1] // size)
+    def shrink(a):
+        return pool(a, a.shape[-1] // size) if a.shape[-1] > size else a
 
-    both = np.concatenate([real.ravel(), gen.ravel()])
-    cmin, cmax = float(np.percentile(both, 1)), float(np.percentile(both, 99))
+    blocks = {
+        "real_std": shrink(d["real_std"][0]), "gen_std": shrink(d["gen_std"][0]),
+        "real_phys": shrink(d["real_phys"][0]), "gen_phys": shrink(d["gen_phys"][0]),
+    }
+
+    def as_json(a):
+        """Round per channel, not globally.
+
+        A flat three decimals is fine for a standardized channel and far too
+        coarse for road_density in physical units, whose whole range is 0.008
+        to 0.091 -- rounding there moved its Moran's I in the third decimal and
+        made the standardized and physical views disagree when they should be
+        identical. Precision follows each channel's own range instead.
+        """
+        out = []
+        for grid in a:
+            span = float(np.ptp(grid))
+            digits = 3 if span <= 0 else int(np.clip(6 - np.floor(np.log10(span)), 3, 9))
+            out.append([[round(float(v), digits) for v in row] for row in grid])
+        return out
+
+    # Standardized: one scale for everything, which is the whole point of
+    # standardizing. Physical: a shared scale is meaningless, since one channel
+    # is a share from 0 to 1 and another is a count reaching 60, so each sheet
+    # gets its own.
+    both_std = np.concatenate([blocks["real_std"].ravel(), blocks["gen_std"].ravel()])
+    per_channel = [
+        [float(np.percentile(np.concatenate([blocks["real_phys"][k].ravel(),
+                                             blocks["gen_phys"][k].ravel()]), q))
+         for q in (1, 99)]
+        for k in range(len(names))
+    ]
 
     payload = {
         "names": names,
         "plain": [PLAIN.get(n, n) for n in names],
-        "size": int(real.shape[-1]),
-        "cmin": round(cmin, 4), "cmax": round(cmax, 4),
-        "real": [[[round(float(v), 3) for v in row] for row in grid] for grid in real],
-        "gen": [[[round(float(v), 3) for v in row] for row in grid] for grid in gen],
+        "units": UNITS_TEXT,
+        "size": int(blocks["real_std"].shape[-1]),
+        "cmin": round(float(np.percentile(both_std, 1)), 4),
+        "cmax": round(float(np.percentile(both_std, 99)), 4),
+        "physRange": [[round(a, 3), round(b, 3)] for a, b in per_channel],
+        **{k: as_json(v) for k, v in blocks.items()},
     }
 
     body = f"""<main class="page doc" style="max-width:1160px">
@@ -136,6 +173,15 @@ def build(demo_npz, out_path, size=64):
           <button data-src="gen" aria-pressed="false">generated</button>
         </div>
 
+        <label>which numbers</label>
+        <p class="hint" style="margin:-8px 0 8px">Standardized is what the model
+        reads and writes. Physical is those same numbers unpacked, back in the
+        units they were measured in.</p>
+        <div class="seg" id="space">
+          <button data-space="std" aria-pressed="true">standardized</button>
+          <button data-space="phys" aria-pressed="false">physical</button>
+        </div>
+
         <label>units across the cell</label>
         <p class="hint" style="margin:-8px 0 8px">1.2 km divided this many ways.
         64 units is 18.8 m each; 8 units is 150 m each.</p>
@@ -154,6 +200,7 @@ def build(demo_npz, out_path, size=64):
 
     <div>
       <div id="plot"></div>
+      <p class="mono" id="scaleNote" style="color:var(--muted);margin:2px 0 0"></p>
       <h3 style="margin:22px 0 2px;font:600 15px/1.3 Archivo,sans-serif">
         what each shuffle costs</h3>
       <p style="margin:0 0 8px;font-size:13px;color:var(--muted);max-width:70ch">
@@ -168,6 +215,15 @@ def build(demo_npz, out_path, size=64):
           <th>agreement now</th><th>was</th></tr></thead>
         <tbody id="stats"></tbody>
       </table>
+      <div class="verdict" style="margin-top:18px">
+        <b>What you are looking at.</b> The real cell is the training data after
+        standardizing. The generated cell is the model's raw output, which is
+        already in that same space — it has <em>not</em> been unpacked. That is
+        why they can share a colour scale. Switch to <b>physical</b> to unpack
+        the generated one and put the real one back into measured units; the
+        two numbers in the table below do not move, because both are
+        scale-invariant.
+      </div>
       <div class="callout" style="margin-top:18px">
         Shuffle every sheet. All six histograms stay exactly as they were, and
         every six-number combination in the cell becomes nonsense — dense
@@ -191,7 +247,7 @@ const D = {json.dumps(payload)};
 const MAGMA = [[0,"#000004"],[0.125,"#180f3d"],[0.25,"#440f76"],[0.375,"#721f81"],
   [0.5,"#9e2f7f"],[0.625,"#cd4071"],[0.75,"#f1605d"],[0.875,"#fd9668"],[1,"#fcfdbf"]];
 const N = D.names.length;
-let src = "real", res = D.size;
+let src = "real", space = "std", res = D.size;
 let shuffled = new Array(N).fill(false);
 let seeds = new Array(N).fill(0);
 
@@ -228,7 +284,7 @@ function shuffleGrid(g, seed) {{
 }}
 function grids(applyShuffle) {{
   const factor = Math.round(D.size / res);
-  return D[src].map((g, k) => {{
+  return D[src + "_" + space].map((g, k) => {{
     let out = poolGrid(g, factor);
     if (applyShuffle && shuffled[k]) out = shuffleGrid(out, seeds[k]);
     return out;
@@ -277,16 +333,24 @@ function draw() {{
   const axis = Array.from({{length: n}}, (_, i) => i);
   const GAP = Math.max(n * 0.42, 6);
 
+  const shared = space === "std";
   const traces = now.map((g, k) => ({{
-    type: "surface", showscale: k === 0, name: D.names[k],
+    type: "surface", showscale: shared && k === 0, name: D.names[k],
     x: axis, y: axis,
     z: g.map(row => row.map(() => k * GAP)),
-    surfacecolor: g, colorscale: MAGMA, cmin: D.cmin, cmax: D.cmax,
-    hovertemplate: D.names[k] + "<br>value %{{surfacecolor:.2f}}<extra></extra>",
+    surfacecolor: g, colorscale: MAGMA,
+    cmin: shared ? D.cmin : D.physRange[k][0],
+    cmax: shared ? D.cmax : D.physRange[k][1],
+    hovertemplate: D.names[k] + "<br>%{{surfacecolor:.2f}} "
+      + (shared ? "(standardized)" : D.units[D.names[k]]) + "<extra></extra>",
     colorbar: {{title: {{text: "standardized<br>value", font: {{size: 10}}}},
                 len: .7, thickness: 12}},
     contours: {{x: {{highlight: false}}, y: {{highlight: false}}, z: {{highlight: false}}}},
   }}));
+  document.getElementById("scaleNote").textContent = shared
+    ? "one colour scale across all six sheets — that is what standardizing buys"
+    : "each sheet on its own colour scale: a share from 0 to 1 and a count "
+      + "reaching 60 cannot share one";
 
   Plotly.react("plot", traces, {{
     margin: {{l: 0, r: 0, t: 0, b: 0}},
@@ -361,6 +425,14 @@ document.getElementById("reset").onclick = () => {{
   }});
   draw();
 }};
+document.querySelectorAll("#space button").forEach(b => {{
+  b.onclick = () => {{
+    space = b.dataset.space;
+    document.querySelectorAll("#space button").forEach(o =>
+      o.setAttribute("aria-pressed", String(o === b)));
+    draw();
+  }};
+}});
 document.querySelectorAll("#src button").forEach(b => {{
   b.onclick = () => {{
     src = b.dataset.src;
