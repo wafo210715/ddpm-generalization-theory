@@ -237,21 +237,26 @@ def what_independent_means(store_path, cell_id, out_path):
             out = np.fliplr(out)
         return np.roll(np.roll(out, sy, 0), sx, 1)
 
-    # Found by sweeping turns, mirrors and shifts for the three cases.
+    # The first panel must be the data as it actually is. An earlier version
+    # showed three rearrangements and none of them was the real tile, which
+    # made the figure a demonstration of a definition rather than a statement
+    # about Ho Chi Minh City. The other two are the same two grids with one of
+    # them moved, found by sweeping turns, mirrors and shifts.
     ARRANGEMENTS = [
-        ("they sit on top of each other", (2, 0, 0, 0),
-         "the built-up parts and the reachable@parts are the same parts"),
-        ("no relation — 'independent'", (2, 0, 256, 0),
-         "knowing where one is bright tells you@nothing about where the other is"),
-        ("they avoid each other", (3, 1, 640, 768),
-         "where one is bright the other@tends to be dark"),
+        ("as they really are", (0, 0, 0, 0), "nothing has been moved",
+         "knowing where one is bright tells you@almost nothing about the other"),
+        ("one grid turned upside down", (2, 0, 0, 0), "accessibility rotated 180°",
+         "now the built-up parts and the@reachable parts are the same parts"),
+        ("one grid turned and shifted", (3, 1, 640, 768),
+         "accessibility rotated 270°, mirrored, shifted",
+         "now where one is bright@the other tends to be dark"),
     ]
 
     fig = plt.figure(figsize=(15.6, 8.9))
     gs = fig.add_gridspec(2, 3, height_ratios=[1.7, 1], hspace=.42, wspace=.13)
     a_hi, b_hi = np.percentile(A, 75), np.percentile(B, 75)
 
-    for col, (title, params, note) in enumerate(ARRANGEMENTS):
+    for col, (title, params, what_moved, note) in enumerate(ARRANGEMENTS):
         moved = move(*params)
         bi = bivariate_morans_i(moved, B)
 
@@ -264,7 +269,10 @@ def what_independent_means(store_path, cell_id, out_path):
         canvas[(moved >= a_hi) & (B >= b_hi)] = [.15, .15, .18]
         ax.imshow(canvas, interpolation="nearest")
         ax.set_xticks([]); ax.set_yticks([])
-        ax.set_title(title, fontsize=12, fontweight="bold")
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=20,
+                     color="#1B2426" if col == 0 else "#5C6B6D")
+        ax.text(.5, 1.012, what_moved, transform=ax.transAxes, ha="center",
+                va="bottom", fontsize=9, style="italic", color="#5C6B6D")
         ax.text(.5, -.045, note.replace("@", NEWLINE), transform=ax.transAxes,
                 ha="center", va="top", fontsize=10)
         ax.text(.5, -.175, f"bivariate Moran's I = {bi:+.2f}", transform=ax.transAxes,
@@ -286,6 +294,8 @@ def what_independent_means(store_path, cell_id, out_path):
     fig.suptitle(
         "What 'arranged independently' means — one real cell, tile "
         + cell_id + NEWLINE
+        + "The FIRST panel is the real data, untouched. It is already the "
+          "independent case." + NEWLINE
         + "Blue = the most built-up quarter of the cell.   Orange = the most "
           "reachable quarter.   Black = both at once." + NEWLINE
         + "All three pictures use the SAME two grids. One of them has simply "
@@ -400,16 +410,122 @@ def what_the_descriptor_loses(store_path, cell_id, out_path):
     log.info(f"Wrote {out_path}")
 
 
+
+def untrained_vs_trained(npz_path, out_path):
+    """What "untrained" means, what comes out of it, and what 1000 steps does.
+
+    Three things at once, because they only make sense together: the network's
+    weights before and after, four samples from each, and the real cells for
+    scale.  The point that is hard to say and easy to show is that the reverse
+    process runs regardless --- it does not check whether the network knows
+    anything --- so an untrained network produces output the same way a trained
+    one does.  It is just that the output is nonsense, and nonsense at the
+    wrong scale, which is what makes its F_mem unreadable.
+    """
+    d = np.load(npz_path, allow_pickle=True)
+    w0, w1, s0, s1, real = d["w0"], d["w1"], d["s0"], d["s1"], d["real"]
+    losses = d["losses"]
+
+    rng = np.random.default_rng(0)
+    noise = rng.normal(0, 1, (2, s0.shape[-2], s0.shape[-1]))
+
+    fig = plt.figure(figsize=(16.4, 10.6))
+    gs = fig.add_gridspec(3, 6, width_ratios=[1.15, .2, 1, 1, 1, 1],
+                          hspace=.46, wspace=.10, top=.845, bottom=.035,
+                          left=.045, right=.99)
+
+    ROWS = [
+        (0, s0, "the network with its random starting weights",
+         "four tries, four different nonsenses"),
+        (1, s1, "the same network after 1000 training steps",
+         "still noise to look at — but the numbers have pulled in eightfold"),
+        (2, real, "four real cells, for scale", "what it is trying to reach"),
+    ]
+
+    for row, block, title, note in ROWS:
+        if row < 2:
+            ax = fig.add_subplot(gs[row, 1])
+            ax.imshow(noise[row], cmap="gray_r", interpolation="nearest")
+            ax.set_xticks([]); ax.set_yticks([])
+            ax.set_title("goes in:\npure noise", fontsize=8.5, color="#5C6B6D")
+
+        first = None
+        for k in range(4):
+            ax = fig.add_subplot(gs[row, 2 + k])
+            ax.imshow(block[k][0], cmap="gray_r", interpolation="nearest")
+            ax.set_xticks([]); ax.set_yticks([])
+            first = first or ax
+
+        # Place the row heading against the row's own axes rather than at a
+        # guessed figure coordinate, so it cannot drift into the title.
+        box = first.get_position()
+        lo, hi = float(block.min()), float(block.max())
+        fig.text(box.x0, box.y1 + .038, title, fontsize=12.5, fontweight="bold")
+        fig.text(box.x0, box.y1 + .018, note, fontsize=10, color="#5C6B6D")
+        fig.text(.985, box.y1 + .028,
+                 f"its numbers run {lo:,.0f} to {hi:,.0f}", fontsize=10.5,
+                 ha="right", fontweight="bold",
+                 color="#B22222" if hi > 50 else "#2E7D32")
+
+    ax = fig.add_subplot(gs[0, 0])
+    bins = np.linspace(-.35, .35, 90)
+    ax.hist(w0, bins=bins, color="#B22222", alpha=.55, label="before training")
+    ax.hist(w1, bins=bins, color="#2A7392", alpha=.55, label="after 1000 steps")
+    ax.set_yticks([]); ax.tick_params(labelsize=8)
+    ax.legend(fontsize=8.5, frameon=False)
+    ax.set_title("the network's weights", fontsize=10.5, fontweight="bold")
+    ax.set_xlabel("PyTorch fills these with small random numbers\n"
+                  "when it builds the network. Training nudges them.",
+                  fontsize=8.5, color="#5C6B6D")
+    for sp in ("top", "right", "left"):
+        ax.spines[sp].set_visible(False)
+
+    ax = fig.add_subplot(gs[1, 0])
+    ax.plot(np.convolve(losses, np.ones(25) / 25, mode="valid"), color="#2A7392")
+    ax.set_title("how wrong its guesses are", fontsize=10.5, fontweight="bold")
+    ax.set_xlabel("training step", fontsize=8.5, color="#5C6B6D")
+    ax.tick_params(labelsize=8)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+
+    ax = fig.add_subplot(gs[2, 0])
+    ax.axis("off")
+    ax.text(0, 1.0,
+            "'Untrained' does not mean trained" + NEWLINE
+            + "on something else. It means the" + NEWLINE
+            + "weights are still the random numbers" + NEWLINE
+            + "PyTorch created the network with." + NEWLINE * 2
+            + "Sampling works regardless. The loop" + NEWLINE
+            + "asks the network what noise it sees" + NEWLINE
+            + "and subtracts the answer, a thousand" + NEWLINE
+            + "times over. It never checks whether" + NEWLINE
+            + "the answer is any good — so you get" + NEWLINE
+            + "an output either way.",
+            transform=ax.transAxes, va="top", fontsize=10, linespacing=1.55)
+
+    fig.suptitle(
+        "What an untrained model is, and what comes out of it" + NEWLINE
+        + "Every row runs the same generation loop from pure random noise, four "
+          "times over. The only thing that differs is the network in the middle.",
+        fontsize=13.5, y=.975)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--what", default="all", choices=[
         "what_a_cell_is", "how_fmem_works", "what_independent_means",
-        "what_the_descriptor_loses", "all"])
+        "what_the_descriptor_loses", "untrained_vs_trained", "all"])
     parser.add_argument("--store", default=str(PROC_DIR / "cells_z15_1024"))
     parser.add_argument("--cell_id", default="15_26097_15392")
     parser.add_argument("--probe", type=int, nargs=2, default=[470, 300],
                         help="Row and column of the pixel to read out.")
     parser.add_argument("--out_dir", default=str(REPORTS_DIR))
+    parser.add_argument("--train_demo_npz", default=None,
+                        help="Output of the 1000-step demo run, for "
+                             "untrained_vs_trained.")
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -426,6 +542,11 @@ def main() -> None:
     if args.what in ("what_the_descriptor_loses", "all"):
         what_the_descriptor_loses(args.store, args.cell_id,
                                   out_dir / "what_the_descriptor_loses.png")
+    if args.what == "untrained_vs_trained":
+        if not args.train_demo_npz:
+            raise SystemExit("untrained_vs_trained needs --train_demo_npz")
+        untrained_vs_trained(args.train_demo_npz,
+                             out_dir / "untrained_vs_trained.png")
 
 
 if __name__ == "__main__":
