@@ -52,6 +52,8 @@ PLAIN = {
     "road_density":          ("how much street\nwithin 100 m", "m per m2"),
 }
 
+NEWLINE = chr(10)  # keeps literal newlines out of source strings
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
@@ -203,10 +205,206 @@ def how_fmem_works(out_path, seed=4, n_train=26):
     log.info(f"Wrote {out_path}")
 
 
+
+def what_independent_means(store_path, cell_id, out_path):
+    """What it means for two grids to be arranged independently of each other.
+
+    The phrase is easy to say and hard to picture, and the natural guess ---
+    that it is something about the two histograms overlapping — is wrong in
+    an instructive way. A histogram has no addresses in it. Two grids can have
+    exactly the same pair of histograms and be laid out on top of each other,
+    laid out avoiding each other, or laid out with no relation at all.
+
+    So: take the two real grids, and move one of them around. Turning a grid
+    cannot change a single one of its values, so the histograms below are the
+    same picture three times over, while the arrangement above goes from
+    together, to unrelated, to apart.
+    """
+    from analysis.spatial import bivariate_morans_i
+    from datasets.cell_tensors import CellTensorStore
+
+    store = CellTensorStore(str(store_path))
+    if cell_id not in set(store.cell_ids()):
+        cell_id = sorted(store.cell_ids())[0]
+    cell = store.read_cell(cell_id).astype(float)
+    names = store.channel_names
+    A = cell[names.index("building_density")]
+    B = cell[names.index("accessibility_gravity")]
+
+    def move(k, flip, sy, sx):
+        out = np.rot90(A, k)
+        if flip:
+            out = np.fliplr(out)
+        return np.roll(np.roll(out, sy, 0), sx, 1)
+
+    # Found by sweeping turns, mirrors and shifts for the three cases.
+    ARRANGEMENTS = [
+        ("they sit on top of each other", (2, 0, 0, 0),
+         "the built-up parts and the reachable@parts are the same parts"),
+        ("no relation — 'independent'", (2, 0, 256, 0),
+         "knowing where one is bright tells you@nothing about where the other is"),
+        ("they avoid each other", (3, 1, 640, 768),
+         "where one is bright the other@tends to be dark"),
+    ]
+
+    fig = plt.figure(figsize=(15.6, 8.9))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.7, 1], hspace=.42, wspace=.13)
+    a_hi, b_hi = np.percentile(A, 75), np.percentile(B, 75)
+
+    for col, (title, params, note) in enumerate(ARRANGEMENTS):
+        moved = move(*params)
+        bi = bivariate_morans_i(moved, B)
+
+        ax = fig.add_subplot(gs[0, col])
+        # Paint only the brightest quarter of each grid. Overlap is then
+        # something you can see rather than something you infer.
+        canvas = np.ones((*A.shape, 3))
+        canvas[moved >= a_hi] = [.16, .45, .58]
+        canvas[B >= b_hi] = [.85, .55, .12]
+        canvas[(moved >= a_hi) & (B >= b_hi)] = [.15, .15, .18]
+        ax.imshow(canvas, interpolation="nearest")
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(title, fontsize=12, fontweight="bold")
+        ax.text(.5, -.045, note.replace("@", NEWLINE), transform=ax.transAxes,
+                ha="center", va="top", fontsize=10)
+        ax.text(.5, -.175, f"bivariate Moran's I = {bi:+.2f}", transform=ax.transAxes,
+                ha="center", va="top", fontsize=12.5, fontweight="bold",
+                color="#B22222" if bi < -.2 else ("#2E7D32" if bi > .2 else "#B7791F"))
+
+        ax = fig.add_subplot(gs[1, col])
+        ax.hist(moved.ravel(), bins=60, color="#2A7392", alpha=.85,
+                label="building density")
+        ax.hist(B.ravel() / B.max() * moved.max(), bins=60, color="#D98C1F",
+                alpha=.6, label="accessibility (rescaled to fit)")
+        ax.set_yticks([]); ax.tick_params(labelsize=8)
+        for sp in ("top", "right", "left"):
+            ax.spines[sp].set_visible(False)
+        if col == 0:
+            ax.legend(fontsize=8.5, frameon=False, loc="upper right")
+        ax.set_title("the two histograms", fontsize=9.5, color="#5C6B6D")
+
+    fig.suptitle(
+        "What 'arranged independently' means — one real cell, tile "
+        + cell_id + NEWLINE
+        + "Blue = the most built-up quarter of the cell.   Orange = the most "
+          "reachable quarter.   Black = both at once." + NEWLINE
+        + "All three pictures use the SAME two grids. One of them has simply "
+          "been turned and shifted, which cannot change any of its values —"
+        + NEWLINE
+        + "so the histograms along the bottom are identical in all three. "
+          "A histogram has no addresses in it, and cannot tell these apart.",
+        fontsize=12.5)
+    fig.subplots_adjust(top=.80, bottom=.07, left=.03, right=.985)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
+def what_the_descriptor_loses(store_path, cell_id, out_path):
+    """Why a descriptor match is not a copy.
+
+    Turning a cell a quarter turn cannot change any per-channel average, any
+    spread, any zero count, any clumpiness or any cross-channel correlation:
+    every one of those is blind to where things are. So the descriptor comes
+    back the same to sixteen decimal places, while the cell has moved as far
+    away, pixel for pixel, as an unrelated tile in another district.
+
+    That is the whole reason the study needs a second measurement.
+    """
+    from analysis.cell_descriptor import describe_cell
+    from datasets.cell_tensors import CellTensorStore
+
+    store = CellTensorStore(str(store_path))
+    ids = [c for c in sorted(store.cell_ids()) if store.read_cell(c)[0].std() > 0]
+    if cell_id not in ids:
+        cell_id = ids[0]
+    other_id = next(c for c in ids if c != cell_id)
+
+    names = store.channel_names
+    cell = store.read_cell(cell_id).astype(float)
+    turned = np.rot90(cell, 1, axes=(1, 2)).copy()
+    other = store.read_cell(other_id).astype(float)
+
+    # A handful of the descriptor's numbers, shown as numbers. An earlier
+    # version plotted all 45 as scaled lines, but with only three cells the
+    # scaling pinned every value to 0 or 1 and the chart became a square wave
+    # that showed nothing.
+    SHOWN = [
+        ("building_binary_mean", "how much of the cell is built"),
+        ("building_binary_zero_fraction", "share of pixels with no building"),
+        ("building_binary_morans_i", "how clumped the buildings are"),
+        ("building_density_mean", "average building density"),
+        ("building_density_std", "how much that density varies"),
+        ("accessibility_gravity_mean", "average reachability"),
+        ("poi_count_mean", "average shops within 300 m"),
+        ("corr_building_binary_building_density", "do the two building grids agree"),
+    ]
+    keys = [k for k, _ in SHOWN if k in describe_cell(cell, names)]
+    described = [describe_cell(c, names) for c in (cell, turned, other)]
+
+    def rms(x, y):
+        return float(np.sqrt(((x - y) ** 2).mean()))
+
+    fig = plt.figure(figsize=(15.6, 9.0))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.25, 1], hspace=.30, wspace=.12)
+    for col, (grid, label, sub) in enumerate([
+        (cell, "cell A — " + cell_id, "a real tile"),
+        (turned, "cell A, given a quarter turn", "the same place, rotated"),
+        (other, "cell B — " + other_id, "a different tile"),
+    ]):
+        ax = fig.add_subplot(gs[0, col])
+        ax.imshow(grid[0], cmap="gray_r", interpolation="nearest")
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(label, fontsize=11.5, fontweight="bold")
+        ax.text(.5, -.05, sub, transform=ax.transAxes, ha="center", va="top",
+                fontsize=10, color="#5C6B6D")
+
+    ax = fig.add_subplot(gs[1, :])
+    ax.axis("off")
+    label_of = dict(SHOWN)
+    head = ["what the number means", "cell A", "A turned", "cell B"]
+    xs = [.02, .52, .68, .86]
+    for x, h in zip(xs, head):
+        ax.text(x, .96, h, transform=ax.transAxes, fontsize=10.5,
+                fontweight="bold", color="#5C6B6D",
+                ha="left" if x < .5 else "center")
+    for row, key in enumerate(keys):
+        y = .84 - row * .105
+        ax.text(xs[0], y, label_of[key], transform=ax.transAxes, fontsize=10.5)
+        same = abs(described[0][key] - described[1][key]) < 1e-9
+        for i, x in enumerate(xs[1:]):
+            ax.text(x, y, f"{described[i][key]:.4f}", transform=ax.transAxes,
+                    fontsize=10.5, ha="center", family="monospace",
+                    color=("#2A7392" if i < 2 and same else
+                           ("#B7791F" if i == 2 else "#1B2426")))
+        ax.plot([.02, .95], [y - .028, y - .028], transform=ax.transAxes,
+                color="#D8DEDC", lw=.8)
+
+    biggest = max(abs(described[0][k] - described[1][k])
+                  for k in described[0])
+    fig.suptitle(
+        "Why matching descriptors does not mean a copy" + NEWLINE
+        + "A quarter turn cannot change an average, a spread, a zero count, a "
+          "clumpiness or a correlation — none of them looks at where anything "
+          "is." + NEWLINE
+        + f"So every one of the descriptor's numbers stays the same. Across all "
+          f"of them the largest change is {biggest:.0e}, which is rounding."
+        + NEWLINE
+        + f"But pixel by pixel, cell A and cell A turned are "
+          f"{rms(cell, turned):.1f} apart — further than cell A is from an "
+          f"unrelated tile in another district ({rms(cell, other):.1f}).",
+        fontsize=12.5)
+    fig.subplots_adjust(top=.775, bottom=.04, left=.03, right=.985)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--what", choices=["what_a_cell_is", "how_fmem_works", "all"],
-                        default="all")
+    parser.add_argument("--what", default="all", choices=[
+        "what_a_cell_is", "how_fmem_works", "what_independent_means",
+        "what_the_descriptor_loses", "all"])
     parser.add_argument("--store", default=str(PROC_DIR / "cells_z15_1024"))
     parser.add_argument("--cell_id", default="15_26097_15392")
     parser.add_argument("--probe", type=int, nargs=2, default=[470, 300],
@@ -222,6 +420,12 @@ def main() -> None:
                        out_dir / "what_a_cell_is.png")
     if args.what in ("how_fmem_works", "all"):
         how_fmem_works(out_dir / "how_fmem_works.png")
+    if args.what in ("what_independent_means", "all"):
+        what_independent_means(args.store, args.cell_id,
+                               out_dir / "what_independent_means.png")
+    if args.what in ("what_the_descriptor_loses", "all"):
+        what_the_descriptor_loses(args.store, args.cell_id,
+                                  out_dir / "what_the_descriptor_loses.png")
 
 
 if __name__ == "__main__":
