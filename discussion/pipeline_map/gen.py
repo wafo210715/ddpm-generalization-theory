@@ -305,6 +305,94 @@ def descriptor_section():
     def esc(t):
         return html.escape(str(t))
 
+
+    # -- 8a0: where the descriptor sits -----------------------------------
+    def box(x, y, w, h, title, sub="", cls="f-box"):
+        out = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" class="{cls}" rx="3"/>',
+               f'<text x="{x + w/2:.0f}" y="{y + (18 if sub else h/2 + 4):.0f}" '
+               f'class="f-lab" text-anchor="middle">{title}</text>']
+        if sub:
+            for i, line in enumerate(sub.split("|")):
+                out.append(f'<text x="{x + w/2:.0f}" y="{y + 34 + i*13:.0f}" '
+                           f'class="f-sm f-mute" text-anchor="middle">{line}</text>')
+        return "".join(out)
+
+    def arrow(x1, y1, x2, y2, cls="f-edge"):
+        return (f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" class="{cls}" '
+                f'marker-end="url(#ds-ar)"/>')
+
+    landscape = f'''<figure><svg viewBox="0 0 742 398" role="img" aria-label="Real
+      and generated cells feed two separate measurements: the gap ratio in
+      standardized space, and the descriptor in data space. Their two onsets
+      bracket the generalization window.">
+      <defs><marker id="ds-ar" viewBox="0 0 10 10" refX="9" refY="5"
+        markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0L10 5L0 10z" class="f-arrow"/></marker></defs>
+
+      {box(14, 40, 120, 54, "real cells", "the training set|as stored", "f-box")}
+      {box(14, 254, 120, 54, "generated cells", "one checkpoint|sampled from the model", "f-box-dash")}
+
+      <text x="150" y="30" class="f-sm f-mute">both sides go through both
+        measurements &mdash; that is the whole design</text>
+
+      <line x1="74" y1="94" x2="74" y2="254" class="f-edge" stroke-dasharray="3 3"/>
+      {arrow(134, 60, 176, 60)}
+      {arrow(134, 274, 176, 130)}
+      {arrow(134, 282, 176, 282)}
+      {arrow(134, 74, 176, 236)}
+
+      <rect x="170" y="42" width="404" height="112" class="f-a1" rx="4"/>
+      <text x="182" y="60" class="f-mono f-acc">STANDARDIZED SPACE</text>
+      <text x="182" y="76" class="f-sm f-mute">every channel weighs the same,
+        because a distance</text>
+      <text x="182" y="90" class="f-sm f-mute">over the whole cell is what is
+        being asked for</text>
+      {box(182, 100, 128, 44, "k-NN gap ratio", "d1 / d2 per sample")}
+      {box(330, 100, 108, 44, "F_mem", "share below 1/3")}
+      {box(458, 100, 104, 44, "above the", "D2 noise floor?", "f-box-acc")}
+      {arrow(310, 122, 330, 122)}
+      {arrow(438, 122, 458, 122)}
+
+      <rect x="170" y="224" width="404" height="130" class="f-a1" rx="4"/>
+      <text x="182" y="242" class="f-mono f-acc">DATA SPACE</text>
+      <text x="182" y="258" class="f-sm f-mute">physical units, because
+        &ldquo;zero fraction&rdquo; has to mean</text>
+      <text x="182" y="272" class="f-sm f-mute">&ldquo;no building here&rdquo;
+        rather than &ldquo;at the channel mean&rdquo;</text>
+      {box(182, 282, 128, 58, "describe_cell", "one function|for both sides")}
+      {box(330, 282, 108, 58, "one row of", "named numbers|per cell")}
+      {box(458, 282, 104, 58, "distributions", "compared|E3")}
+      {arrow(310, 311, 330, 311)}
+      {arrow(438, 311, 458, 311)}
+
+      <text x="182" y="176" class="f-sm">unpack (E1): the stored shift and scale,
+        in reverse</text>
+      {arrow(176, 190, 176, 224)}
+      <line x1="176" y1="154" x2="176" y2="190" class="f-edge-acc"/>
+
+      {box(586, 100, 142, 44, "memorization onset", "", "f-box-acc")}
+      {box(586, 290, 142, 44, "structure onset", "", "f-box-acc")}
+      {arrow(562, 122, 586, 122)}
+      {arrow(562, 311, 586, 311)}
+      <line x1="657" y1="144" x2="657" y2="180" class="f-edge"/>
+      <line x1="657" y1="290" x2="657" y2="254" class="f-edge"/>
+      {box(586, 180, 142, 74, "E4", "the generalization|window is the|stretch between|the two", "f-box-acc")}
+
+      <text x="14" y="378" class="f-sm">The two measurements answer different
+        questions and cannot substitute for each other: the descriptor is far
+        too coarse to notice</text>
+      <text x="14" y="392" class="f-sm">that one generated cell is a copy of one
+        training cell, and the gap ratio says nothing about what the data looks
+        like.</text>
+    </svg>
+    <figcaption>Where the descriptor sits. It is one of two measurements, run on
+    both real and generated cells, and the pair of onsets they produce is what
+    brackets the window the study is about. Note that they run in different
+    spaces, and for opposite reasons: a distance needs every channel to weigh
+    the same, so the gap ratio stays standardized, while the descriptor's
+    numbers have to be readable in physical units, so a sample is unpacked
+    first.</figcaption></figure>'''
+
     # -- 8a: the recipe, on real cells ------------------------------------
     cards = []
     for c in d["real_cells"]:
@@ -608,6 +696,8 @@ def descriptor_section():
     return f'''  <section id="descriptor">
     <h2><span class="num">8</span>What the descriptor sees</h2>
     <p>The descriptor is one function, run on real and generated cells alike, that turns a cell into a short list of named numbers. That is the whole of it, and the reason it is worth being careful about is that every distribution claim in the study is a comparison of two such lists. It has one hard constraint: it must be computable from the raster alone, because a generated cell has no vectors behind it. So it is per-channel mean, standard deviation, zero fraction, skewness and Moran&rsquo;s I; the correlation between each pair of channels within the cell; and, once a typology exists, the mix of unit classes.</p>
+    {landscape}
+    <p>Inside that box, the recipe is fixed and short. Here it is on three real tiles.</p>
     {recipe}
     <p>Four of those five per-channel numbers are about <em>how much</em>: how much building, how spread out the values are, how many units are empty, how lopsided the histogram is. Only Moran&rsquo;s I is about <em>where</em>. The cleanest way to see the split is to shuffle a cell &mdash; move every unit to a random position, which leaves the collection of values exactly as it was.</p>
     {shuffle}
