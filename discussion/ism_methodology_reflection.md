@@ -52,12 +52,50 @@ knn  = dist.topk(k, dim=1, largest=False)
 gap_ratio = distances_tensor_all[:, 0] / distances_tensor_all[:, 1]
 ```
 
-This is not a wording slip; the two ratios measure different things. The
-report's version compares a sample against its own siblings, which would
-conflate memorization with mode collapse — a model producing many similar
-samples would score as memorizing even if none of them resembled the training
-data. Our implementation in `evaluation/gap_ratio.py` follows the reference.
+This is not a wording slip. The denominator is doing different work in each
+version, and the difference is not academic.
+
+In the correct version, the second-nearest **training** distance is a property
+of the training set's local spacing around that point. It does not depend on the
+model at all. The ratio therefore asks one clean question: is this sample
+sitting on one particular training cell, or between several?
+
+In the report's version, the denominator is the distance to the nearest **other
+generated** sample, which depends entirely on how varied the model's own output
+is. The ratio mixes two independent properties — closeness to the training data,
+and diversity of the samples — and cannot separate them afterwards.
+
+The consequence is that the report's formula is blind to the worst case it
+exists to detect. Both were run on four scenarios where the right answer is
+known (40 training points in 8 dimensions, threshold 1/3):
+
+| the model produces | truth | report's F_mem | correct F_mem |
+|---|---|---:|---:|
+| **the same training cell, 20 times** | memorised | **0.00** | **1.00** |
+| 20 different training cells | memorised | 1.00 | 1.00 |
+| 20 diverse novel cells | not memorised | 0.00 | 0.00 |
+| 20 near-identical novel cells | not memorised | 0.00 | 0.00 |
+
+Row one is the canonical memorization failure, and the report's formula scores
+it zero — its median gap ratio is 1.07, nowhere near the 1/3 threshold. When
+every sample is a copy of the same training cell, the distance to the nearest
+*other generated sample* is also near zero, so the ratio is roughly nought over
+nought and lands wherever the noise puts it. The numerator was right; the
+denominator cancelled it.
+
+The formula happens to work when the model copies many *different* training
+cells (row two), which may be why the error went unnoticed. Our implementation
+in `evaluation/gap_ratio.py` follows the reference.
 **Section 3.7.1 needs correcting before anything else in the report.**
+
+A note on terms, since the earlier draft of this file used one loosely.
+*Mode collapse* is a model producing samples that are all alike — it has
+collapsed onto one narrow region of the distribution instead of covering it.
+That is a different failure from memorization, which is producing copies of
+individual training examples. F_mem is only a measurement made at evaluation
+and causes neither. The problem is that the report's denominator makes the
+measurement *sensitive* to sample diversity, so a collapsed model hides its own
+memorization from the metric.
 
 ### 2. The synergy analysis performs the operation the paper criticises
 
