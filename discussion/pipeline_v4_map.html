@@ -184,7 +184,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <li><span class="sw future"></span>later or optional</li>
       <li><span class="sw par"></span>fork: run in parallel</li>
     </ul>
-    <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 33 nodes, 3 checkpoints</p>
+    <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 34 nodes, 4 checkpoints</p>
     <p class="links">Companion page with the reasoning drawn out: <a href="cells_channels_units.html">Cells, Channels, Units</a> &nbsp;·&nbsp; <a href="#terms">Terms in plain words</a></p>
   </header>
   <section class="flow" aria-label="Pipeline stages A to F">
@@ -505,6 +505,20 @@ table.t td.moved{color:var(--gate);font-weight:600}
     </article>
     </div>
     <div class="join"><i></i></div>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node gate" id="D3">
+      <header><span class="code">D3</span><span class="kind">checkpoint</span></header>
+      <h3>Checkpoint: locate the <a class="term" href="#g-taumem">memorization onset</a> on one short run first</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>Every <a class="term" href="#g-mutant">mutant</a> is its own multi-day run, and the step budget only makes sense once tau_mem is known for this data. Guessing it wastes the budget in whichever direction the guess is wrong.</li>
+        <li>Measured on the Pro 6000: a 500K-step run at 1024 px is 4 to 8 days. Sizing four mutants from a guess risks a month.</li>
+        <li>The dataset is small. Of 1,881 zoom-15 tiles only 617 hold any building and 139 hold a hundred or more, and <a class="term" href="#g-gentheory">generalization theory</a> has the onset growing with sample count, so the window may open and close early here.</li>
+        <li>Run one mutant with logarithmic checkpoints until <a class="term" href="#g-fmem">F_mem</a> clears the D2 <a class="term" href="#g-floor">noise floor</a>, then set every other run's budget from where that happened.</li>
+      </ul>
+    </article>
   </div>
   <div class="stage">
     <div class="stub"></div>

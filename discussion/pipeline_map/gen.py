@@ -22,7 +22,7 @@ STAGES = [
   {"code": "A", "title": "Before any code", "ordinal": "your first and second", "rows": [["A1"], ["A2", "A3"]]},
   {"code": "B", "title": "Build the dataset", "ordinal": "your third", "rows": [["B1"], ["B2"], ["B3", "B4", "B5"], ["B6"], ["B7"], ["B8", "B9"], ["B10"], ["B11"]]},
   {"code": "C", "title": "Pre-training analysis", "ordinal": "your fourth", "rows": [["C1", "C2"], ["C3"], ["C4", "C4b"], ["C5"], ["C6"], ["C7"]]},
-  {"code": "D", "title": "Train", "ordinal": "your fifth", "rows": [["D1", "D2"]]},
+  {"code": "D", "title": "Train", "ordinal": "your fifth", "rows": [["D1", "D2"], ["D3"]]},
   {"code": "E", "title": "Sample and analyze", "ordinal": "your fifth and sixth", "rows": [["E1"], ["E2", "E3", "E3b", "E3c"], ["E4"], ["E5"]]},
   {"code": "F", "title": "Paper", "ordinal": "your seventh, as future work", "rows": [["F1", "F2"]]},
 ]
@@ -118,6 +118,11 @@ N = {
  "D2": {"kind":"action","title":"Score F_mem on an untrained model to get the metric's noise floor","why":[
    "Random weights produce nonsense cells. Whatever memorization fraction they score is the floor; only values above it mean the trained model copied.",
    "Independent of encoding, so it survives the redesign. Feeds the onset threshold in E4."]},
+ "D3": {"kind":"gate","title":"Checkpoint: locate the memorization onset on one short run first","why":[
+   "Every mutant is its own multi-day run, and the step budget only makes sense once tau_mem is known for this data. Guessing it wastes the budget in whichever direction the guess is wrong.",
+   "Measured on the Pro 6000: a 500K-step run at 1024 px is 4 to 8 days. Sizing four mutants from a guess risks a month.",
+   "The dataset is small. Of 1,881 zoom-15 tiles only 617 hold any building and 139 hold a hundred or more, and generalization theory has the onset growing with sample count, so the window may open and close early here.",
+   "Run one mutant with logarithmic checkpoints until F_mem clears the D2 noise floor, then set every other run's budget from where that happened."]},
  "E1": {"kind":"action","title":"Sample every checkpoint; undo the standardization","why":[
    "A sample is a tensor in data space, not an embedding.",
    "Unpacking is the stored shift and scale in reverse, plus an optional three-grid rendering for humans."]},
@@ -353,13 +358,186 @@ def descriptor_section():
         f'rook <b>{p["rook"]:+.3f}</b></span>'
         f'<span class="note">{esc(p["note"])}</span></div>'
         for p in d["morans_strip"])
+    chequer = next(p for p in d["morans_strip"] if p["name"] == "chequer")
     morans = ('<figure><div class="strip">' + strip + '</div>'
               '<figcaption>Moran&rsquo;s I from &minus;1 to +1, on patterns whose '
               'arrangement is known by construction. Queen counts all eight '
               'neighbours, rook only the four that share an edge. They agree '
               'everywhere except on the chequer, where the diagonal neighbours are '
-              'the same colour: rook reads &minus;1.000, queen reads &minus;0.012.'
+              f'the same colour: rook reads {chequer["rook"]:+.3f}, queen reads '
+              f'{chequer["queen"]:+.3f}.'
               '</figcaption></figure>')
+
+
+    # -- 8c2: what "next to it" means -------------------------------------
+    CELL, GAP = 26, 2
+    def grid5(ox, oy, fill_of):
+        out = []
+        for row in range(5):
+            for col in range(5):
+                x = ox + col * (CELL + GAP)
+                y = oy + row * (CELL + GAP)
+                out.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" '
+                           f'class="{fill_of(row, col)}"/>')
+        return "".join(out)
+
+    def rook_of(row, col):
+        if (row, col) == (2, 2):
+            return "f-probe"
+        return "f-a3" if abs(row - 2) + abs(col - 2) == 1 else "f-panel"
+
+    def queen_of(row, col):
+        if (row, col) == (2, 2):
+            return "f-probe"
+        return "f-a3" if max(abs(row - 2), abs(col - 2)) == 1 else "f-panel"
+
+    def chequer_of(row, col):
+        return "f-bld" if (row + col) % 2 == 0 else "f-panel"
+
+    ring = []
+    for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+        x = 512 + (2 + dc) * (CELL + GAP); y = 56 + (2 + dr) * (CELL + GAP)
+        ring.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" '
+                    f'fill="none" stroke="var(--gate)" stroke-width="2.6"/>')
+    for dr, dc in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+        x = 512 + (2 + dc) * (CELL + GAP); y = 56 + (2 + dr) * (CELL + GAP)
+        ring.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" '
+                    f'fill="none" stroke="var(--spine)" stroke-width="2.6" '
+                    f'stroke-dasharray="4 3"/>')
+
+    neighbours = f'''<figure><svg viewBox="0 0 742 300" role="img" aria-label="Rook
+      neighbours are the four sharing an edge, queen neighbours add the four
+      diagonals, and on a chequer the two rules disagree.">
+      <text x="20" y="18" class="f-lab">rook &middot; 4 neighbours</text>
+      <text x="20" y="36" class="f-sm f-mute">the ones sharing an edge</text>
+      {grid5(20, 56, rook_of)}
+      <text x="266" y="18" class="f-lab">queen &middot; 8 neighbours</text>
+      <text x="266" y="36" class="f-sm f-mute">edges and corners</text>
+      {grid5(266, 56, queen_of)}
+      <text x="512" y="18" class="f-lab">why they disagree</text>
+      <text x="512" y="36" class="f-sm f-mute">a chequer, centre unit dark</text>
+      {grid5(512, 56, chequer_of)}
+      {"".join(ring)}
+      <text x="20" y="238" class="f-sm">Moran&rsquo;s I compares every unit with its
+        neighbours and averages the result over the whole grid.</text>
+      <text x="20" y="256" class="f-sm">One number, for one grid, inside one cell:
+        how smooth is this picture.</text>
+      <g>
+        <rect x="452" y="230" width="14" height="10" fill="none"
+          stroke="var(--gate)" stroke-width="2.6"/>
+        <text x="472" y="239" class="f-sm">4 rook: all opposite &rarr; I = &minus;1.00</text>
+        <rect x="452" y="252" width="14" height="10" fill="none"
+          stroke="var(--spine)" stroke-width="2.6" stroke-dasharray="4 3"/>
+        <text x="472" y="261" class="f-sm">4 diagonals: all the same &rarr; they cancel it</text>
+        <text x="452" y="283" class="f-mono f-acc">queen reads &minus;0.03</text>
+      </g>
+    </svg>
+    <figcaption>&ldquo;Next to it&rdquo; is a choice, and on fine patterns it changes the
+    answer. A chequer&rsquo;s edge-neighbours are all its opposite, so rook weights
+    read perfect dispersion; its corner-neighbours are all its own colour, and
+    under queen weights those cancel the edges out to nearly nothing. At a
+    1.17 m unit a row of houses separated by 3 m alleys is close to this
+    pattern, so the rule has to be stated rather than defaulted
+    into.</figcaption></figure>'''
+
+    # -- 8f: what the resampling fix was ----------------------------------
+    resampling = ""
+    rs = d.get("resampling")
+    if rs:
+        PW, PH, PX0, PY0, GAPX = 216, 128, 20, 96, 26
+        floor, ceiling = rs["coarse_min"], rs["coarse_max"]
+        # Include zero in the range. The band between zero and the solved
+        # minimum is the whole point of the figure, so it needs real height,
+        # and showing zero says why a value under it is impossible rather than
+        # merely unexpected.
+        lo = min(0.0, rs["cubic_min"]) - 0.4
+        hi = ceiling + 0.8
+
+        # Show a detail window rather than the whole row. Across 1,201 m the
+        # three curves are visually identical; the differences live in a few
+        # hundred metres around a sharp edge, which is exactly where the
+        # overshoot happens and where a corner would be read as a feature.
+        cubic_full = rs["cubic"]
+        centre = min(range(len(cubic_full)), key=lambda i: cubic_full[i])
+        half = max(len(cubic_full) // 9, 12)
+        w0 = max(0, min(centre - half, len(cubic_full) - 2 * half))
+        w1 = min(len(cubic_full), w0 + 2 * half)
+        frac0, frac1 = w0 / len(cubic_full), w1 / len(cubic_full)
+
+        def window(curve):
+            return curve[w0:w1]
+
+        coarse_pts = [
+            (i / (rs["n_coarse"] - 1), v) for i, v in enumerate(rs["coarse"])
+            if frac0 <= i / (rs["n_coarse"] - 1) <= frac1
+        ]
+
+        def sx_frac(f, ox):
+            return ox + (f - frac0) / (frac1 - frac0) * PW
+
+        def sx(i, total, ox):
+            return ox + (i / max(total - 1, 1)) * PW
+
+        def sy(v):
+            return PY0 + PH - (v - lo) / (hi - lo) * PH
+
+        panels = []
+        for k, (key, title, note) in enumerate([
+            ("linear", "bilinear", "straight lines between the solved points"),
+            ("cubic", "cubic", "smooth, but it overshoots"),
+            ("clamped", "cubic, clamped", "held inside what was solved"),
+        ]):
+            ox = PX0 + k * (PW + GAPX)
+            curve = window(d["resampling"][key])
+            pts = " ".join(f"{sx(i, len(curve), ox):.1f},{sy(v):.1f}"
+                           for i, v in enumerate(curve))
+            dots = "".join(
+                f'<circle cx="{sx_frac(f, ox):.1f}" cy="{sy(v):.1f}" r="2.6" '
+                f'fill="var(--muted)"/>' for f, v in coarse_pts)
+            # the band below anything that was actually solved
+            band = (f'<rect x="{ox}" y="{sy(floor):.1f}" width="{PW}" '
+                    f'height="{PY0 + PH - sy(floor):.1f}" fill="var(--gate)" '
+                    f'fill-opacity=".13"/>')
+            panels.append(
+                f'<text x="{ox}" y="{PY0 - 30}" class="f-lab">{title}</text>'
+                f'<text x="{ox}" y="{PY0 - 14}" class="f-sm f-mute">{note}</text>'
+                f'{band}'
+                f'<line x1="{ox}" y1="{sy(floor):.1f}" x2="{ox + PW}" '
+                f'y2="{sy(floor):.1f}" stroke="var(--gate)" stroke-width="1" '
+                f'stroke-dasharray="3 3"/>'
+                f'<line x1="{ox}" y1="{sy(0):.1f}" x2="{ox + PW}" '
+                f'y2="{sy(0):.1f}" class="f-edge"/>'
+                + (f'<text x="{ox - 6}" y="{sy(floor) + 3:.1f}" class="f-mono f-mute" '
+                   f'text-anchor="end">{floor:.0f}</text>'
+                   f'<text x="{ox - 6}" y="{sy(0) + 3:.1f}" class="f-mono f-mute" '
+                   f'text-anchor="end">0</text>' if k == 0 else "")
+                + f'<polyline points="{pts}" fill="none" stroke="var(--spine)" '
+                  f'stroke-width="2"/>{dots}')
+
+        resampling = f'''<figure><svg viewBox="0 0 742 292" role="img"
+          aria-label="One row of a ring count, interpolated three ways: bilinear
+          leaves corners, cubic dips below the solved minimum, clamping fixes it.">
+          <text x="20" y="18" class="f-lab">one row of {html.escape(rs["indicator"])},
+            solved at {rs["n_coarse"]} points, stretched to {rs["target"]}
+            &mdash; detail around one sharp edge</text>
+          <text x="20" y="34" class="f-sm f-mute">grey dots are the values actually
+            computed; the shaded band is below anything that was</text>
+          {"".join(panels)}
+          <text x="20" y="{PY0 + PH + 34}" class="f-sm">Solved range {floor:.0f} to
+            {ceiling:.0f} POIs. Cubic alone reaches
+            <tspan class="f-acc">{rs["cubic_min"]:.2f}</tspan>, under the solved
+            minimum on {rs["below_share"]:.1%} of the row.</text>
+        </svg>
+        <figcaption>The indicator is computed at its own scale and then has to
+        reach the shared 1024 px grid. Straight-line interpolation leaves a
+        corner at every solved point, and a corner is a spatial feature the
+        descriptor cannot tell from a real one. A cubic curve removes the
+        corners but overshoots near a sharp edge, and pushed this ring count
+        below the smallest value anywhere in the solve --- on the entropy
+        channel the same overshoot produced negative bits. Clamping to the
+        range that was actually solved keeps the smooth curve and cannot
+        invent a value, because no interior point was ever outside it.
+        </figcaption></figure>'''
 
     # -- 8d: what the fine unit buys --------------------------------------
     W, H, L, R, T, B = 720, 300, 62, 150, 24, 52
@@ -435,9 +613,13 @@ def descriptor_section():
     {shuffle}
     <p>That is also the answer to what Moran&rsquo;s I means. It asks whether a unit resembles the units next to it, on a scale where +1 is &ldquo;always&rdquo;, 0 is &ldquo;no relation&rdquo;, and &minus;1 is &ldquo;always the opposite&rdquo;. It knows nothing about the values themselves, only about their arrangement, which is why it is invariant to shifting and scaling a channel and why it collapses under a shuffle.</p>
     {morans}
+    <p>The comparison needs one more thing fixed before it means anything: which units count as &ldquo;next to&rdquo; a given unit.</p>
+    {neighbours}
     <p>Two cautions follow from the strip. The connectivity rule matters on fine patterns: at a 1.17 m unit, a row of houses separated by 3 m alleys is very close to a chequer, and rook and queen weights would report it quite differently. And a high Moran&rsquo;s I on its own does not mean a channel is redundant &mdash; the footprint grid reads 0.80 to 0.93 and is full of structure, because buildings are blobs several units across. Smoothness and redundancy are different questions, and the second one has a direct measurement.</p>
     {curve}
     <p>Read together, the two curves settle where the 1.17 m unit earns its cost. The footprint channel genuinely needs it: a third of that channel is gone by the pilot&rsquo;s 9.4 m unit, which is the alley-and-rowhouse grain B2 chose the resolution for. The 100 m density channel does not: it could be computed on a 32&nbsp;&times;&nbsp;32 grid and lose half a percent. That is not an argument against the channel, which measures something real, but it is an argument that its cost should be counted against what it adds &mdash; and the indicator specification table already lists it as an open question.</p>
+    {resampling}
+    <p>One practical note belongs here, because it is a way the descriptor can be fooled by something that is not in the data at all. Most of these channels are not computed at 1.17 m &mdash; a ring or a decay field is solved on a coarse grid, since its meaning lives at its own radius, and only then stretched onto the shared one. How that stretch is done decides whether the result carries features that were never measured.</p>
     {sparsity}
     <p>The last figure is about a number that is easy to over-read. A channel that is 87&nbsp;% zeros sounds like a channel that is mostly missing, and sometimes it is. But the zero fraction is a statement about the histogram, and two channels with identical zero fractions can be completely different objects: one empty in the shape of a street network, the other empty at random. Only the picture separates them, which is why sparsity belongs in B10&rsquo;s marginals as a map and not only as a percentage.</p>
   </section>

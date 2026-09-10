@@ -276,6 +276,74 @@ def sparsity_map(store, cell_ids, channel_name):
     return out
 
 
+
+def resampling_profile(cell_id="15_26097_15392", n_coarse=33, target=1024):
+    """One row of a real ring-count solve, interpolated three ways.
+
+    B7 computes a ring or decay indicator on a coarse grid --- its meaning
+    lives at its own radius, so solving it at 1024 px would be a million
+    redundant answers --- and then resamples to the shared grid.  How that
+    resampling is done turned out to matter, and the failure is far easier to
+    see on one row than on a raster.
+
+    Returns the solved samples and the three curves through them, in the units
+    the indicator is actually in.
+    """
+    import geopandas as gpd
+    from scipy.ndimage import zoom
+    from scipy.spatial import cKDTree
+
+    tiles_dir = os.path.join(REPO, "data-processing", "data", "hcmc", "raw", "tiles")
+    index = os.path.join(REPO, "data-processing", "data", "hcmc", "raw",
+                         "hcmc_tiles_z15.gpkg")
+    poi_path = os.path.join(tiles_dir, cell_id, "pois.gpkg")
+    if not (os.path.exists(poi_path) and os.path.exists(index)):
+        return None
+
+    tiles = gpd.read_file(index).set_index("cell_id")
+    utm = gpd.GeoDataFrame(geometry=[tiles.loc[cell_id].geometry],
+                           crs="EPSG:4326").to_crs(epsg=32648)
+    xmin, ymin, xmax, ymax = utm.total_bounds
+    pois = gpd.read_file(poi_path).to_crs(epsg=32648)
+    xy = np.column_stack([pois.geometry.x, pois.geometry.y])
+
+    # One row of the coarse solve, a third of the way down the tile.
+    xs = np.linspace(xmin, xmax, n_coarse, endpoint=False) + (xmax - xmin) / (2 * n_coarse)
+    y = ymax - (ymax - ymin) / 3.0
+    tree = cKDTree(xy)
+    coarse = np.array([len(m) for m in
+                       tree.query_ball_point(np.column_stack([xs, np.full(n_coarse, y)]),
+                                             r=300.0)], dtype=float)
+
+    def stretch(order):
+        return zoom(coarse, target / n_coarse, order=order,
+                    grid_mode=True, mode="nearest")[:target]
+
+    linear = stretch(1)
+    cubic = stretch(3)
+    clamped = np.clip(cubic, coarse.min(), coarse.max())
+
+    def thin(a, k=256):
+        idx = np.linspace(0, len(a) - 1, k).astype(int)
+        return [round(float(v), 3) for v in np.asarray(a)[idx]]
+
+    return {
+        "cell_id": cell_id,
+        "indicator": "poi_count, 300 m ring",
+        "n_coarse": n_coarse,
+        "target": target,
+        "coarse": [round(float(v), 3) for v in coarse],
+        "linear": thin(linear),
+        "cubic": thin(cubic),
+        "clamped": thin(clamped),
+        "cubic_min": round(float(cubic.min()), 3),
+        "coarse_min": round(float(coarse.min()), 3),
+        "coarse_max": round(float(coarse.max()), 3),
+        # How much of the curve cubic pushed below what was solved.
+        "below_share": round(float(np.mean(cubic < coarse.min())), 4),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--store", default=DEFAULT_STORE)
@@ -304,6 +372,7 @@ def main() -> None:
         "real_cells": real_cells(store, cells),
         "resolution": resolution_curve(store, cells),
         "sparsity": sparsity_map(store, cells, "building_binary"),
+        "resampling": resampling_profile(),
     }
 
     with open(args.out, "w", encoding="utf-8") as f:
@@ -314,6 +383,13 @@ def main() -> None:
     print("\nMoran's I strip:")
     for row in payload["morans_strip"]:
         print(f"  {row['name']:>12}: queen {row['queen']:>7.3f}  rook {row['rook']:>7.3f}")
+    r = payload.get("resampling")
+    if r:
+        print(f"\nResampling profile ({r['indicator']}, {r['n_coarse']} -> {r['target']}):")
+        print(f"  solved range      : {r['coarse_min']} to {r['coarse_max']}")
+        print(f"  cubic dips to     : {r['cubic_min']}")
+        print(f"  below solved range: {r['below_share']:.1%} of the row")
+
     print("\nShuffle test, " + payload["shuffle"]["channel"] + ":")
     for row in payload["shuffle"]["rows"]:
         mark = "MOVED" if row["moved"] else "same"
