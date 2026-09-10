@@ -13,8 +13,8 @@ re-downloaded rather than copied.
 | Municipality boundary | OSM relation 1973756 at `[date:"2024-06-01"]`, the pre-merger HCMC. **2 406.5 km²**, matching the previous run exactly. |
 | 1 km fishnet | 8 436 cells, reproduced for reference; superseded by the tile index below. |
 | Buildings | 114 443 footprints, city-wide, complete (all four quadrants returned). |
-| POIs | **Incomplete — see below.** |
-| Roads | Per-tile only, and only for two rural tiles. |
+| POIs | Per-tile, for the eight rasterized tiles (10 Sep). City-wide still incomplete. |
+| Roads | Per-tile, for the eight rasterized tiles (10 Sep). |
 
 ### The v2 fetcher fails silently, and did
 
@@ -116,30 +116,94 @@ them is 0.31 on the densest tile, so the density field is a genuinely different
 statement about the same source, not a blurred copy that the descriptor would
 see as the same thing.
 
-## What is blocked, and on what
+## B6: the POI-per-ring coverage report, on real data
 
-- **B6, the POI-per-ring coverage report.** `report_poi_coverage.py` is written
-  and sweeps ring radii from 50 m (the pilot's, so its 97.5 % is reproduced
-  rather than asserted) to 500 m, under both the coarse category-key scheme and
-  the raw tag values, reporting three coverage levels per radius. It needs POI
-  data, which needs Overpass. Run it with
-  `--pois data/hcmc/raw/hcmc_pois_all.gpkg` or `--from_tiles` once the block
-  lifts.
+Overpass lifted the block on 10 Sep and the POI and road layers landed for the
+eight rasterized tiles. This is the checkpoint B6 asks for, and it does not
+pass.
 
-  It has been exercised on synthetic POIs scattered uniformly over three tiles
-  at roughly HCMC-core density, purely to confirm the script runs: 40.9 % of
-  units had entropy defined at 50 m, 96.3 % at 100 m. **Do not read those as
-  an answer.** Uniform scatter is the best case for ring coverage; real POIs
-  cluster along streets and around markets, which leaves large parts of a tile
-  empty at every radius, and it is that clustering that produced the pilot's
-  97.5 %. The real numbers will be worse, and how much worse is the thing B6
-  is for.
-- **The four POI and road channels**, for the same reason.
-- **Accessibility on the road network.** Implemented — multi-source Dijkstra
-  from POI-snapped graph nodes, exponential decay, cut off at three decay
-  lengths — and it falls back to straight-line decay only with a warning,
-  because a silently Euclidean "network gravity" would be a different indicator
-  under the same name. Not yet run on real roads.
+Averaged over ten tiles, the fraction of units whose ring holds at least two
+POIs in at least two categories — the condition for Shannon entropy to be
+defined at all:
+
+| ring | any POI | ≥ 2 POIs | **entropy defined** | mean POIs in ring |
+|---:|---:|---:|---:|---:|
+| 50 m | 8.5 % | 2.3 % | **1.1 %** | 0.1 |
+| 100 m | 22.6 % | 10.7 % | **5.9 %** | 0.5 |
+| 200 m | 44.9 % | 30.2 % | **20.0 %** | 2.0 |
+| 300 m | 60.5 % | 44.9 % | **37.0 %** | 4.6 |
+| 500 m | 77.6 % | 65.4 % | **58.3 %** | 12.5 |
+
+The pilot's 50 m ring gave 2.5 % coverage; this sample gives 1.1 %, so the
+pilot's finding reproduces and is if anything optimistic. Using the raw tag
+values instead of the five coarse category keys lifts the entropy column by a
+few points (1.7 %, 9.5 %, 28.8 %, 42.7 %, 63.3 %) because more distinct
+categories make the two-category test easier to pass — worth knowing for open
+question 2, though it does not change the shape of the problem.
+
+### Per tile, which is where it gets interesting
+
+Fraction of units with entropy defined:
+
+| tile | 50 m | 100 m | 200 m | 300 m | 500 m | POIs per 300 m ring | buildings |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `15_26093_15400` | 2.0 % | 16.7 % | 58.9 % | 93.4 % | 100 % | 12.8 | 126 |
+| `15_26097_15392` | 6.9 % | 31.4 % | 68.8 % | 88.5 % | 100 % | 20.2 | 7 177 |
+| `15_26102_15388` | 0.7 % | 3.3 % | 22.9 % | 60.6 % | 100 % | 3.8 | 442 |
+| `15_26097_15391` | 0.4 % | 3.2 % | 26.8 % | 60.3 % | 94.6 % | 4.4 | 1 096 |
+| `15_26104_15399` | 0.2 % | 1.0 % | 8.6 % | 25.3 % | 65.6 % | 1.3 | 15 |
+| `15_26098_15390` | 0.5 % | 3.3 % | 10.2 % | 23.0 % | 57.2 % | 2.1 | 2 988 |
+| `15_26098_15391` | 0.0 % | 0.0 % | 4.0 % | 19.2 % | 63.6 % | 1.2 | 6 866 |
+| three rural tiles | 0 % | 0 % | 0 % | 0 % | 0–1.6 % | 0–0.5 | 0–2 |
+
+**POI coverage does not track built density.** `15_26098_15391` is the
+second-densest tile in the whole study area — 6 866 buildings, unmistakably a
+real neighbourhood — and OSM holds **four** POIs for it. `15_26093_15400` has
+126 buildings and 12.8 POIs per ring. Whatever the POI layer is measuring in
+HCMC, it is not evenly related to whether anyone lives or trades there. That is
+an OSM completeness artefact, and it means a POI-derived channel would encode
+mapping effort alongside urban function.
+
+### The map is the part that matters
+
+`report_poi_coverage.py --map` draws where the channel is defined, because a
+coverage fraction cannot tell a mapping hole from genuinely empty ground and
+the two call for opposite responses. Two things are visible in it that are not
+visible in the table:
+
+- The densely built tile with four POIs is red everywhere at 50 and 100 m. Its
+  zeros are a coverage hole, not a quiet neighbourhood.
+- At 300 m, where coverage finally looks acceptable, the green regions are
+  **unions of discs around POI clusters**. At that radius the entropy channel is
+  largely reporting distance to the nearest cluster of mapped POIs — which is
+  close to what the accessibility channel already measures, and the pilot's 0.88
+  correlation between diversity and accessibility now has an obvious mechanism.
+
+Written to `data/hcmc/processed/reports/poi_ring_coverage_map.png`.
+
+### What this does not settle
+
+Choosing between the responses is A1's decision, not this report's. The options
+the numbers leave open are a larger ring, plain counts instead of entropy, a
+different POI source, treating activity as a cell-level condition, or dropping
+the subject from this paper as A2 already contemplates.
+
+One earlier number here should be discounted. Before the real POIs arrived this
+report was exercised on uniformly scattered synthetic POIs and gave 96.3 %
+coverage at a 100 m ring. The real figure is 5.9 %. Uniform scatter is the best
+case for ring coverage and real POIs cluster hard; the synthetic run confirmed
+the script runs and nothing else.
+
+## What is still blocked
+
+- **City-wide POIs and roads.** Only the eight rasterized tiles have them.
+  Overpass rate-limits this host after a few hundred queries, so the full
+  study area needs the tile-by-tile fetcher run in batches over time.
+- **The four POI and road channels in the 1024 px store.** They can be
+  rasterized now for the eight fetched tiles; the store on disk still has them
+  as all-zero from before the block lifted.
+- **Accessibility on the road network.** The roads are now fetched, so this can
+  run; it has not yet been run on real roads.
 
 ## Reproducing this
 

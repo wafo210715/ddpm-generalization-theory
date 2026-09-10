@@ -30,6 +30,7 @@ Usage:
 
 import argparse
 import logging
+import os
 from pathlib import Path
 
 import geopandas as gpd
@@ -128,6 +129,100 @@ def load_tile_pois(cell_id: str) -> gpd.GeoDataFrame | None:
     raise FileNotFoundError(f"no POI layer for {cell_id}")
 
 
+
+
+def coverage_map(selected, tiles_dir, radii, out_path, n=256, store_path=None):
+    """Draw where the entropy channel is defined, per tile, per radius.
+
+    A coverage fraction says how much of a channel is zero.  It cannot say
+    whether the zeros are a coverage hole or genuinely empty ground, and those
+    two want opposite responses --- one is a reason to find better data, the
+    other is a typology.  Only the map separates them.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from scipy.spatial import cKDTree
+
+    store = None
+    if store_path:
+        import sys as _sys
+        ddpm = str(ROOT.parent / "ddpm-win-master")
+        if ddpm not in _sys.path:
+            _sys.path.insert(0, ddpm)
+        from datasets.cell_tensors import CellTensorStore
+        store = CellTensorStore(store_path)
+
+    rows = list(selected.itertuples())
+    fig, axes = plt.subplots(len(rows), 1 + len(radii),
+                             figsize=(4.1 * (1 + len(radii)), 4.35 * len(rows)),
+                             squeeze=False)
+
+    for r, tile_row in enumerate(rows):
+        frame = gpd.GeoDataFrame(geometry=[tile_row.geometry], crs="EPSG:4326")
+        xmin, ymin, xmax, ymax = frame.to_crs(epsg=UTM_EPSG).total_bounds
+        pois = load_tile_pois(tile_row.cell_id)
+
+        ax = axes[r][0]
+        if store is not None and tile_row.cell_id in set(store.cell_ids()):
+            ax.imshow(store.read_cell(tile_row.cell_id)[0], cmap="gray_r",
+                      interpolation="nearest", extent=[xmin, xmax, ymin, ymax])
+        n_inside = 0
+        if pois is not None and len(pois):
+            xy = np.column_stack([pois.geometry.x, pois.geometry.y])
+            inside = ((xy[:, 0] >= xmin) & (xy[:, 0] <= xmax)
+                      & (xy[:, 1] >= ymin) & (xy[:, 1] <= ymax))
+            n_inside = int(inside.sum())
+            ax.scatter(xy[inside, 0], xy[inside, 1], s=16, c="#D9534F",
+                       edgecolors="white", linewidths=.5, zorder=3)
+        ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax)
+        ax.set_title(f"{tile_row.cell_id}\nfootprints + {n_inside} POIs in tile", fontsize=9)
+        ax.set_xticks([]); ax.set_yticks([])
+
+        xs = np.linspace(xmin, xmax, n, endpoint=False) + (xmax - xmin) / (2 * n)
+        ys = np.linspace(ymax, ymin, n, endpoint=False) - (ymax - ymin) / (2 * n)
+        gx, gy = np.meshgrid(xs, ys)
+        query = np.column_stack([gx.ravel(), gy.ravel()])
+
+        for c, radius in enumerate(radii):
+            ax = axes[r][c + 1]
+            if pois is None or len(pois) == 0:
+                defined = np.zeros((n, n), dtype=bool)
+            else:
+                tree = cKDTree(np.column_stack([pois.geometry.x, pois.geometry.y]))
+                codes = pd.factorize(pois["category_key"].fillna("unknown"))[0]
+                neighbours = tree.query_ball_point(query, r=radius)
+                defined = np.array([
+                    len(m) >= 2 and len(np.unique(codes[m])) >= 2 for m in neighbours
+                ]).reshape(n, n)
+            ax.imshow(defined, cmap="RdYlGn", vmin=0, vmax=1, interpolation="nearest")
+            ax.set_title(f"{radius:.0f} m ring - entropy defined on "
+                         f"{defined.mean():.1%}", fontsize=9)
+            ax.set_xticks([]); ax.set_yticks([])
+
+    fig.suptitle("Where the POI entropy channel is actually defined\n"
+                 "green = the unit's ring holds >=2 POIs in >=2 categories;  "
+                 "red = the channel is zero there", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.945])
+    fig.savefig(out_path, dpi=105)
+    log.info(f"Wrote {out_path}")
+
+
+def fetched_cell_ids() -> set:
+    """Tiles whose fetch actually completed.
+
+    fetch.json is written only after every requested layer has landed, so a
+    tile directory without one is an interrupted fetch. Counting it as data
+    would be the v2 pipeline's silent-partial failure in a new place.
+    """
+    if not TILES_DIR.exists():
+        return set()
+    return {
+        d.name for d in TILES_DIR.iterdir()
+        if d.is_dir() and (d / "fetch.json").exists()
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index", type=str,
@@ -141,16 +236,26 @@ def main() -> None:
     parser.add_argument("--sample_n", type=int, default=DEFAULT_SAMPLE_N)
     parser.add_argument("--buffer_m", type=float, default=600.0)
     parser.add_argument("--out", type=str, default=None)
+    parser.add_argument("--map", action="store_true",
+                        help="Also draw where the channel is defined. A "
+                             "fraction cannot tell a coverage hole from empty "
+                             "ground; the map can.")
+    parser.add_argument("--map_radii", type=float, nargs="+",
+                        default=[50.0, 100.0, 300.0])
+    parser.add_argument("--map_tiles", type=int, default=3,
+                        help="How many tiles to draw, taken from the ones with "
+                             "the most POIs so the figure is not all red.")
+    parser.add_argument("--store", type=str,
+                        default=str(ROOT / "data" / "hcmc" / "processed"
+                                    / "cells_z15_1024"),
+                        help="Cell store, for the footprint backdrop.")
     args = parser.parse_args()
 
     tiles = gpd.read_file(args.index)
     if args.cell_ids:
         selected = tiles[tiles["cell_id"].isin(args.cell_ids)]
     elif args.from_tiles:
-        fetched = (
-            {p.name for p in TILES_DIR.iterdir() if p.is_dir()}
-            if TILES_DIR.exists() else set()
-        )
+        fetched = fetched_cell_ids()
         selected = tiles[tiles["cell_id"].isin(fetched)]
     else:
         selected = tiles
@@ -216,6 +321,19 @@ def main() -> None:
     summary.to_csv(out_dir / "poi_coverage_summary.csv", index=False)
     log.info(f"Wrote {out_dir}/poi_coverage_summary.csv and "
              f"{out_dir}/poi_coverage_per_tile.parquet")
+
+    if args.map:
+        busiest = (
+            per_tile[per_tile.category_column == "category_key"]
+            .groupby("cell_id")["mean_pois_in_ring"].max()
+            .sort_values(ascending=False).head(args.map_tiles).index
+        )
+        coverage_map(
+            selected[selected["cell_id"].isin(busiest)],
+            TILES_DIR, args.map_radii,
+            str(out_dir / "poi_ring_coverage_map.png"),
+            store_path=args.store if os.path.exists(args.store) else None,
+        )
 
 
 if __name__ == "__main__":

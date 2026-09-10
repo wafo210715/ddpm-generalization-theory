@@ -436,6 +436,22 @@ def rasterize_tile(tile_row, img_size: int, args) -> np.ndarray:
     )
 
 
+
+def fetched_cell_ids() -> set:
+    """Tiles whose fetch actually completed.
+
+    fetch.json is written only after every requested layer has landed, so a
+    tile directory without one is an interrupted fetch. Counting it as data
+    would be the v2 pipeline's silent-partial failure in a new place.
+    """
+    if not TILES_DIR.exists():
+        return set()
+    return {
+        d.name for d in TILES_DIR.iterdir()
+        if d.is_dir() and (d / "fetch.json").exists()
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index", type=str,
@@ -481,7 +497,7 @@ def main() -> None:
     if args.cell_ids:
         selected = tiles[tiles["cell_id"].isin(args.cell_ids)]
     elif args.all_fetched:
-        fetched = {p.name for p in TILES_DIR.iterdir() if p.is_dir()} if TILES_DIR.exists() else set()
+        fetched = fetched_cell_ids()
         selected = tiles[tiles["cell_id"].isin(fetched)]
     else:
         raise SystemExit("pass --cell_ids or --all_fetched")

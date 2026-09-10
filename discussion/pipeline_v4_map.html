@@ -155,6 +155,20 @@ footer code,.doc code{font:500 12px "IBM Plex Mono",ui-monospace,monospace;backg
 .f-pt-gen{fill:var(--gate);stroke:var(--surface);stroke-width:.8}
 .f-band{fill:none;stroke:var(--spine);stroke-opacity:.16;stroke-width:46;stroke-linecap:round}
 .f-band2{fill:none;stroke:var(--spine);stroke-opacity:.22;stroke-width:22;stroke-linecap:round}
+
+/* descriptor section: real-data thumbnails and their numbers */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:4px 0 2px}
+.thumb{display:flex;flex-direction:column;gap:7px}
+.thumb img{width:100%;height:auto;display:block;border:1px solid var(--line);background:var(--bg);image-rendering:auto}
+.thumb .cap{font:500 10.5px/1.3 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.thumb .val{font:500 12px/1.5 "IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.thumb .val b{color:var(--spine);font-weight:600}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;align-items:start}
+table.t td.same{color:var(--muted)}
+table.t td.moved{color:var(--gate);font-weight:600}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px}
+.strip .name{font:600 12px/1.3 "Archivo","Helvetica Neue",Arial,sans-serif}
+.strip .note{font-size:11.5px;color:var(--muted);line-height:1.35}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 </head>
@@ -171,7 +185,7 @@ footer code,.doc code{font:500 12px "IBM Plex Mono",ui-monospace,monospace;backg
       <li><span class="sw par"></span>fork: run in parallel</li>
     </ul>
     <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 33 nodes, 3 checkpoints</p>
-    <p class="links">Companion page with the reasoning drawn out: <a href="https://claude.ai/code/artifact/a9c0370b-22af-4bab-83d4-246a80f7d562">Cells, Channels, Units</a> &nbsp;·&nbsp; <a href="#terms">Terms in plain words</a></p>
+    <p class="links">Companion page with the reasoning drawn out: <a href="cells_channels_units.html">Cells, Channels, Units</a> &nbsp;·&nbsp; <a href="#terms">Terms in plain words</a></p>
   </header>
   <section class="flow" aria-label="Pipeline stages A to F">
   <div class="stage">

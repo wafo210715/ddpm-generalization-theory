@@ -284,9 +284,168 @@ def scatter_svg():
     gen = blob(100, 120, 38, 14, "f-pt-gen") + blob(212, 208, 5, 12, "f-pt-gen")
     return real + gen
 
+
+# ---------------------------------------------------------------- descriptor
+# Section 8 is built from real measurements, cached by
+# make_descriptor_figures.py so this generator needs no raw data.
+DESC_JSON = os.path.join(HERE, "descriptor_figures.json")
+
+
+def descriptor_section():
+    import json
+    if not os.path.exists(DESC_JSON):
+        return ""
+    d = json.load(open(DESC_JSON, encoding="utf-8"))
+
+    def esc(t):
+        return html.escape(str(t))
+
+    # -- 8a: the recipe, on real cells ------------------------------------
+    cards = []
+    for c in d["real_cells"]:
+        cards.append(
+            f'<div class="thumb">'
+            f'<span class="cap">{esc(c["cell_id"])}</span>'
+            f'<img src="{c["binary_png"]}" alt="Footprints of tile {esc(c["cell_id"])}">'
+            f'<span class="val">built <b>{c["built_fraction"]:.1%}</b><br>'
+            f'Moran I <b>{c["binary_morans_i"]:.3f}</b></span>'
+            f'<img src="{c["density_png"]}" alt="Building density of tile {esc(c["cell_id"])}">'
+            f'<span class="val">density <b>{c["density_mean"]:.3f}</b><br>'
+            f'Moran I <b>{c["density_morans_i"]:.4f}</b><br>'
+            f'cross <b>{c["cross"]:.2f}</b></span>'
+            f'</div>')
+    recipe = ('<figure><div class="thumbs">' + "".join(cards) + '</div>'
+              '<figcaption>Three real zoom-15 tiles at 1024 px. Teal is the footprint '
+              'grid, amber the 100 m density grid built from it, and under each pair '
+              'are five of the numbers the descriptor returns for that cell. Every '
+              'number here came from the raster alone, which is the constraint: a '
+              'generated cell has no vectors behind it, so anything the descriptor '
+              'needs must be readable off the grids.</figcaption></figure>')
+
+    # -- 8b: the shuffle test ---------------------------------------------
+    sh = d["shuffle"]
+    rows = "".join(
+        f'<tr><td>{esc(r["key"].replace("_", " "))}</td>'
+        f'<td>{r["real"]:.4f}</td><td>{r["shuffled"]:.4f}</td>'
+        f'<td class="{"moved" if r["moved"] else "same"}">'
+        f'{"moved" if r["moved"] else "unchanged"}</td></tr>'
+        for r in sh["rows"])
+    shuffle = (
+        '<figure><div class="pair">'
+        f'<div class="thumb"><span class="cap">{esc(sh["cell_id"])} &middot; as it is</span>'
+        f'<img src="{sh["real_png"]}" alt="Footprints of a real tile"></div>'
+        f'<div class="thumb"><span class="cap">the same units, shuffled</span>'
+        f'<img src="{sh["shuffled_png"]}" alt="The same units in random positions"></div>'
+        '</div>'
+        '<table class="t"><thead><tr><th>statistic</th><th>as it is</th>'
+        '<th>shuffled</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+        '<figcaption>The right-hand picture holds exactly the same units as the left, '
+        'moved to random positions. Four of the five statistics cannot tell the '
+        'difference, to four decimal places, because they are statements about how '
+        'much there is. Moran&rsquo;s I falls from 0.797 to about zero, because it is '
+        'the only one that is a statement about where it is.</figcaption></figure>')
+
+    # -- 8c: Moran's I strip ----------------------------------------------
+    strip = "".join(
+        f'<div class="thumb"><img src="{p["png"]}" alt="{esc(p["name"])} pattern">'
+        f'<span class="name">{esc(p["name"])}</span>'
+        f'<span class="val">queen <b>{p["queen"]:+.3f}</b><br>'
+        f'rook <b>{p["rook"]:+.3f}</b></span>'
+        f'<span class="note">{esc(p["note"])}</span></div>'
+        for p in d["morans_strip"])
+    morans = ('<figure><div class="strip">' + strip + '</div>'
+              '<figcaption>Moran&rsquo;s I from &minus;1 to +1, on patterns whose '
+              'arrangement is known by construction. Queen counts all eight '
+              'neighbours, rook only the four that share an edge. They agree '
+              'everywhere except on the chequer, where the diagonal neighbours are '
+              'the same colour: rook reads &minus;1.000, queen reads &minus;0.012.'
+              '</figcaption></figure>')
+
+    # -- 8d: what the fine unit buys --------------------------------------
+    W, H, L, R, T, B = 720, 300, 62, 150, 24, 52
+    lo, hi = 1.0, 200.0
+
+    def px(u):
+        return L + (math.log10(u) - math.log10(lo)) / (math.log10(hi) - math.log10(lo)) * (W - L - R)
+
+    def py(v):
+        return T + (1.0 - v) * (H - T - B)
+
+    parts = [f'<line x1="{L}" y1="{py(0)}" x2="{W-R}" y2="{py(0)}" class="f-edge"/>',
+             f'<line x1="{L}" y1="{T}" x2="{L}" y2="{py(0)}" class="f-edge"/>']
+    for v in (0, .25, .5, .75, 1.0):
+        parts.append(f'<line x1="{L-4}" y1="{py(v):.1f}" x2="{L}" y2="{py(v):.1f}" class="f-edge"/>')
+        parts.append(f'<text x="{L-8}" y="{py(v)+4:.1f}" class="f-mono f-mute" text-anchor="end">{int(v*100)}%</text>')
+    for u, lab in ((1.17, "1.17"), (2.35, "2.35"), (4.7, "4.7"), (9.4, "9.4"),
+                   (18.8, "18.8"), (37.6, "37.6"), (75, "75"), (150, "150")):
+        parts.append(f'<line x1="{px(u):.1f}" y1="{py(0)}" x2="{px(u):.1f}" y2="{py(0)+4}" class="f-edge"/>')
+        parts.append(f'<text x="{px(u):.1f}" y="{py(0)+18}" class="f-mono f-mute" text-anchor="middle">{lab}</text>')
+    parts.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-14}" class="f-sm f-mute" text-anchor="middle">ground metres per unit</text>')
+    parts.append(f'<text x="{L}" y="{T-8}" class="f-lab">share of the channel that survives being read on a coarser grid</text>')
+
+    colours = ["f-acc", "f-mute"]
+    for i, series in enumerate(d["resolution"]):
+        pts = " ".join(f'{px(p["unit_m"]):.1f},{py(p["retained"]):.1f}'
+                       for p in series["points"] if p["unit_m"] <= hi)
+        stroke = "var(--spine)" if i == 0 else "var(--gate)"
+        parts.append(f'<polyline points="{pts}" fill="none" stroke="{stroke}" stroke-width="2.2"/>')
+        for p in series["points"]:
+            if p["unit_m"] <= hi:
+                parts.append(f'<circle cx="{px(p["unit_m"]):.1f}" cy="{py(p["retained"]):.1f}" r="3" fill="{stroke}"/>')
+        last = [p for p in series["points"] if p["unit_m"] <= hi][-1]
+        parts.append(f'<text x="{W-R+8}" y="{py(last["retained"])+4:.1f}" class="f-mono" fill="{stroke}">{esc(series["channel"])}</text>')
+
+    # the pilot's unit, for reference
+    parts.append(f'<line x1="{px(9.4):.1f}" y1="{T}" x2="{px(9.4):.1f}" y2="{py(0)}" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>')
+    parts.append(f'<text x="{px(9.4)+6:.1f}" y="{T+14}" class="f-sm f-mute">pilot&rsquo;s 9.4 m</text>')
+
+    curve = (f'<figure><svg viewBox="0 0 {W} {H}" role="img" aria-label="Retained '
+             'variance against unit size for the footprint and density channels">'
+             + "".join(parts) + '</svg>'
+             '<figcaption>Pool each channel onto a coarser grid, interpolate back, and '
+             'measure how much of its variance survives. The footprint channel loses '
+             '9&nbsp;% of itself by 2.35 m and 31&nbsp;% by the pilot&rsquo;s 9.4 m. The '
+             '100 m density channel is still at 99.5&nbsp;% on a 37.6 m grid: it only '
+             'begins to lose anything near its own radius. This is the direct form of '
+             'the question Moran&rsquo;s I only gestures at.</figcaption></figure>')
+
+    # -- 8e: sparsity is a place ------------------------------------------
+    sparsity = ""
+    if d.get("sparsity"):
+        cells = "".join(
+            f'<div class="thumb"><span class="cap">{esc(s["cell_id"])}</span>'
+            f'<img src="{s["png"]}" alt="Empty units of tile {esc(s["cell_id"])}">'
+            f'<span class="val">empty <b>{s["zero_fraction"]:.1%}</b><br>'
+            f'Moran I of the emptiness <b>{s["zero_morans_i"]:.3f}</b></span></div>'
+            for s in d["sparsity"])
+        sparsity = ('<figure><div class="thumbs">' + cells + '</div>'
+                    '<figcaption>The same tiles again, now showing only which units are '
+                    'empty. A zero fraction is a fact about a histogram and says nothing '
+                    'about arrangement; the emptiness here has a Moran&rsquo;s I of its '
+                    'own above 0.7, meaning the zeros are streets, yards and water '
+                    'rather than scatter. Emptiness with a shape is something a model '
+                    'can learn. Emptiness without one is a channel that is mostly '
+                    'missing.</figcaption></figure>')
+
+    return f'''  <section id="descriptor">
+    <h2><span class="num">8</span>What the descriptor sees</h2>
+    <p>The descriptor is one function, run on real and generated cells alike, that turns a cell into a short list of named numbers. That is the whole of it, and the reason it is worth being careful about is that every distribution claim in the study is a comparison of two such lists. It has one hard constraint: it must be computable from the raster alone, because a generated cell has no vectors behind it. So it is per-channel mean, standard deviation, zero fraction, skewness and Moran&rsquo;s I; the correlation between each pair of channels within the cell; and, once a typology exists, the mix of unit classes.</p>
+    {recipe}
+    <p>Four of those five per-channel numbers are about <em>how much</em>: how much building, how spread out the values are, how many units are empty, how lopsided the histogram is. Only Moran&rsquo;s I is about <em>where</em>. The cleanest way to see the split is to shuffle a cell &mdash; move every unit to a random position, which leaves the collection of values exactly as it was.</p>
+    {shuffle}
+    <p>That is also the answer to what Moran&rsquo;s I means. It asks whether a unit resembles the units next to it, on a scale where +1 is &ldquo;always&rdquo;, 0 is &ldquo;no relation&rdquo;, and &minus;1 is &ldquo;always the opposite&rdquo;. It knows nothing about the values themselves, only about their arrangement, which is why it is invariant to shifting and scaling a channel and why it collapses under a shuffle.</p>
+    {morans}
+    <p>Two cautions follow from the strip. The connectivity rule matters on fine patterns: at a 1.17 m unit, a row of houses separated by 3 m alleys is very close to a chequer, and rook and queen weights would report it quite differently. And a high Moran&rsquo;s I on its own does not mean a channel is redundant &mdash; the footprint grid reads 0.80 to 0.93 and is full of structure, because buildings are blobs several units across. Smoothness and redundancy are different questions, and the second one has a direct measurement.</p>
+    {curve}
+    <p>Read together, the two curves settle where the 1.17 m unit earns its cost. The footprint channel genuinely needs it: a third of that channel is gone by the pilot&rsquo;s 9.4 m unit, which is the alley-and-rowhouse grain B2 chose the resolution for. The 100 m density channel does not: it could be computed on a 32&nbsp;&times;&nbsp;32 grid and lose half a percent. That is not an argument against the channel, which measures something real, but it is an argument that its cost should be counted against what it adds &mdash; and the indicator specification table already lists it as an open question.</p>
+    {sparsity}
+    <p>The last figure is about a number that is easy to over-read. A channel that is 87&nbsp;% zeros sounds like a channel that is mostly missing, and sometimes it is. But the zero fraction is a statement about the histogram, and two channels with identical zero fractions can be completely different objects: one empty in the shape of a street network, the other empty at random. Only the picture separates them, which is why sparsity belongs in B10&rsquo;s marginals as a map and not only as a percentage.</p>
+  </section>
+'''
+
 EXP_HEAD = f'<title>Cells, Channels, Units</title>\n<style>{CSS}</style>\n{FONTS}\n'
 EXP_BODY = (open(os.path.join(HERE, "explainer_body.html"), encoding="utf-8").read()
-            .replace("{{GLOSSARY}}", GLOSS_HTML).replace("{{MAP_URL}}", MAP_URL).replace("{{SCATTER}}", scatter_svg()))
+            .replace("{{DESCRIPTOR}}", descriptor_section()).replace("{{GLOSSARY}}", GLOSS_HTML).replace("{{MAP_URL}}", MAP_URL).replace("{{SCATTER}}", scatter_svg()))
 write(os.path.join(ART_DIR, "cells-channels-units.html"), EXP_HEAD + EXP_BODY)
 write(os.path.join(REPO_OUT, "cells_channels_units.html"),
       standalone(EXP_HEAD, EXP_BODY.replace(MAP_URL, "pipeline_v4_map.html")))

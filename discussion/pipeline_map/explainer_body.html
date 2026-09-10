@@ -2,10 +2,10 @@
   <header class="masthead">
     <p class="eyebrow">companion to the <a href="{{MAP_URL}}">Latent City Pipeline Map</a> · 9 Sep 2026</p>
     <h1>Cells, Channels, Units</h1>
-    <p class="lede">Seven questions from the pipeline discussion, each answered with a picture: how big a tile is, why the unit is free above a floor, what a channel really is, how a sample gets unpacked, how to see what changed after training, where supply and demand sit in one tensor, and what direct encoding would add.</p>
+    <p class="lede">Eight questions from the pipeline discussion, each answered with a picture: how big a tile is, why the unit is free above a floor, what a channel really is, how a sample gets unpacked, how to see what changed after training, where supply and demand sit in one tensor, what direct encoding would add, and what the cell descriptor actually sees. The last one is drawn from measurements on real Ho Chi Minh City tiles rather than from a schematic.</p>
     <ul class="toc">
       <li><a href="#tile">1 Tile size</a></li><li><a href="#unit">2 Unit and floor</a></li><li><a href="#channel">3 Channels</a></li>
-      <li><a href="#unpack">4 Unpacking</a></li><li><a href="#compare">5 Seeing the change</a></li><li><a href="#joint">6 Supply and demand</a></li><li><a href="#encoding">7 Raster or direct</a></li><li><a href="#terms">Terms</a></li>
+      <li><a href="#unpack">4 Unpacking</a></li><li><a href="#compare">5 Seeing the change</a></li><li><a href="#joint">6 Supply and demand</a></li><li><a href="#encoding">7 Raster or direct</a></li><li><a href="#descriptor">8 What the descriptor sees</a></li><li><a href="#terms">Terms</a></li>
     </ul>
   </header>
 
@@ -322,6 +322,7 @@
     <p>The generalization theory you rely on is also defined in data space. A near-copy in a raster is unambiguous; a near-copy in a learned embedding depends on what the encoder chose to keep. Which is why, as you said, the generative model should at least generate something you can unpack and look at. Path one gives you that for free.</p>
   </section>
 
+{{DESCRIPTOR}}
   <section id="terms" class="terms-section">
     <h2>Terms in plain words</h2>
     {{GLOSSARY}}

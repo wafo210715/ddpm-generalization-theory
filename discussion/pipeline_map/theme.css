@@ -149,3 +149,17 @@ footer code,.doc code{font:500 12px "IBM Plex Mono",ui-monospace,monospace;backg
 .f-pt-gen{fill:var(--gate);stroke:var(--surface);stroke-width:.8}
 .f-band{fill:none;stroke:var(--spine);stroke-opacity:.16;stroke-width:46;stroke-linecap:round}
 .f-band2{fill:none;stroke:var(--spine);stroke-opacity:.22;stroke-width:22;stroke-linecap:round}
+
+/* descriptor section: real-data thumbnails and their numbers */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:4px 0 2px}
+.thumb{display:flex;flex-direction:column;gap:7px}
+.thumb img{width:100%;height:auto;display:block;border:1px solid var(--line);background:var(--bg);image-rendering:auto}
+.thumb .cap{font:500 10.5px/1.3 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.thumb .val{font:500 12px/1.5 "IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.thumb .val b{color:var(--spine);font-weight:600}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;align-items:start}
+table.t td.same{color:var(--muted)}
+table.t td.moved{color:var(--gate);font-weight:600}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px}
+.strip .name{font:600 12px/1.3 "Archivo","Helvetica Neue",Arial,sans-serif}
+.strip .note{font-size:11.5px;color:var(--muted);line-height:1.35}
