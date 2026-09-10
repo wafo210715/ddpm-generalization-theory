@@ -513,16 +513,133 @@ def untrained_vs_trained(npz_path, out_path):
     log.info(f"Wrote {out_path}")
 
 
+
+def data_in_data_out(npz_path, out_path, traced="poi_count"):
+    """What the data looks like going into the model and coming back out.
+
+    The confusion this answers is a fair one: the word "unpack" sounds like it
+    recovers something, and it is easy to think a generated cell can be turned
+    back into the buildings and shops it was made from.  It cannot.  What
+    unpacking does is smaller and completely mechanical --- it puts the numbers
+    back into the units they were measured in.  The stack of grids is the same
+    stack of grids the whole way through; only the units on the numbers change.
+
+    The traced channel is followed through every stage so one number can be
+    watched from a shop count, to a standardized value, to noise, and back.
+    """
+    d = np.load(npz_path, allow_pickle=True)
+    names = list(d["names"])
+    ch = names.index(traced) if traced in names else 0
+    real_p, real_s = d["real_physical"], d["real_standardized"]
+    noise, gen_s, gen_p = d["start_noise"], d["gen_standardized"], d["gen_unpacked"]
+    shape = tuple(real_p.shape[1:])
+    shape_text = f"{shape[0]} x {shape[1]} x {shape[2]}"
+
+    STAGES = [
+        (0, real_p[0][ch], "a real cell", "in the units it was measured in",
+         "shops within 300 m", "#2E7D32"),
+        (0, real_s[0][ch], "the same cell, standardized",
+         "same picture, different numbers", "no units any more", "#2A7392"),
+        (1, noise[0][ch], "pure random noise", "where every sample starts",
+         "no units", "#5C6B6D"),
+        (1, gen_s[0][ch], "what the model produced",
+         "after 1000 denoising steps", "no units", "#2A7392"),
+        (1, gen_p[0][ch], "the same output, unpacked",
+         "the standardizing undone", "shops within 300 m", "#B22222"),
+    ]
+
+    fig = plt.figure(figsize=(17.0, 11.0))
+    gs = fig.add_gridspec(3, 5, height_ratios=[1, 1, .82], hspace=1.02, wspace=.26,
+                          top=.83, bottom=.05, left=.05, right=.985)
+
+    row_anchor = {}
+    for row in (0, 1):
+        stages = [st for st in STAGES if st[0] == row]
+        for col, (_, grid, title, note, unit, colour) in enumerate(stages):
+            ax = fig.add_subplot(gs[row, col * 2])
+            ax.imshow(grid, cmap="gray_r", interpolation="nearest")
+            ax.set_xticks([]); ax.set_yticks([])
+            ax.set_title(title, fontsize=12, fontweight="bold", pad=24)
+            ax.text(.5, 1.02, note, transform=ax.transAxes, ha="center",
+                    va="bottom", fontsize=9.5, style="italic", color="#5C6B6D")
+            ax.text(.5, -.05, shape_text, transform=ax.transAxes, ha="center",
+                    va="top", fontsize=9.5, family="monospace", color="#5C6B6D")
+            ax.text(.5, -.135, f"{grid.min():,.1f} to {grid.max():,.1f}",
+                    transform=ax.transAxes, ha="center", va="top",
+                    fontsize=11, fontweight="bold", color=colour)
+            ax.text(.5, -.225, unit, transform=ax.transAxes, ha="center",
+                    va="top", fontsize=9.5, color=colour)
+            if col == 0:
+                row_anchor[row] = ax.get_position()
+
+    for row, col, label, sub in [
+        (0, 1, "standardize", "take each grid's average off,@divide by its spread"),
+        (1, 1, "1000 denoising steps", "the model subtracts the noise@it thinks it sees"),
+        (1, 3, "unpack", "multiply the spread back on,@add the average back"),
+    ]:
+        ax = fig.add_subplot(gs[row, col])
+        ax.axis("off")
+        ax.annotate("", xy=(.95, .55), xytext=(.05, .55), xycoords="axes fraction",
+                    arrowprops=dict(arrowstyle="-|>", lw=2.4, color="#1F6F8B"))
+        ax.text(.5, .63, label, transform=ax.transAxes, ha="center", fontsize=11,
+                fontweight="bold", color="#1F6F8B")
+        ax.text(.5, .47, sub.replace("@", NEWLINE), transform=ax.transAxes,
+                ha="center", va="top", fontsize=9, color="#5C6B6D")
+
+    for row, text in ((0, "GOING IN — training"), (1, "COMING OUT — sampling")):
+        fig.text(.05, row_anchor[row].y1 + .085, text, fontsize=11.5,
+                 fontweight="bold", color="#1F6F8B")
+
+    # All six grids of the unpacked output, on their own strip: "back to grids"
+    # is the question the whole figure exists to answer.
+    strip = gs[2, :].subgridspec(1, len(names[:6]), wspace=.16)
+    first_strip = None
+    for k, name in enumerate(names[:6]):
+        ax = fig.add_subplot(strip[0, k])
+        ax.imshow(gen_p[0][k], cmap="gray_r", interpolation="nearest")
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(name, fontsize=9.5, pad=6)
+        ax.text(.5, -.07, f"{gen_p[0][k].min():,.1f} to {gen_p[0][k].max():,.1f}",
+                transform=ax.transAxes, ha="center", va="top", fontsize=8.5,
+                family="monospace", color="#5C6B6D")
+        first_strip = first_strip or ax
+
+    box = first_strip.get_position()
+    fig.text(.05, box.y1 + .062, "AND THAT OUTPUT, SPLIT BACK INTO ITS GRIDS",
+             fontsize=11.5, fontweight="bold", color="#1F6F8B")
+    fig.text(.05, box.y1 + .040,
+             "this is the step you were describing. it is just the stack, "
+             "separated and renamed — no buildings or shops come back, only "
+             "grids of indicator values.",
+             fontsize=9.5, color="#5C6B6D")
+
+    bad = float(gen_p[0][ch].min())
+    fig.suptitle(
+        "What goes into the model, and what comes out" + NEWLINE
+        + f"One channel ({traced}) followed the whole way. The stack is "
+          f"{shape_text} at every stage — nothing is ever reshaped." + NEWLINE
+        + "Standardizing and unpacking are the same arithmetic in opposite "
+          "directions, and neither checks whether the numbers make sense:"
+        + NEWLINE
+        + f"this deliberately undertrained demo unpacks to {bad:,.0f} shops.",
+        fontsize=13, y=.982)
+    fig.savefig(out_path, dpi=100)
+    plt.close(fig)
+    log.info(f"Wrote {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--what", default="all", choices=[
         "what_a_cell_is", "how_fmem_works", "what_independent_means",
-        "what_the_descriptor_loses", "untrained_vs_trained", "all"])
+        "what_the_descriptor_loses", "untrained_vs_trained", "data_in_data_out", "all"])
     parser.add_argument("--store", default=str(PROC_DIR / "cells_z15_1024"))
     parser.add_argument("--cell_id", default="15_26097_15392")
     parser.add_argument("--probe", type=int, nargs=2, default=[470, 300],
                         help="Row and column of the pixel to read out.")
     parser.add_argument("--out_dir", default=str(REPORTS_DIR))
+    parser.add_argument("--inout_npz", default=None,
+                        help="Output of the in/out demo run.")
     parser.add_argument("--train_demo_npz", default=None,
                         help="Output of the 1000-step demo run, for "
                              "untrained_vs_trained.")
@@ -542,6 +659,10 @@ def main() -> None:
     if args.what in ("what_the_descriptor_loses", "all"):
         what_the_descriptor_loses(args.store, args.cell_id,
                                   out_dir / "what_the_descriptor_loses.png")
+    if args.what == "data_in_data_out":
+        if not args.inout_npz:
+            raise SystemExit("data_in_data_out needs --inout_npz")
+        data_in_data_out(args.inout_npz, out_dir / "data_in_data_out.png")
     if args.what == "untrained_vs_trained":
         if not args.train_demo_npz:
             raise SystemExit("untrained_vs_trained needs --train_demo_npz")
