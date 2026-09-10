@@ -36,7 +36,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import requests
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Point, Polygon, box
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "hcmc" / "raw"
@@ -285,6 +285,79 @@ def fetch_tile(tile_row, buffer_m: float, layers, overwrite: bool) -> dict:
     return counts
 
 
+
+# ===========================================================================
+# Study-area fetch, in chunks
+# ===========================================================================
+
+
+def fetch_citywide(layer: str, boundary_path, chunks: int, out_path,
+                   pause_s: float = 3.0, overwrite: bool = False):
+    """Fetch one layer over the whole study area, in a grid of chunks.
+
+    The v2 pipeline split the municipality into four and asked Overpass for
+    each in one query, which times out in the dense quadrants.  A finer split
+    answers reliably: each chunk is small enough to return in seconds, and a
+    chunk that will not come back after its retries raises instead of leaving
+    a hole.
+
+    Chunks are fetched serially with a pause between them.  Overpass offers
+    two slots and rate-limits hard past a few hundred queries; going slowly is
+    the difference between finishing and being blocked for hours.
+    """
+    out_path = Path(out_path)
+    if out_path.exists() and not overwrite:
+        existing = gpd.read_file(out_path)
+        log.info(f"{out_path} exists with {len(existing):,} features; "
+                 f"pass --overwrite to refetch")
+        return existing
+
+    boundary = gpd.read_file(boundary_path).to_crs(epsg=4326)
+    west, south, east, north = boundary.total_bounds
+    geometry = boundary.union_all()
+
+    fetchers = {"buildings": fetch_buildings, "pois": fetch_pois, "roads": fetch_roads}
+    lat_step = (north - south) / chunks
+    lon_step = (east - west) / chunks
+
+    frames, skipped = [], []
+    total = chunks * chunks
+    done = 0
+    for i in range(chunks):
+        for j in range(chunks):
+            done += 1
+            box_bounds = (west + j * lon_step, south + i * lat_step,
+                          west + (j + 1) * lon_step, south + (i + 1) * lat_step)
+            # Skip chunks that do not touch the municipality at all.
+            if not box(*box_bounds).intersects(geometry):
+                skipped.append(box_bounds)
+                continue
+
+            log.info(f"  chunk {done}/{total} "
+                     f"({box_bounds[1]:.3f},{box_bounds[0]:.3f})")
+            frame = fetchers[layer](box_bounds)
+            log.info(f"    {len(frame):,} features")
+            if len(frame):
+                frames.append(frame)
+            time.sleep(pause_s)
+
+    if not frames:
+        raise RuntimeError(f"no {layer} anywhere in the study area")
+
+    merged = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), crs="EPSG:4326")
+    # Chunks share no edges for point layers, but ways can be returned by two
+    # neighbouring boxes, so drop exact geometry duplicates.
+    before = len(merged)
+    merged = merged.drop_duplicates(subset="geometry")
+    log.info(f"{layer}: {before:,} fetched, {len(merged):,} after de-duplication, "
+             f"{len(skipped)} chunks outside the boundary")
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    merged.to_file(out_path, driver="GPKG")
+    log.info(f"Wrote {out_path}")
+    return merged
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index", type=str,
@@ -298,7 +371,26 @@ def main() -> None:
     parser.add_argument("--buffer_m", type=float, default=DEFAULT_BUFFER_M)
     parser.add_argument("--layers", nargs="+", choices=LAYERS, default=list(LAYERS))
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--citywide", choices=LAYERS, default=None,
+                        help="Fetch this layer over the whole study area in a "
+                             "grid of chunks, instead of per tile.")
+    parser.add_argument("--chunks", type=int, default=8,
+                        help="Grid resolution for --citywide; 8 means 64 boxes.")
+    parser.add_argument("--pause_s", type=float, default=3.0,
+                        help="Pause between chunk queries. Overpass rate-limits "
+                             "hard; going slowly is what finishes.")
     args = parser.parse_args()
+
+    if args.citywide:
+        fetch_citywide(
+            args.citywide,
+            RAW_DIR / "hcmc_boundary_full.gpkg",
+            args.chunks,
+            RAW_DIR / f"hcmc_{args.citywide}_all.gpkg",
+            pause_s=args.pause_s,
+            overwrite=args.overwrite,
+        )
+        return
 
     tiles = gpd.read_file(args.index)
     log.info(f"Tile index: {len(tiles):,} tiles")

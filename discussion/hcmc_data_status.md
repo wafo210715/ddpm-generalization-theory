@@ -181,6 +181,37 @@ visible in the table:
 
 Written to `data/hcmc/processed/reports/poi_ring_coverage_map.png`.
 
+### Over the whole study area, with the complete POI layer
+
+The chunked city-wide fetch returned **24 295 POIs** — against 1 909 from the
+v2 pipeline's partial run, which is the measure of how much that silent skip
+was costing. Coverage over all 1 881 tiles, and conditioned on how built-up a
+tile is, since an empty mangrove tile drags the average down without telling
+anyone anything:
+
+**Fraction of units where entropy is defined**
+
+| tile set | 50 m | 100 m | 200 m | 300 m | 500 m |
+|---|---:|---:|---:|---:|---:|
+| all 1 881 tiles | 0.7 % | 2.7 % | 7.7 % | 12.2 % | 19.7 % |
+| 617 with any building | 2.1 % | 8.3 % | 23.2 % | 36.4 % | 56.0 % |
+| 139 with ≥ 100 buildings | 8.0 % | 27.1 % | 60.3 % | **78.2 %** | **94.1 %** |
+| 18 with ≥ 1 000 buildings | 11.4 % | 32.5 % | 61.7 % | 77.1 % | 91.6 % |
+
+**Fraction of tiles where the channel is at least 80 % defined**
+
+| tile set | 100 m | 200 m | 300 m | 500 m |
+|---|---:|---:|---:|---:|
+| all 1 881 tiles | 0.2 % | 3.0 % | 6.3 % | 13.0 % |
+| 617 with any building | 0.6 % | 9.2 % | 19.3 % | 39.7 % |
+| 139 with ≥ 100 buildings | 2.9 % | 38.1 % | **64.7 %** | **89.2 %** |
+
+So the answer depends entirely on which tiles the dataset is made of. On the
+139 most built-up tiles a 300 m ring gets the channel defined on 78 % of units
+and gets two thirds of those tiles above 80 % — workable. On the full study
+area nothing below a 500 m ring is close, and 500 m is 42 % of a tile's width,
+at which point the ring is averaging over a large part of the cell it sits in.
+
 ### What this does not settle
 
 Choosing between the responses is A1's decision, not this report's. The options

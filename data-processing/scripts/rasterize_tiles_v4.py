@@ -106,26 +106,39 @@ def unit_centres(bounds, n: int) -> tuple[np.ndarray, np.ndarray]:
 def resample_to(grid: np.ndarray, size: int) -> np.ndarray:
     """Bilinearly resample a coarse grid up to ``size x size``.
 
-    B7's alignment step.  Bilinear rather than nearest because the fields being
-    resampled here are smooth by construction --- a disc average or a decay
-    field --- and nearest-neighbour would introduce blockiness that the
-    descriptor would then read as spatial structure.
+    B7's alignment step.  Cubic rather than bilinear or nearest: the fields
+    resampled here are smooth by construction --- a disc average, a ring count,
+    a decay field --- and a low-order interpolation from a coarse solve grid
+    leaves visible facets that the descriptor would then read as spatial
+    structure that is not in the data.  Blocking was plainly visible in the
+    first 1024 px run at order=1.
     """
     if grid.shape == (size, size):
         return grid
     from scipy.ndimage import zoom
 
     factor = size / grid.shape[0]
-    out = zoom(grid, factor, order=1, grid_mode=True, mode="nearest")
-    return out[:size, :size]
+    out = zoom(grid, factor, order=3, grid_mode=True, mode="nearest")[:size, :size]
+
+    # Cubic interpolation overshoots at sharp edges, which put entropies below
+    # zero and counts below zero in the first run.  The resampled field cannot
+    # legitimately leave the range that was actually solved, so clamp to it:
+    # this removes the ringing without touching anything interior.
+    return np.clip(out, grid.min(), grid.max())
 
 
-def coarse_n(bounds, radius_m: float, img_size: int, per_radius: int = 4) -> int:
+def coarse_n(bounds, radius_m: float, img_size: int, per_radius: int = 8) -> int:
     """Grid size at which a radius-``r`` field is worth computing.
 
     ``per_radius`` samples across one radius: fine enough that resampling adds
     nothing, coarse enough that a 300 m field is not solved a million times per
     tile.  Never finer than the target grid.
+
+    Four samples per radius is enough in principle --- the field is bandlimited
+    at its own radius --- but it left visible facets after interpolation, and a
+    facet is indistinguishable from real structure to everything downstream.
+    Eight costs four times the solve on a grid that is still tiny beside the
+    target, and the facets go.
     """
     width = bounds[2] - bounds[0]
     n = int(np.ceil(per_radius * width / radius_m))

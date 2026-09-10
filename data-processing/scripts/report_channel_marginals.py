@@ -115,7 +115,9 @@ def channel_stats(values: np.ndarray, morans: float, between: float) -> dict:
         "p1": float(quantiles[0]),
         "p50": p50,
         "p99": p99,
-        "tail_ratio_p99_p50": float(p99 / p50) if p50 > 0 else np.inf,
+        # A median that is convolution noise is a zero, not a divisor; without
+        # this the ratio comes back as 7e16 and reads like a real measurement.
+        "tail_ratio_p99_p50": float(p99 / p50) if p50 > 1e-12 else np.inf,
         "skewness": float(skew(finite)) if has_spread else 0.0,
         "kurtosis": float(kurtosis(finite)) if has_spread else 0.0,
         "morans_i": morans,
@@ -161,14 +163,20 @@ def main() -> None:
         for i in range(len(names)):
             grid = cell[i]
             per_channel_values[i].append(grid.ravel())
-            per_channel_morans[i].append(morans_i(grid, args.connectivity))
+            # Only cells where the channel actually varies. morans_i returns
+            # 0.0 for a constant grid, which means "undefined here", not "no
+            # spatial pattern"; averaging those in turns the column into a
+            # count of non-empty cells wearing a statistic's name.
+            if grid.std() > 0:
+                per_channel_morans[i].append(morans_i(grid, args.connectivity))
             per_cell_means[i].append(float(grid.mean()))
 
     rows = []
     histograms = {}
     for i, name in enumerate(names):
         values = np.concatenate(per_channel_values[i])
-        morans = float(np.mean(per_channel_morans[i]))
+        varying = per_channel_morans[i]
+        morans = float(np.mean(varying)) if varying else float("nan")
 
         # Between-cell share: how much of the total variance is differences
         # between cells rather than differences within one.
@@ -180,6 +188,8 @@ def main() -> None:
 
         stats = channel_stats(values, morans, min(between, 1.0))
         stats["channel"] = name
+        stats["cells_with_signal"] = len(varying)
+        stats["n_cells"] = len(cell_ids)
         stats["suggested_transform"] = suggest_transform(stats)
         rows.append(stats)
         if args.plot:
@@ -192,7 +202,8 @@ def main() -> None:
           f"({store.img_size} px, {store.img_channels} channels)")
     print()
     header = (f"{'channel':>22} | {'zero':>6} | {'skew':>7} | {'kurt':>8} | "
-              f"{'p99/p50':>8} | {'Moran I':>8} | {'between':>7} | suggestion")
+              f"{'p99/p50':>8} | {'Moran I':>8} | {'cells':>6} | "
+              f"{'between':>7} | suggestion")
     print(header)
     print("-" * len(header))
     # Bracket access throughout: "kurtosis" and "skew" are also DataFrame
@@ -200,9 +211,12 @@ def main() -> None:
     for name, row in frame.iterrows():
         tail_value = row["tail_ratio_p99_p50"]
         tail = "inf" if not np.isfinite(tail_value) else f"{tail_value:.1f}"
+        morans = row["morans_i"]
+        morans_text = "n/a" if not np.isfinite(morans) else f"{morans:.3f}"
+        cells = f"{int(row['cells_with_signal'])}/{int(row['n_cells'])}"
         print(f"{name:>22} | {row['zero_fraction']:>5.1%} | {row['skewness']:>7.2f} | "
-              f"{row['kurtosis']:>8.1f} | {tail:>8} | {row['morans_i']:>8.3f} | "
-              f"{row['between_cell_variance_share']:>6.1%} | "
+              f"{row['kurtosis']:>8.1f} | {tail:>8} | {morans_text:>8} | "
+              f"{cells:>6} | {row['between_cell_variance_share']:>6.1%} | "
               f"{row['suggested_transform']}")
 
     print()
@@ -211,7 +225,7 @@ def main() -> None:
             print(f"  [!] {name}: {row['zero_fraction']:.1%} exact zeros. No "
                   f"monotone transform spreads an atom;\n      the lever is the "
                   f"indicator's ring scale, not B11.")
-        if abs(row["morans_i"]) < MORANS_I_ALARM:
+        if np.isfinite(row["morans_i"]) and abs(row["morans_i"]) < MORANS_I_ALARM:
             print(f"  [!] {name}: Moran's I {row['morans_i']:.3f}. Effectively no "
                   f"spatial pattern --\n      this is what the pilot's flattened "
                   f"building channel looked like.")
