@@ -184,7 +184,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <li><span class="sw future"></span>later or optional</li>
       <li><span class="sw par"></span>fork: run in parallel</li>
     </ul>
-    <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 34 nodes, 4 checkpoints</p>
+    <p class="facts">zoom-15 tile = <b>1,201 m</b> at 10.78° N &nbsp;·&nbsp; 128 px → <b>9.4 m</b> &nbsp;·&nbsp; 256 → <b>4.7 m</b> &nbsp;·&nbsp; 512 → <b>2.35 m</b> &nbsp;·&nbsp; 1024 → <b>1.17 m, chosen</b> &nbsp;·&nbsp; 35 nodes, 5 checkpoints</p>
     <p class="links">Companion page with the reasoning drawn out: <a href="cells_channels_units.html">Cells, Channels, Units</a> &nbsp;·&nbsp; <a href="#terms">Terms in plain words</a></p>
   </header>
   <section class="flow" aria-label="Pipeline stages A to F">
@@ -353,6 +353,20 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <ul>
         <li>Chooses the transform for each channel.</li>
         <li>Gaussianity is not required. The mixtures in the reference papers are solvable toy models, not data assumptions.</li>
+      </ul>
+    </article>
+  </div>
+  <div class="row single">
+    <div class="stub"></div>
+    <article class="node gate" id="B10b">
+      <header><span class="code">B10b</span><span class="kind">checkpoint</span></header>
+      <h3>Checkpoint: the joint pattern of the six channels, not each one alone</h3>
+      <p class="why">Why</p>
+      <ul>
+        <li>B10 reads each channel's histogram separately. Six channels that each look right can still combine in ways the city never does, and nothing in a set of marginals can see that.</li>
+        <li>A unit's six numbers are one point in six-dimensional space. The real city occupies only part of that space: dense building with no shops is ordinary, high entropy with no POIs is impossible by construction. The occupied region is itself a structure the model can get right or wrong.</li>
+        <li>Same object as C3's clustering, which already treats a unit's column of scores as a point. This measures it as a distribution instead, so it can be compared against generated cells at E3.</li>
+        <li>Read it twice: in data space to say what the combinations mean, and in standardized space for anything using distance, since otherwise the widest channel decides which units are alike.</li>
       </ul>
     </article>
   </div>

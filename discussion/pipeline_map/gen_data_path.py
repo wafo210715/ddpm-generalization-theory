@@ -176,6 +176,9 @@ either way: {d["total"]} numbers in one cell.</div>
             "circled on all six so you can read its six numbers. The colour "
             "picture on the right is three of the six forced into red, green "
             "and blue — a trick for human eyes. The model never sees colour.")}
+    <p>There is an interactive version of the stack in
+    <a href="stack_explorer.html">Turn a cell over</a>, where the units can be
+    coarsened and each sheet shuffled, with the damage reported live.</p>
     <p>Laid out flat like that, it looks like six pictures. It is really one
     object: every sheet covers the same ground, and a unit is a column straight
     down through all of them. Stacked, that is easier to believe.</p>

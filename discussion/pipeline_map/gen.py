@@ -20,7 +20,7 @@ KIND_LABEL = {"action": "action", "gate": "checkpoint", "future": "later"}
 
 STAGES = [
   {"code": "A", "title": "Before any code", "ordinal": "your first and second", "rows": [["A1"], ["A2", "A3"]]},
-  {"code": "B", "title": "Build the dataset", "ordinal": "your third", "rows": [["B1"], ["B2"], ["B3", "B4", "B5"], ["B6"], ["B7"], ["B8", "B9"], ["B10"], ["B11"]]},
+  {"code": "B", "title": "Build the dataset", "ordinal": "your third", "rows": [["B1"], ["B2"], ["B3", "B4", "B5"], ["B6"], ["B7"], ["B8", "B9"], ["B10"], ["B10b"], ["B11"]]},
   {"code": "C", "title": "Pre-training analysis", "ordinal": "your fourth", "rows": [["C1", "C2"], ["C3"], ["C4", "C4b"], ["C5"], ["C6"], ["C7"]]},
   {"code": "D", "title": "Train", "ordinal": "your fifth", "rows": [["D1", "D2"], ["D3"]]},
   {"code": "E", "title": "Sample and analyze", "ordinal": "your fifth and sixth", "rows": [["E1"], ["E2", "E3", "E3b", "E3c"], ["E4"], ["E5"]]},
@@ -75,6 +75,11 @@ N = {
  "B10": {"kind":"gate","title":"Checkpoint: per-channel marginals, zero fraction, skew, tails","why":[
    "Chooses the transform for each channel.",
    "Gaussianity is not required. The mixtures in the reference papers are solvable toy models, not data assumptions."]},
+ "B10b": {"kind":"gate","title":"Checkpoint: the joint pattern of the six channels, not each one alone","why":[
+   "B10 reads each channel's histogram separately. Six channels that each look right can still combine in ways the city never does, and nothing in a set of marginals can see that.",
+   "A unit's six numbers are one point in six-dimensional space. The real city occupies only part of that space: dense building with no shops is ordinary, high entropy with no POIs is impossible by construction. The occupied region is itself a structure the model can get right or wrong.",
+   "Same object as C3's clustering, which already treats a unit's column of scores as a point. This measures it as a distribution instead, so it can be compared against generated cells at E3.",
+   "Read it twice: in data space to say what the combinations mean, and in standardized space for anything using distance, since otherwise the widest channel decides which units are alike."]},
  "B11": {"kind":"action","title":"Transform, then standardize each channel; store the parameters","why":[
    "A low-variance channel is pure noise over most of the diffusion trajectory. Standardization equalizes the signal-to-noise schedule across channels.",
    "Sparse, heavy-tailed channels get log1p or a quantile map first.",
