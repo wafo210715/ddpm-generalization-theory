@@ -300,3 +300,215 @@ has codes and uses them; the companion pages mention them unevenly.
 - Whether Section 2.4's RGB argument is rewritten or cut. It is good writing
   making a claim that has been superseded in its particulars but not in its
   substance, which is the hardest kind of paragraph to revise.
+
+---
+
+# Audit of the rest of the report
+
+Same method as the F_mem finding above: check what can be checked against the
+code, the reference repositories in this tree, and the report's own other
+sections. Claims that cannot be checked are listed as such rather than waved
+through.
+
+## What verifies
+
+Worth recording, because most of the report holds up and an audit that only
+lists faults is misleading.
+
+| claim | where | verdict |
+|---|---|---|
+| U-Net at ch=128 is ~157.8M parameters | 3.3 | **exact** — 157.84M |
+| earlier ch=32 config was 9.88M | 3.3 | **exact** — 9.88M |
+| gradient clipping at max norm 1.0 | 3.5 | **implemented**, `train.py:283` |
+| four schedules implemented; cosine removed | 3.4 | **correct** — the enum has linear, fixed, vp, ve |
+| 95th-percentile normalization | 3.2.2 | **correct** — `NORM_PERCENTILE = 95` |
+| 50 m unit, 150 m buffer, 20 × 20, 128 px | 3.2 | **all correct** |
+| gravity β = 0.3, 3 000 m cutoff | 3.2.1 | **correct** |
+| 8 436 grid cells | 3.2.3 | **reproduced exactly** in the v4 rebuild |
+| 584 + 73 + 74 = 731 at 80/10/10 | 3.2.3 | **arithmetic consistent** |
+| DDIM 50-step is ~20× faster than DDPM 1000 | 3.6 | consistent |
+
+## Errors in Sections 1 and 2
+
+### 1. The channel assignment in 2.4 contradicts 3.2 and the code
+
+Section 2.4:
+
+> building density (physical mass) is encoded into the **Red** channel, road
+> accessibility (connectivity infrastructure) into the **Green** channel, and
+> Point of Interest diversity (functional intensity) into the **Blue** channel.
+
+Section 3.2.2, and `datasets/dataset.py`, both say the opposite:
+**R = accessibility, G = diversity, B = density.** The Introduction's
+"(B), (G), (R)" ordering agrees with 3.2. Section 2.4 is the only place that
+disagrees and is simply wrong.
+
+### 2. CelebA is 32 × 32 grayscale, not 64 × 64, and it is Bonnaire's not Wang's
+
+The Introduction:
+
+> P. Wang et al. (2025) demonstrate the subspace clustering equivalence on
+> CIFAR-10 (32×32 pixels) and CelebA (64×64 pixels)
+
+Section 2.3 says something different: CelebA at "32×32 grayscale, downsampled",
+attributed to **Bonnaire et al.** The Experiments section says CelebA is 32 × 32
+again. So the report states this three times and disagrees with itself twice.
+
+The reference code settles it. `Why-Diffusion-Models-Don-t-Memorize-main/
+Experiments/src/Utils/cfg.py` sets `config.IMG_SHAPE = (1, 32, 32)` — one
+channel, 32 × 32. Section 2.3 is right; the Introduction is wrong on both the
+resolution and the attribution.
+
+### 3. The Introduction understates its own references, weakening its gap
+
+> Bonnaire et al. (2025) validate the generalization window on synthetic
+> mixture-of-Gaussians distributions
+
+Section 2.3 says they also used CelebA. The Introduction's motivating gap —
+that the evidence "derives almost exclusively from controlled computational
+settings" — is built on a description that the paper's own literature review
+contradicts. A reviewer who knows the paper will notice, and the gap is real
+without the overstatement: 32 × 32 grayscale faces are still nothing like a
+1 024 px six-channel urban raster. Say that instead.
+
+### 4. A stray quotation mark
+
+Section 2.2: `" prevailing methods "operate under the assumptions of...`.
+Doubled and unbalanced quoting. Cosmetic, but it is in a quoted passage.
+
+## Further errors in Section 3
+
+These are in addition to the F_mem and synergy findings above.
+
+### 5. The R channel is not what 3.2.1 says it is
+
+> Road accessibility (Red channel): Gravity-model distance decay **to the road
+> network**, with decay parameter β = 0.3/km and a 3,000 m cutoff.
+
+The code computes something else. `compute_accessibility(pois_utm, G, grid_utm)`
+runs Dijkstra outward **from each POI** along the road graph and accumulates a
+decayed score on the network nodes. It is gravity accessibility **to points of
+interest, measured along the road network** — reachability of destinations, not
+proximity to roads. Section 2.4 compounds it by glossing the channel as
+"connectivity infrastructure", which fits the written description and not the
+computation.
+
+### 6. And that means two of the three channels are functions of the same layer
+
+This is the most consequential item in Sections 1–3 that has not already been
+raised.
+
+- **G, POI diversity** — Shannon entropy of POI categories in a 150 m buffer.
+- **R, accessibility** — gravity decay **from POIs** along the road network.
+
+Both are computed from the same point layer. The road network enters R only as
+the metric along which distance is measured; remove every POI and R is zero
+everywhere.
+
+The pilot measured a 0.88 correlation between these two channels and the report
+treats that as a finding about the city. At least part of it is a property of
+the encoding: two functions of one dataset, correlated.
+
+Section 2.1 criticises Q. Li et al. (2021) in these exact terms — constructing a
+POI-based dependent variable and regressing it on POI-based independent
+variables, so that "the regression coefficient reflects spatial autocorrelation
+of POI data". The same objection lands on the encoding, in weaker form. It does
+not invalidate the approach, because the model is not being asked to regress one
+channel on another. But the paper cannot claim the model discovered a
+density–diversity–accessibility synergy when two of the three channels share a
+source, and it must say so before a reviewer does.
+
+The v4 indicator specification table is where this gets fixed: `poi_count`,
+`poi_entropy` and `accessibility_gravity` all trace to the same POI layer and
+the table's "source" column makes that visible at a glance, which is what the
+column is for.
+
+### 7. "Self-attention is disabled at all resolution levels" is not quite true
+
+`DDPMUnet`'s `MiddleBlock` contains an `AttentionBlock` unconditionally. Passing
+`is_attn=[False, False, False, False]` disables attention in the down and up
+blocks only; the bottleneck always attends. The sentence should say so, and it
+matters for v4: B2's argument for more levels at 1 024 px is precisely that the
+bottleneck attention should see a small enough grid.
+
+### 8. The updates-per-epoch figures are wrong
+
+> 408 updates per epoch with bs=8 versus 102 with bs=32
+
+With 584 training images: **73** and **18**. Both stated figures imply a dataset
+of 3 264 images. The trade-off argument they support is sound; the numbers are
+not.
+
+## Claims and framing that need attention, not correction
+
+### 9. The abstract describes a method the paper does not execute
+
+> By curating minimal, intrinsic-dimension-aligned datasets via RGB channel
+> synthesis, this research aims to isolate the robust, irreducible "essence"...
+
+Section 3.2.3 says the pre-encoding analysis — PCA, intrinsic dimension,
+typology — "has not yet been performed". There is therefore no
+intrinsic-dimension-aligned curation anywhere in the paper. "aims to" is doing a
+lot of work. Either the abstract drops the claim, or C4 and C6 of the v4 plan
+have to run first.
+
+### 10. The research question is not answerable by the analysis proposed
+
+> Can a Denoising Diffusion Probabilistic Model learn the low-dimensional
+> manifold of urban built environment from RGB-encoded geospatial data?
+
+The three analytical dimensions listed under it are: whether a generalization
+window emerges, what persists during it, and how generated distributions compare
+to real ones. All three can come out positive while leaving the question
+unanswered, because none of them distinguishes "learned the low-dimensional
+manifold" from "learned some structure". A reviewer will ask what evidence would
+tell those apart.
+
+The v4 plan has two answers the April methodology does not contain:
+**C5** — does each typology actually sit in a low-dimensional subspace — and
+**E5** — the Jacobian rank of the trained denoiser, the model-side version of
+the same test. Either would bear on the manifold claim directly. Without them,
+the honest question is narrower: *does a DDPM trained on urban rasters exhibit a
+generalization window, and what is stable within it?*
+
+### 11. Three analytical dimensions, four evaluation lenses, never mapped
+
+The Introduction promises three; Section 3.1 delivers four. Neither says how
+they correspond.
+
+## Unverifiable from here — flagged for a source check
+
+None of these are claimed to be wrong. They cannot be checked against anything
+in this repository, and each is load-bearing somewhere.
+
+- Kadkhodaie et al. (2024) on "geometry-adaptive harmonic representations"
+  (Introduction) versus "discover meaningful structural sub-organizations"
+  (2.3). The second is a loose paraphrase of a specific technical result and
+  should be checked against the paper.
+- P. Wang et al. (2025) on which datasets, at which resolutions. The
+  Introduction and 2.3 give different lists.
+- Zhang et al. (2024) model reproducibility "primarily on CIFAR-10".
+- Cole & Lu (2024) on sample complexity scaling linearly with intrinsic
+  dimension — this underwrites the minimal-dataset argument in C6.
+- Williams et al. (2019) on ghost cities.
+- GlobalMapper / COHO "over 75% accuracy".
+- F. Jiang et al. (2024), "120 generative urban design papers", "no discussion
+  of analytical or epistemic uses" — an exclusivity claim, the kind most likely
+  to be challenged.
+
+## Sections 4 and 5
+
+Both marked WIP and currently fragments. The one substantive line in Section 4
+repeats the dataset-resolution facts a third time and disagrees with the
+Introduction, so whichever version survives should be the one in 2.3.
+
+## Order I would fix these in
+
+1. F_mem definition (3.7.1) — the metric is wrong.
+2. Synergy analysis (3.7.4) — the core probe measures the wrong thing.
+3. Shared POI source across two channels (3.2.1, and disclose in 2.4).
+4. Channel assignment in 2.4 — one sentence.
+5. CelebA resolution and attribution in the Introduction — one sentence.
+6. Updates-per-epoch numbers — two numbers.
+7. Attention sentence in 3.3 — one clause.
+8. Abstract's intrinsic-dimension claim, and the research question's scope.
