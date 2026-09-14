@@ -9,6 +9,7 @@ diagram 的节点清单，也是 HCMC 数据采集的对照表。**
 
 配套文件：
 - 逐篇明细（含 txt 行号与短引文证据）：`vitality-extraction/batch-A.md` 至 `batch-D.md`
+- **因子 provenance（数据源 × 计算口径 × 尺度，读效应冲突先查此表）：`vitality_provenance.md`**
 - 决策表（选哪些因子做成通道、半径、数据源）：`indicator_specification.md`
 - 旧版 v1（指标家族视角，含 T1–T7 与 V1–V8 的事实层，已被抽查 17/18）：本节 §3 沿用其异常清单，附注使用须知
 
