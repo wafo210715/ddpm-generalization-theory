@@ -1,0 +1,510 @@
+<title>HCMC Vitality Data Landscape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#F5F7F9;
+  --surface:#FFFFFF;
+  --surface-2:#EDF0F4;
+  --ink:#161A20;
+  --ink-2:#3C4650;
+  --muted:#626D7B;
+  --rule:#DFE4EA;
+  --rule-strong:#C7CFD8;
+  --accent:#2B3A67;
+  --on-accent:#FFFFFF;
+  --have:#1B6B41;
+  --have-bg:#E4F0E8;
+  --sub:#8F5D0D;
+  --sub-bg:#F6EEDE;
+  --call:#39549A;
+  --call-bg:#E5EAF6;
+  --none:#93352F;
+  --none-bg:#F6E7E5;
+  --shadow:0 1px 2px rgba(22,26,32,.05),0 8px 24px -16px rgba(22,26,32,.25);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151A;
+    --surface:#171C23;
+    --surface-2:#1E242C;
+    --ink:#E9EDF2;
+    --ink-2:#C2CBD6;
+    --muted:#909CAB;
+    --rule:#2A323C;
+    --rule-strong:#3A444F;
+    --accent:#93A6DE;
+    --on-accent:#11151A;
+    --have:#63C088;
+    --have-bg:#15281D;
+    --sub:#D7A449;
+    --sub-bg:#2A2214;
+    --call:#8EA6E2;
+    --call-bg:#181F31;
+    --none:#E08A81;
+    --none-bg:#2B1917;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --on-accent:#11151A;
+  --ground:#11151A;
+  --surface:#171C23;
+  --surface-2:#1E242C;
+  --ink:#E9EDF2;
+  --ink-2:#C2CBD6;
+  --muted:#909CAB;
+  --rule:#2A323C;
+  --rule-strong:#3A444F;
+  --accent:#93A6DE;
+  --have:#63C088;
+  --have-bg:#15281D;
+  --sub:#D7A449;
+  --sub-bg:#2A2214;
+  --call:#8EA6E2;
+  --call-bg:#181F31;
+  --none:#E08A81;
+  --none-bg:#2B1917;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 24px 72px;display:flex;flex-direction:column;gap:34px}
+
+/* ---- masthead ---- */
+header{display:flex;flex-direction:column;gap:14px}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);
+}
+h1{
+  font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;
+  font-weight:600;letter-spacing:-.02em;text-wrap:balance;
+}
+.standfirst{
+  font-family:"IBM Plex Serif",Georgia,serif;
+  font-size:17px;line-height:1.6;color:var(--ink-2);
+  max-width:64ch;margin:0;
+}
+.standfirst em{color:var(--ink);font-style:italic}
+
+/* ---- summary strip ---- */
+.summary{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:3px;overflow:hidden;
+}
+.sum{background:var(--surface);padding:15px 17px;display:flex;flex-direction:column;gap:5px}
+.sum b{
+  font-family:"IBM Plex Mono",monospace;font-size:27px;font-weight:600;
+  line-height:1;font-variant-numeric:tabular-nums;
+}
+.sum span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.sum.have b{color:var(--have)} .sum.sub b{color:var(--sub)}
+.sum.call b{color:var(--call)} .sum.none b{color:var(--none)}
+
+/* ---- filters ---- */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px;
+}
+.chip{
+  font:inherit;font-size:13px;cursor:pointer;
+  background:var(--surface);color:var(--ink-2);
+  border:1px solid var(--rule-strong);border-radius:2px;
+  padding:5px 11px;transition:background .12s,border-color .12s,color .12s;
+}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip:focus-visible,.tog:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- tables ---- */
+section{display:flex;flex-direction:column;gap:12px}
+.sechead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  border-bottom:2px solid var(--ink);padding-bottom:7px}
+.sechead h2{margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em}
+.sechead .count{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:840px}
+thead th{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;text-align:left;
+  padding:10px 14px;border-bottom:1px solid var(--rule-strong);
+  background:var(--surface-2);white-space:nowrap;
+}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface-2)}
+.f-name{font-weight:600;width:20%;min-width:160px;line-height:1.35}
+.f-sub{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:2px}
+.f-papers{
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  color:var(--muted);text-align:right;width:58px;white-space:nowrap;font-size:13.5px;
+}
+.f-status{width:132px}
+.f-src{width:31%;min-width:210px;color:var(--ink-2);font-size:14px}
+.f-src code{
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  background:var(--surface-2);padding:1px 4px;border-radius:2px;
+  font-variant-numeric:tabular-nums;
+}
+.f-q{width:30%;min-width:210px;font-size:14px;color:var(--ink-2)}
+
+/* ---- status checkbox ---- */
+.st{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.box{
+  width:15px;height:15px;flex:none;border-radius:2px;
+  border:1.5px solid currentColor;position:relative;
+}
+.st b{font-size:12.5px;font-weight:600;letter-spacing:.005em}
+.st.have{color:var(--have)}
+.st.sub{color:var(--sub)}
+.st.call{color:var(--call)}
+.st.none{color:var(--none)}
+.st.have .box{background:currentColor;border-color:currentColor}
+.st.have .box::after{
+  content:"";position:absolute;left:4.4px;top:1.4px;width:4px;height:8px;
+  border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(42deg);
+}
+.st.sub .box{background:linear-gradient(135deg,currentColor 50%,transparent 50.1%)}
+.st.call .box::after{
+  content:"";position:absolute;left:5.6px;top:2px;width:2px;height:6px;
+  background:currentColor;box-shadow:0 8px 0 currentColor;border-radius:1px;
+}
+.st.none .box::after,.st.none .box::before{
+  content:"";position:absolute;left:5.7px;top:1.4px;width:1.8px;height:9px;
+  background:currentColor;border-radius:1px;
+}
+.st.none .box::after{transform:rotate(45deg)}
+.st.none .box::before{transform:rotate(-45deg)}
+
+/* ---- vs-expected marker ---- */
+.vs{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;
+  display:inline-block;padding:1.5px 6px;border-radius:2px;margin-right:7px;
+  vertical-align:1px;
+}
+.vs.up{color:var(--have);background:var(--have-bg)}
+.vs.eq{color:var(--ink-2);background:var(--surface-2)}
+.vs.down{color:var(--sub);background:var(--sub-bg)}
+.vs.zero{color:var(--none);background:var(--none-bg)}
+
+/* ---- closing note ---- */
+.note{
+  background:var(--surface);border:1px solid var(--rule);
+  border-left:3px solid var(--accent);border-radius:3px;
+  padding:19px 22px;display:flex;flex-direction:column;gap:11px;
+}
+.note h3{margin:0;font-size:15.5px;font-weight:600}
+.note p{margin:0;font-family:"IBM Plex Serif",Georgia,serif;font-size:15px;
+  line-height:1.62;color:var(--ink-2);max-width:72ch}
+.note p strong{color:var(--ink);font-weight:500}
+.ledger{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;
+  overflow:hidden;margin-top:3px;
+}
+.ledger div{background:var(--surface);padding:11px 14px;display:flex;flex-direction:column;gap:3px}
+.ledger dt{font-size:12px;color:var(--muted)}
+.ledger dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:15px;
+  font-variant-numeric:tabular-nums;font-weight:500}
+.ledger .old{color:var(--none)} .ledger .new{color:var(--have)}
+footer{
+  font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);
+  padding-top:15px;display:flex;flex-wrap:wrap;gap:5px 20px;
+}
+footer code{font-family:"IBM Plex Mono",monospace;font-size:12px}
+.empty{padding:26px 14px;color:var(--muted);font-size:14px;text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Ho Chi Minh City &nbsp;·&nbsp; 2 406.5 km² &nbsp;·&nbsp; 1 881 tiles at 1 201 m</div>
+  <h1>HCMC Vitality Data Landscape</h1>
+  <p class="standfirst">Every factor the reviewed literature uses, and what we can actually obtain for
+  Ho Chi Minh City. The short version: <em>almost all of it</em> — but not from OpenStreetMap,
+  which holds 6&nbsp;% of the city's buildings and 13&nbsp;% of its built area.</p>
+</header>
+
+<div class="summary">
+  <div class="sum have"><b>18</b><span>Have it, at or above the quality the papers used</span></div>
+  <div class="sum sub"><b>6</b><span>Substitute, with a compromise to disclose</span></div>
+  <div class="sum call"><b>3</b><span>Obtainable, waiting on your decision</span></div>
+  <div class="sum none"><b>5</b><span>No source exists for this city</span></div>
+</div>
+
+<div class="controls">
+  <span class="lbl">Show</span>
+  <button class="chip" data-f="all" aria-pressed="true">All 32</button>
+  <button class="chip" data-f="have" aria-pressed="false">Have it</button>
+  <button class="chip" data-f="sub" aria-pressed="false">Substitute</button>
+  <button class="chip" data-f="call" aria-pressed="false">Your call</button>
+  <button class="chip" data-f="none" aria-pressed="false">No source</button>
+</div>
+
+<section>
+  <div class="sechead">
+    <h2>Built environment</h2>
+    <span class="count">§4 · 22 factors · sorted by how many studies use each</span>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th>Factor</th><th class="f-papers">Papers</th><th>Status</th>
+        <th>What we get for HCMC</th><th>Against what the papers had</th>
+      </tr></thead>
+      <tbody id="be">
+        <tr data-s="have"><td class="f-name">POI count &amp; density</td><td class="f-papers">16</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Overture Maps — <code>341 692</code> places, 1 065 categories</td>
+          <td class="f-q"><span class="vs up">Better</span>17× what OSM holds. 1 176 per km² on built-up tiles, against 78</td></tr>
+
+        <tr data-s="have"><td class="f-name">Road density</td><td class="f-papers">10</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">OpenStreetMap — <code>141 858</code> ways, citywide</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Best-mapped layer in the city. Varies within a tile, so a real field</td></tr>
+
+        <tr data-s="none"><td class="f-name">Land-use mix<span class="f-sub">Shannon entropy over parcels</span></td><td class="f-papers">10</td>
+          <td class="f-status"><span class="st none"><span class="box"></span><b>No source</b></span></td>
+          <td class="f-src">Land <em>cover</em> at 10 m is the nearest thing — WorldCover, Dynamic World</td>
+          <td class="f-q"><span class="vs zero">None</span>Cover is not use. A built-up class cannot split residential from commercial. OSM classifies only 45 km² of 2 406 as residential, and Overture re-serves the same 45</td></tr>
+
+        <tr data-s="have"><td class="f-name">Intersection density</td><td class="f-papers">8</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Derived from the OSM road graph — about 33–47 per km²</td>
+          <td class="f-q"><span class="vs eq">Matches</span>A sparse point field, so it needs a kernel rather than a raw count</td></tr>
+
+        <tr data-s="have"><td class="f-name">Building density</td><td class="f-papers">8</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Overture — <code>1 488 287</code> buildings, 179 km² of footprint</td>
+          <td class="f-q"><span class="vs up">Better</span>17× OSM's count and 7.6× its built area. Median building 60 m², the tube-house fabric OSM never mapped</td></tr>
+
+        <tr data-s="have"><td class="f-name">Transit accessibility</td><td class="f-papers">8</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">OSM — <code>5 217</code> stops after deduplication, 150 rail</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Fine for buses. Metro is effectively one line, so the rail term carries little</td></tr>
+
+        <tr data-s="have"><td class="f-name">Floor-area ratio<span class="f-sub">FAR / FSI</span></td><td class="f-papers">7</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">3D-GloBFP — <code>1 120 320</code> buildings, height on <strong>100 %</strong></td>
+          <td class="f-q"><span class="vs eq">Matches</span>With one bias: the tallest building in the data is 181.6 m, the city's real tallest is 461 m. FAR will run low in the high-rise core</td></tr>
+
+        <tr data-s="have"><td class="f-name">POI entropy<span class="f-sub">functional mix</span></td><td class="f-papers">6</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Overture places folded into 11 functional classes</td>
+          <td class="f-q"><span class="vs up">Better</span>A 100 m ring is defined on 80 % of units where OSM managed 27 %. The 300 m ring the pilot was forced into is no longer necessary</td></tr>
+
+        <tr data-s="have"><td class="f-name">Green cover &amp; NDVI</td><td class="f-papers">6</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Sentinel-2 at 10 m, plus WorldCover classes</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Must be a dry-season composite. Only 86 scenes a year fall below 20 % cloud, and 71 of those are January to April</td></tr>
+
+        <tr data-s="have"><td class="f-name">Building height</td><td class="f-papers">5</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">3D-GloBFP — median <code>11.5 m</code>, mean 14.2 m</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Median of 11.5 m is three to four storeys, correct for this fabric. Tall buildings underestimated, as above</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Building age</td><td class="f-papers">5</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">Built-up epochs at 100 m, five snapshots from 1975 to 2020</td>
+          <td class="f-q"><span class="vs down">Weaker</span>Epoch of built-up appearance, not construction date, and 100 m gives only about 12×12 samples per tile. OSM has construction dates for 19 buildings citywide</td></tr>
+
+        <tr data-s="have"><td class="f-name">Distance to park</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">OSM and Overture green areas — <code>3 729</code> polygons</td>
+          <td class="f-q"><span class="vs eq">Matches</span>A distance field is defined everywhere even when the source is thin</td></tr>
+
+        <tr data-s="call"><td class="f-name">House &amp; land price</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st call"><span class="box"></span><b>Your call</b></span></td>
+          <td class="f-src">Two smaller portals scrape cleanly, with open robots files</td>
+          <td class="f-q"><span class="vs down">Weaker</span>The two largest portals sit behind bot challenges, so I stopped there. Alley housing is likely under-represented in what remains</td></tr>
+
+        <tr data-s="have"><td class="f-name">Distance to water</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">OSM <code>2 882</code> water areas plus Overture's <code>4 335</code></td>
+          <td class="f-q"><span class="vs eq">Matches</span>Good coverage. A delta city maps its water well</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Terrain</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">Copernicus elevation model at 30 m</td>
+          <td class="f-q"><span class="vs down">Weaker</span>The city's total relief is under 10 m, below the model's reliable precision. Treat as a per-tile condition, not a field</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Sidewalks</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">Segment them out of Mapillary street imagery</td>
+          <td class="f-q"><span class="vs down">Weaker</span>A different method than the papers used. OSM tags sidewalks on 0.4 % of ways, so there is nothing to read directly</td></tr>
+
+        <tr data-s="have"><td class="f-name">Space syntax<span class="f-sub">integration, choice</span></td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Computed from the OSM road graph</td>
+          <td class="f-q"><span class="vs eq">Matches</span>One catch: global integration needs the whole city's network at once, not per-tile fetches</td></tr>
+
+        <tr data-s="have"><td class="f-name">Distance to centre</td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Computed directly</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Near-constant across a 1.2 km tile, so it attaches as a condition rather than a grid</td></tr>
+
+        <tr data-s="have"><td class="f-name">Rail &amp; motorway severance</td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">OpenStreetMap</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Available, though the signal is weak in the papers too</td></tr>
+
+        <tr data-s="have"><td class="f-name">Building form typology</td><td class="f-papers">2</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Derived from Overture footprints</td>
+          <td class="f-q"><span class="vs eq">Matches</span>No new source needed, and now on 17× the footprints</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Street lighting</td><td class="f-papers">2</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">Night lights at roughly 500 m</td>
+          <td class="f-q"><span class="vs down">Weaker</span>About 2.4 pixels across a whole tile, so it is a per-tile number, not a pattern. A 40 m satellite exists but needs a written proposal</td></tr>
+
+        <tr data-s="none"><td class="f-name">Building function mix</td><td class="f-papers">2</td>
+          <td class="f-status"><span class="st none"><span class="box"></span><b>No source</b></span></td>
+          <td class="f-src">Nothing usable</td>
+          <td class="f-q"><span class="vs zero">None</span>Overture types 0.66 % of buildings and OSM 6.5 %. Function could only be inferred from co-located places, which is a different measure</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>Human activity</h2>
+    <span class="count">§5 · 10 factors · the side the paper currently excludes</span>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th>Factor</th><th class="f-papers">Papers</th><th>Status</th>
+        <th>What we get for HCMC</th><th>Against what the papers had</th>
+      </tr></thead>
+      <tbody id="hu">
+        <tr data-s="have"><td class="f-name">Population density</td><td class="f-papers">10</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">LandScan at 1 km, or WorldPop at 100 m</td>
+          <td class="f-q"><span class="vs eq">Matches</span>A trade you have to pick. WorldPop is finer but weighted by building footprints, so it partly restates our building channel. LandScan is the only clean one</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Night-time lights</td><td class="f-papers">7</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">VIIRS annual composite, already free</td>
+          <td class="f-q"><span class="vs down">Weaker</span>The papers read it across whole districts. At our tile size it is 2.4 pixels, so it can only be a condition</td></tr>
+
+        <tr data-s="none"><td class="f-name">Mobile signalling</td><td class="f-papers">5</td>
+          <td class="f-status"><span class="st none"><span class="box"></span><b>No source</b></span></td>
+          <td class="f-src">Nothing</td>
+          <td class="f-q"><span class="vs zero">None</span>No Vietnamese operator releases this. Five of the reviewed studies build their whole dependent variable on it</td></tr>
+
+        <tr data-s="call"><td class="f-name">Check-ins &amp; reviews</td><td class="f-papers">5</td>
+          <td class="f-status"><span class="st call"><span class="box"></span><b>Your call</b></span></td>
+          <td class="f-src">A food-delivery platform lists <code>164 561</code> venues in HCMC</td>
+          <td class="f-q"><span class="vs down">Weaker</span>Food only, and it is a supply stock weighted by demand — the exact pattern the review flags as a conflation. Its terms bar redistribution</td></tr>
+
+        <tr data-s="have"><td class="f-name">Perception scores<span class="f-sub">safe, lively, wealthy</span></td><td class="f-papers">5</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">Mapillary imagery plus an openly licensed vision model</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Imagery is solved: 94–100 % of alley cells have coverage, from scooter-mounted cameras. The risk moved to the model, which was trained on 56 cities, none Vietnamese</td></tr>
+
+        <tr data-s="none"><td class="f-name">Platform heat maps</td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st none"><span class="box"></span><b>No source</b></span></td>
+          <td class="f-src">Nothing</td>
+          <td class="f-q"><span class="vs zero">None</span>These are Chinese platforms with no Vietnam presence</td></tr>
+
+        <tr data-s="none"><td class="f-name">Floating population &amp; flows</td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st none"><span class="box"></span><b>No source</b></span></td>
+          <td class="f-src">Nothing</td>
+          <td class="f-q"><span class="vs zero">None</span>Same absence as signalling. The one mobility programme that covered Vietnam stopped publishing</td></tr>
+
+        <tr data-s="sub"><td class="f-name">Economic aggregate</td><td class="f-papers">4</td>
+          <td class="f-status"><span class="st sub"><span class="box"></span><b>Substitute</b></span></td>
+          <td class="f-src">Gridded output at 1 km, and a wealth index at 2.4 km</td>
+          <td class="f-q"><span class="vs down">Weaker</span>Both are calibrated from night lights, so they carry much the same signal as the lights channel rather than independent information</td></tr>
+
+        <tr data-s="have"><td class="f-name">Age &amp; sex structure</td><td class="f-papers">3</td>
+          <td class="f-status"><span class="st have"><span class="box"></span><b>Have it</b></span></td>
+          <td class="f-src">WorldPop age and sex rasters at 100 m</td>
+          <td class="f-q"><span class="vs eq">Matches</span>Modelled rather than enumerated, and only in the unconstrained form</td></tr>
+
+        <tr data-s="call"><td class="f-name">Human capital &amp; education</td><td class="f-papers">2</td>
+          <td class="f-status"><span class="st call"><span class="box"></span><b>Your call</b></span></td>
+          <td class="f-src">The national census, if ward-level tables exist</td>
+          <td class="f-q"><span class="vs down">Unconfirmed</span>The statistics dashboard blocks automated access, so whether it descends below district level needs a manual check, ideally in Vietnamese</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="note">
+  <h3>Why the numbers moved</h3>
+  <p>Every sparsity result this project has recorded was a measurement of <strong>OpenStreetMap's completeness in
+  Vietnam</strong>, not of Ho Chi Minh City. Swapping the base layer changes three things that sit upstream of the
+  data work: the trainable tile count, the ring radius the diversity channel needs, and the validity of the
+  building density channel already rasterized.</p>
+  <div class="ledger">
+    <div><dt>Buildings in the study area</dt><dd><span class="old">86 418</span> → <span class="new">1 488 287</span></dd></div>
+    <div><dt>Built footprint area</dt><dd><span class="old">23.6 km²</span> → <span class="new">179.0 km²</span></dd></div>
+    <div><dt>Places</dt><dd><span class="old">19 670</span> → <span class="new">341 692</span></dd></div>
+    <div><dt>Tiles with 100+ buildings</dt><dd><span class="old">138</span> → <span class="new">1 023</span></dd></div>
+    <div><dt>Buildings with a height</dt><dd><span class="old">3.9 %</span> → <span class="new">100 %</span></dd></div>
+    <div><dt>Ring at which mix is defined</dt><dd><span class="old">300 m</span> → <span class="new">100 m</span></dd></div>
+  </div>
+</div>
+
+<footer>
+  <span>Paper counts are the studies actually named in each review row, not the row's stated total — those disagree on 16 of 21 rows.</span>
+  <span>Full sources, licences and access routes: <code>discussion/hcmc_data_acquisition.md</code></span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var rows  = Array.prototype.slice.call(document.querySelectorAll('tbody tr'));
+  var bodies = Array.prototype.slice.call(document.querySelectorAll('tbody'));
+
+  function apply(f){
+    rows.forEach(function(r){
+      r.hidden = (f !== 'all' && r.getAttribute('data-s') !== f);
+    });
+    bodies.forEach(function(tb){
+      var shown = tb.querySelectorAll('tr:not([hidden])').length;
+      var msg = tb.parentNode.parentNode.querySelector('.empty');
+      if(!shown && !msg){
+        msg = document.createElement('div');
+        msg.className = 'empty';
+        msg.textContent = 'No factors in this group.';
+        tb.parentNode.parentNode.appendChild(msg);
+      } else if(msg){
+        msg.hidden = shown > 0;
+      }
+      tb.parentNode.hidden = shown === 0;
+    });
+    chips.forEach(function(c){
+      c.setAttribute('aria-pressed', String(c.getAttribute('data-f') === f));
+    });
+  }
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){ apply(c.getAttribute('data-f')); });
+  });
+})();
+</script>
