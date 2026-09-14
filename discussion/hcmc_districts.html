@@ -1,0 +1,205 @@
+<title>HCMC District Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+:root{
+  --ground:#F3F5F6; --surface:#FFFFFF; --surface2:#E9EDEF; --sunken:#D7DEE2;
+  --ink:#12161A; --ink2:#39444C; --muted:#667179; --rule:#DCE1E4; --rule2:#C3CBD0;
+  --accent:#1C5E86; --on-accent:#FFFFFF;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#080B0D;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#080B0D;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1320px;margin:0 auto;padding:36px 22px 72px;display:flex;flex-direction:column;gap:26px}
+h1{font-size:clamp(26px,3.4vw,36px);margin:0;font-weight:700;letter-spacing:-.025em}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lede{font-family:Newsreader,Georgia,serif;font-size:17px;line-height:1.6;color:var(--ink2);max-width:70ch;margin:0}
+.lede strong{color:var(--ink);font-weight:500}
+header{display:flex;flex-direction:column;gap:12px}
+.pickers{display:flex;flex-direction:column;gap:9px}
+.prow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.plabel{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);width:72px;flex:none}
+.chip{font:inherit;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink2);border:1px solid var(--rule2);border-radius:3px;padding:4px 10px}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 272px;gap:20px;align-items:start}
+@media(max-width:920px){.stage{grid-template-columns:1fr}}
+.viewer{background:var(--sunken);border:1px solid var(--rule);border-radius:4px;padding:12px;display:flex;justify-content:center}
+.viewer img{max-width:100%;height:auto;display:block;border-radius:2px;background:var(--surface2)}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px}
+.card h4{margin:0 0 9px;font-size:11.5px;font-family:"JetBrains Mono",monospace;letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3.5px 0;border-bottom:1px solid var(--rule)}
+.kv:last-child{border-bottom:none}
+.kv b{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
+.wards{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.wards span{font-size:11.5px;background:var(--surface2);border-radius:2px;padding:2px 6px;color:var(--ink2)}
+.bar{height:9px;border-radius:2px;border:1px solid var(--rule2)}
+.ends{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:4px}
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.thumb{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:5px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.thumb[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.thumb img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:2px;display:block;background:var(--surface2)}
+.thumb span{font-size:10.5px;color:var(--ink2);text-align:center;line-height:1.25}
+.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:9px}
+.note h3{margin:0;font-size:15px;font-weight:600}
+.note p{margin:0;font-family:Newsreader,Georgia,serif;font-size:15.5px;line-height:1.6;color:var(--ink2);max-width:76ch}
+.note p strong{color:var(--ink);font-weight:500}
+code{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--surface2);padding:1px 4px;border-radius:2px}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-wrap:wrap;gap:4px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Six familiar districts · sixteen layers · drawn at the sampling unit</div>
+  <h1>HCMC District Atlas</h1>
+  <p class="lede">The whole-city view has to be drawn at 150 m per unit, because at the real 1.17 m
+  unit the city would be about 580 000 pixels across. A district is small enough to draw close to
+  the unit the model sees. <strong>This is the check that the layers describe the place rather than
+  merely covering it</strong> — if you know these streets, you should recognise them.</p>
+</header>
+
+<div class="pickers">
+  <div class="prow"><span class="plabel">District</span><span id="dchips"></span></div>
+  <div class="prow"><span class="plabel">Layer</span><span id="lchips"></span></div>
+</div>
+
+<div class="stage">
+  <div class="viewer"><img id="big" alt=""></div>
+  <div class="side">
+    <div class="card" id="meta"></div>
+    <div class="card"><h4>Scale</h4>
+      <div class="bar" id="ramp"></div>
+      <div class="ends"><span id="lo"></span><span id="hi"></span></div>
+      <p style="margin:8px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45">
+      Clipped at the 1st and 99th percentile of units inside the district, so one
+      extreme block does not flatten everything else.</p>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="prow" style="margin-bottom:9px"><span class="plabel">All layers</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="stripnote"></span></div>
+  <div class="strip" id="strip"></div>
+</div>
+
+<div class="note">
+  <h3>Reading these</h3>
+  <p><strong>The districts are gone as administrative units.</strong> The July 2025 restructure
+  replaced them with wards, so each familiar name here is the set of wards that now covers it. The
+  ward names are listed beside each view; if a grouping does not match what you would call that
+  district, it is worth correcting, because the grouping is mine and not official.</p>
+  <p><strong>What to look for.</strong> Footprints should show the plot-and-alley grain, not blocks.
+  Height should pick out the towers along the river and leave the rowhouse fabric flat. Roads should
+  read as a network rather than a smear. Place density should concentrate on the market and the
+  commercial streets. If any layer looks like noise where you know the ground is structured, that is
+  a data problem worth finding before training rather than after.</p>
+  <p><strong>Resolution.</strong> These are drawn at about 2.2 m per unit, the tier the pipeline
+  notes call the first size that respects footprints, where a 3 m alley stays open and a 5 m
+  rowhouse keeps its outline. The full 1.17 m unit would quadruple the file for detail a screen
+  cannot show. The 9 m figure from the cost table is the cheapest tier, 128 px per tile, where a
+  row of houses and its alleys fuse into one block.</p>
+</div>
+
+<footer>
+  <span>Buildings and places from Overture; heights from 3D-GloBFP; roads, transit, water and green from OpenStreetMap; vegetation from WorldCover; population from WorldPop.</span>
+  <span>Reproduce: <code>scripts/render_districts.py</code></span>
+</footer>
+</div>
+
+<script src="hcmc_districts_data_a.js"></script>
+<script src="hcmc_districts_data_b.js"></script>
+<script>
+(function(){
+  var D = window.HCMC_DISTRICTS;
+  var NAME = {building_binary:"Footprints",building_density:"Building density",
+    building_height:"Height",far:"Floor-area ratio",building_form:"Footprint grain",
+    road_density:"Road density",intersection:"Junctions",transit_access:"Transit access",
+    poi_count:"Place density",poi_entropy:"Place mix",green:"Vegetation",
+    dist_water:"Distance to water",dist_park:"Distance to park",dist_centre:"Distance to centre",
+    severance:"Severance",population:"Population"};
+  var RAMP = {building_binary:[[14,16,20],[130,134,140],[244,246,248]],
+    building_density:[[14,16,20],[130,134,140],[244,246,248]],
+    building_height:[[10,6,28],[158,42,88],[252,206,124]],
+    far:[[8,6,20],[168,52,60],[252,224,150]],
+    building_form:[[18,22,36],[92,110,120],[236,232,190]],
+    road_density:[[20,18,18],[152,112,106],[250,230,224]],
+    intersection:[[24,16,8],[150,98,44],[248,226,182]],
+    transit_access:[[30,20,6],[168,118,32],[250,232,170]],
+    poi_count:[[28,30,58],[36,126,120],[214,226,112]],
+    poi_entropy:[[20,16,44],[70,96,158],[220,232,244]],
+    green:[[16,26,16],[68,140,68],[216,242,172]],
+    dist_water:[[198,226,246],[46,106,168],[10,20,34]],
+    dist_park:[[214,240,214],[54,132,72],[10,26,14]],
+    dist_centre:[[226,216,240],[104,74,150],[20,12,32]],
+    severance:[[248,224,196],[186,110,36],[34,18,6]],
+    population:[[18,10,26],[152,44,92],[250,214,160]]};
+  function mix(r,t){t=Math.max(0,Math.min(1,t));var n=r.length-1,i=Math.min(Math.floor(t*n),n-1),f=t*n-i,a=r[i],b=r[i+1];
+    return "rgb("+Math.round(a[0]+(b[0]-a[0])*f)+","+Math.round(a[1]+(b[1]-a[1])*f)+","+Math.round(a[2]+(b[2]-a[2])*f)+")";}
+  function fmt(v){var a=Math.abs(v);return a>=1000?Math.round(v).toLocaleString():a>=10?v.toFixed(1):v.toFixed(3);}
+  function src(o){return "data:image/"+(o.fmt||"png")+";base64,"+o.img;}
+
+  var districts = Object.keys(D);
+  var layers = Object.keys(D[districts[0]].layers);
+  var dCur = districts[0], lCur = "building_binary";
+  if (layers.indexOf(lCur) < 0) lCur = layers[0];
+
+  document.getElementById("dchips").innerHTML = districts.map(function(d){
+    return '<button class="chip" data-d="'+d+'">'+d+'</button>'}).join(" ");
+  document.getElementById("lchips").innerHTML = layers.map(function(l){
+    return '<button class="chip" data-l="'+l+'">'+NAME[l]+'</button>'}).join(" ");
+
+  function paint(){
+    var A = D[dCur], L = A.layers[lCur];
+    var big = document.getElementById("big");
+    big.src = src(L);
+    big.alt = NAME[lCur]+" across "+dCur;
+    big.style.maxHeight = "78vh";
+    var r = RAMP[lCur] || RAMP.poi_count;
+    document.getElementById("ramp").style.background =
+      "linear-gradient(90deg,"+mix(r,0)+","+mix(r,.5)+","+mix(r,1)+")";
+    document.getElementById("lo").textContent = fmt(L.lo);
+    document.getElementById("hi").textContent = fmt(L.hi);
+    document.getElementById("meta").innerHTML =
+      '<h4>'+dCur+'</h4>'+
+      '<div class="kv"><span>area</span><b>'+A.km2+' km²</b></div>'+
+      '<div class="kv"><span>extent</span><b>'+A.km_w+' × '+A.km_h+' km</b></div>'+
+      '<div class="kv"><span>image</span><b>'+A.nx+' × '+A.ny+' px</b></div>'+
+      '<div class="kv"><span>unit</span><b>'+A.m_per_px+' m per px</b></div>'+
+      '<div class="kv" style="border:none;padding-bottom:0"><span>wards</span></div>'+
+      '<div class="wards">'+A.wards.map(function(w){
+        return '<span>'+w.replace(/^Phường /,"")+'</span>'}).join("")+'</div>';
+    document.getElementById("stripnote").textContent = dCur+" · click to enlarge";
+    document.getElementById("strip").innerHTML = layers.map(function(l){
+      return '<button class="thumb" data-l="'+l+'" aria-pressed="'+(l===lCur)+'">'+
+        '<img loading="lazy" alt="'+NAME[l]+' in '+dCur+'" src="'+src(A.layers[l])+'">'+
+        '<span>'+NAME[l]+'</span></button>';}).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#dchips .chip"),function(c){
+      c.setAttribute("aria-pressed",String(c.dataset.d===dCur));});
+    Array.prototype.forEach.call(document.querySelectorAll("#lchips .chip"),function(c){
+      c.setAttribute("aria-pressed",String(c.dataset.l===lCur));});
+  }
+  document.getElementById("dchips").addEventListener("click",function(e){
+    var b=e.target.closest(".chip"); if(!b) return; dCur=b.dataset.d; paint();});
+  document.getElementById("lchips").addEventListener("click",function(e){
+    var b=e.target.closest(".chip"); if(!b) return; lCur=b.dataset.l; paint();});
+  document.getElementById("strip").addEventListener("click",function(e){
+    var b=e.target.closest(".thumb"); if(!b) return; lCur=b.dataset.l; paint();
+    document.querySelector(".stage").scrollIntoView({behavior:"smooth",block:"start"});});
+  paint();
+})();
+</script>

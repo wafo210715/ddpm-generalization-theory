@@ -14,7 +14,28 @@ Layers follow the "Have it" rows of discussion/hcmc_data_landscape.html.
 """
 import numpy as np
 from scipy.spatial import cKDTree
-from scipy.ndimage import uniform_filter, distance_transform_edt
+from scipy.ndimage import uniform_filter, zoom
+
+# B7: every channel is computed at its own scale first and resampled last.
+# A quantity defined over a 300 m ring is smooth at 1.17 m, so evaluating it at
+# every unit records the same field more times at real cost.  SAMPLES_PER_SCALE
+# fixes how finely each is computed before being read onto the common grid --
+# four samples across its own measurement scale, matching the pilot's 17x17.
+SAMPLES_PER_SCALE = 4.0
+
+def native_grid(extent_m, scale_m, n, cap=None):
+    """Grid size for a quantity whose measurement scale is scale_m."""
+    if scale_m is None:
+        return n                       # sharp: computed at the sampling unit
+    k = int(np.ceil(SAMPLES_PER_SCALE * extent_m / scale_m))
+    return max(8, min(n, cap or n, k))
+
+def up(a, nx, ny):
+    """Read a coarse field onto the ny x nx common grid."""
+    if a.shape == (ny, nx):
+        return a.astype("float32")
+    z = zoom(a, (ny / a.shape[0], nx / a.shape[1]), order=1).astype("float32")
+    return z[:ny, :nx]
 
 # measurement scales, metres
 R_DENSITY   = 100.0    # disc for building / road / intersection density
@@ -60,54 +81,80 @@ def _tree_count(tree, px, py, r, shape):
 
 
 def compute(ctx, minx, miny, maxx, maxy, nx, ny=None):
-    """Every layer on an nx by ny grid over the given bounds, in metres (EPSG:3405).
+    """Every layer on an nx by ny grid, each computed at its own scale first.
 
-    The city mosaic runs this once over the whole study area, so the disc and
-    ring neighbourhoods never straddle a tile edge; the tile renders run it per
-    tile at full resolution.  Same function either way.
+    The city mosaic runs this once over the whole study area, so no
+    neighbourhood straddles a tile edge; the tile renders run it per tile at the
+    sampling unit.  Same function either way.
     """
     ny = ny or nx
-    res = (maxx - minx) / nx
-    ys, xs = np.mgrid[0:ny, 0:nx]
-    px = minx + (xs + 0.5) * res
-    py = maxy - (ys + 0.5) * res
+    ext = maxx - minx
+    res = ext / nx
     out = {}
-    area_disc_km2 = np.pi * (R_DENSITY ** 2) / 1e6
 
-    # --- built form, rasterized from polygons at the sampling unit -------------
+    ext_y = maxy - miny
+
+    def grid(scale, cap=None):
+        """Native grid for a quantity at `scale`, keeping the output aspect."""
+        gx = native_grid(ext, scale, nx, cap)
+        gy = max(8, min(ny, int(round(gx * ext_y / ext))))
+        r = ext / gx
+        ys, xs = np.mgrid[0:gy, 0:gx]
+        return gx, gy, r, minx + (xs + 0.5) * r, maxy - (ys + 0.5) * (ext_y / gy)
+
+    def counts(tree, scale, r_query, norm):
+        gx, gy, _, px, py = grid(scale)
+        k = tree.query_ball_point(np.c_[px.ravel(), py.ravel()], r_query, return_length=True)
+        return up((k.reshape(gy, gx) / norm).astype("float32"), nx, ny)
+
+    # --- sharp: defined by the polygon, so read at the sampling unit ----------
     b = ctx["burn_buildings"](minx, miny, maxx, maxy, nx, ny)
-    h = ctx["burn_heights"](minx, miny, maxx, maxy, nx, ny)
     out["building_binary"] = (b > 0).astype("float32")
-    out["building_density"] = _disc(out["building_binary"], res, R_DENSITY)
-    out["building_height"] = h
-    out["far"] = _disc(h / 3.0, res, R_DENSITY)          # storeys, averaged over the disc
-    out["building_form"] = _disc(ctx["burn_footprint_area"](minx, miny, maxx, maxy, nx, ny), res, R_FORM)
+    out["building_height"] = ctx["burn_heights"](minx, miny, maxx, maxy, nx, ny)
 
-    # --- network ---------------------------------------------------------------
-    r = ctx["burn_roads"](minx, miny, maxx, maxy, nx, ny)
-    out["road_density"] = _disc(r, res, R_DENSITY) * (res / 1000.0) / (res * res / 1e6)
-    out["intersection"] = _tree_count(ctx["junc_tree"], px, py, R_DENSITY, (ny, nx)) / area_disc_km2
+    # --- neighbourhood quantities: computed coarse, read fine -----------------
+    gxD, gyD, rD, _, _ = grid(R_DENSITY)
+    bD = (ctx["burn_buildings"](minx, miny, maxx, maxy, gxD, gyD) > 0).astype("float32")
+    hD = ctx["burn_heights"](minx, miny, maxx, maxy, gxD, gyD)
+    rdD = ctx["burn_roads"](minx, miny, maxx, maxy, gxD, gyD)
+    out["building_density"] = up(_disc(bD, rD, R_DENSITY), nx, ny)
+    out["far"] = up(_disc(hD / 3.0, rD, R_DENSITY), nx, ny)
+    out["road_density"] = up(_disc(rdD, rD, R_DENSITY) / (rD / 1000.0), nx, ny)
 
-    # --- destinations ----------------------------------------------------------
-    out["poi_count"] = _tree_count(ctx["poi_tree"], px, py, R_RING, (ny, nx)) / (np.pi * R_RING ** 2 / 1e6)
-    out["poi_entropy"] = ctx["entropy"](px, py, R_RING)
+    gxF, gyF, rF, _, _ = grid(R_FORM)
+    out["building_form"] = up(_disc(ctx["burn_footprint_area"](minx, miny, maxx, maxy, gxF, gyF),
+                                    rF, R_FORM), nx, ny)
 
-    # --- accessibility: a gravity field, not a presence mask -------------------
-    d, _ = ctx["stop_tree"].query(np.c_[px.ravel(), py.ravel()], k=8)
-    out["transit_access"] = np.exp(-d / R_TRANSIT).sum(axis=1).reshape(ny, nx).astype("float32")
+    area_disc_km2 = np.pi * (R_DENSITY ** 2) / 1e6
+    out["intersection"] = counts(ctx["junc_tree"], R_DENSITY, R_DENSITY, area_disc_km2)
+    out["poi_count"] = counts(ctx["poi_tree"], R_RING, R_RING, np.pi * R_RING ** 2 / 1e6)
 
-    # --- surfaces and distances ------------------------------------------------
-    out["green"] = ctx["read_green"](minx, miny, maxx, maxy, nx, ny)
-    for name, key in [("dist_water", "water_tree"), ("dist_park", "park_tree"),
-                      ("severance", "sever_tree")]:
+    gxE, gyE, _, pxE, pyE = grid(R_RING)
+    out["poi_entropy"] = up(ctx["entropy"](pxE, pyE, R_RING), nx, ny)
+
+    gxT, gyT, _, pxT, pyT = grid(R_TRANSIT)
+    d, _ = ctx["stop_tree"].query(np.c_[pxT.ravel(), pyT.ravel()], k=8)
+    out["transit_access"] = up(np.exp(-d / R_TRANSIT).sum(axis=1).reshape(gyT, gxT).astype("float32"), nx, ny)
+
+    # --- surfaces and distances ----------------------------------------------
+    gxG, gyG, _, _, _ = grid(10.0)
+    out["green"] = up(ctx["read_green"](minx, miny, maxx, maxy, gxG, gyG), nx, ny)
+
+    for name, key, scale in [("dist_water", "water_tree", 100.0),
+                             ("dist_park", "park_tree", 300.0),
+                             ("severance", "sever_tree", 300.0)]:
         t = ctx.get(key)
+        gx, gy, _, px, py = grid(scale)
         if t is None:
             out[name] = np.full((ny, nx), np.nan, "float32")
         else:
             dd, _ = t.query(np.c_[px.ravel(), py.ravel()], k=1)
-            out[name] = dd.reshape(ny, nx).astype("float32")
-    cx, cy = ctx["centre_utm"]
-    out["dist_centre"] = np.hypot(px - cx, py - cy).astype("float32")
+            out[name] = up(dd.reshape(gy, gx).astype("float32"), nx, ny)
 
-    out["population"] = ctx["read_pop"](minx, miny, maxx, maxy, nx, ny)
+    gxC, gyC, _, px, py = grid(1000.0)
+    cx, cy = ctx["centre_utm"]
+    out["dist_centre"] = up(np.hypot(px - cx, py - cy).astype("float32"), nx, ny)
+
+    gxP, gyP, _, _, _ = grid(100.0)
+    out["population"] = up(ctx["read_pop"](minx, miny, maxx, maxy, gxP, gyP), nx, ny)
     return out
