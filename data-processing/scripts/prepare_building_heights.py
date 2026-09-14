@@ -15,8 +15,8 @@ import geopandas as gpd
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SRC = REPO / "data/external/3dglobfp/Vietnam.rar"
 WORK = REPO / "data/external/3dglobfp/vietnam"
-OUT = REPO / "data/hcmc/raw/heights_3dglobfp.parquet"
-BOUNDARY = REPO / "data/hcmc/raw/hcmc_boundary_full.gpkg"
+OUT = REPO / "data/hcmc/raw/heights_3dglobfp_2025.parquet"
+BOUNDARY = REPO / "data/hcmc/raw/hcmc_boundary_2025.gpkg"
 
 
 def extract() -> pathlib.Path:

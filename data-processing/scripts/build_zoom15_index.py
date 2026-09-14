@@ -100,8 +100,8 @@ def tile_width_m(y: int, zoom: int) -> float:
 # ===========================================================================
 
 
-def load_boundary() -> gpd.GeoDataFrame:
-    path = RAW_DIR / "hcmc_boundary_full.gpkg"
+def load_boundary(name: str = "hcmc_boundary_2025.gpkg") -> gpd.GeoDataFrame:
+    path = RAW_DIR / name
     if not path.exists():
         raise FileNotFoundError(
             f"Boundary not found: {path}. Run build_boundary_grid.py first."
@@ -249,6 +249,8 @@ def verify(tiles: gpd.GeoDataFrame, zoom: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--zoom", type=int, default=DEFAULT_ZOOM)
+    parser.add_argument("--boundary", default="hcmc_boundary_2025.gpkg",
+                        help="boundary file in data/hcmc/raw to index against")
     parser.add_argument(
         "--min_coverage", type=float, default=0.0,
         help="Minimum share of a tile inside the municipality. 0.0 keeps every "
@@ -258,7 +260,7 @@ def main() -> None:
     parser.add_argument("--out_prefix", type=str, default=None)
     args = parser.parse_args()
 
-    boundary = load_boundary()
+    boundary = load_boundary(args.boundary)
     tiles = build_tile_index(boundary, args.zoom, args.min_coverage)
     summary = verify(tiles, args.zoom)
 

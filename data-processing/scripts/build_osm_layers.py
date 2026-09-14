@@ -10,8 +10,8 @@ import geopandas as gpd
 import pandas as pd
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-SRC = REPO / "data/hcmc/raw/osm"
-OUT = REPO / "data/hcmc/raw/osm"
+SRC = REPO / "data/hcmc/raw/osm_2025"
+OUT = REPO / "data/hcmc/raw/osm_2025"
 POI_KEYS = ["amenity", "shop", "office", "tourism", "leisure"]
 # nodes tagged highway=* that are not transit and not POIs
 FURNITURE = {"crossing", "traffic_signals", "street_lamp", "turning_circle",
