@@ -21,9 +21,7 @@ ddpm-generalization-theory/
 ├── discussion/                 # Research proposals, experiment frameworks
 ├── references/                 # Academic reference materials
 ├── TODO.md                     # Authoritative task list
-├── RESEARCH_METHODOLOGY_DESIGN.md   # Methodological rationale (discrete vs continuous)
-├── STAGE2_RESEARCH_SYNTHESIS.md     # Stage 2 research synthesis
-└── progress-*.md               # Daily progress reports
+└── archive/                    # Superseded planning docs and dated progress reports
 ```
 
 ## Research Roadmap

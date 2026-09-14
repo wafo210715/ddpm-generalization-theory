@@ -12,7 +12,7 @@
 > **Resolution**: 256×256 (~3.9m/pixel). Urban rasters (binary buildings, KDE gradients, accessibility surfaces) have low information content per pixel — 512×512 is overkill and causes OOM. Can scale up later if justified.
 > **Encoding**: B=building footprints (white=bldg, black=empty), G=POI entropy density (whiter=more diverse), R=accessibility surface (exponential decay).
 > **Limitation**: Cannot decode RGB back to original geospatial data. Analysis limited to channel-level patterns.
-> **Full research context**: See `STAGE2_RESEARCH_SYNTHESIS.md`
+> **Full research context**: See `archive/STAGE2_RESEARCH_SYNTHESIS.md`
 
 ### Step 1.0: Pre-Flight Checks (BEFORE any implementation)
 - [x] **Run memory estimation**: `python estimate_memory_usage.py --config configs/geospatial.yaml` at 256×256 — confirm fits on RTX 3090
@@ -128,7 +128,7 @@ These are ports from research repos into ddpm-win-master:
 > **Format**: Buildings + roads + POIs → specialized encoders → unified 512-dim embedding → diffusion → structured decoders → synthetic geospatial data.
 > **Key advantage**: Can decode back to original data types. Can manipulate physical inputs and observe vitality changes.
 > **Scope**: Full pipeline (Path C) — custom encoders, fusion, diffusion, decoders, mapping model. PhD-level work.
-> **Full research context**: See `STAGE2_RESEARCH_SYNTHESIS.md`
+> **Full research context**: See `archive/STAGE2_RESEARCH_SYNTHESIS.md`
 
 ### Step 2.1: Data Quality & Collection
 
@@ -327,13 +327,13 @@ Step 2 internal parallelism:
 
 | Document | Purpose |
 |----------|---------|
-| `STAGE2_RESEARCH_SYNTHESIS.md` | Research synthesis: non-linearity evidence, diffusion on non-image data, encoding methods, supply-demand frameworks |
-| `INTEGRATION_PLAN.md` | Original 10-week integration plan (DDPM features, evaluation metrics) |
-| `RESEARCH_METHODOLOGY_DESIGN.md` | Methodological rationale: discrete vs continuous, schedule choices |
+| `archive/STAGE2_RESEARCH_SYNTHESIS.md` | Research synthesis: non-linearity evidence, diffusion on non-image data, encoding methods, supply-demand frameworks |
+| `archive/INTEGRATION_PLAN.md` | Original 10-week integration plan (DDPM features, evaluation metrics) |
+| `archive/RESEARCH_METHODOLOGY_DESIGN.md` | Methodological rationale: discrete vs continuous, schedule choices |
 | `discussion/ch2-ism-proposal.md` | ISM proposal: DDPMs as epistemic probes for manifold learning |
 | `discussion/DDPM-experiment-design-framework.md` | Original experiment design (District 1 vs District 7) |
-| `progress-260409.md` | Brainstorming session: RGB encoding decisions, sprint plan |
-| `progress-260410.md` | Channel redesign: B=buildings, R=exponential decay, accessibility survey |
-| `progress_260420.md` | Post-training evaluation pipeline execution, F_mem ≈ 0 finding, synergy analysis |
-| `progress_260421.md` | F_mem 1000 samples (memorization confirmed), pre-encoding analysis, gap ratio novelty, channel imbalance |
+| `archive/progress/progress-260409.md` | Brainstorming session: RGB encoding decisions, sprint plan |
+| `archive/progress/progress-260410.md` | Channel redesign: B=buildings, R=exponential decay, accessibility survey |
+| `archive/progress/progress_260420.md` | Post-training evaluation pipeline execution, F_mem ≈ 0 finding, synergy analysis |
+| `archive/progress/progress_260421.md` | F_mem 1000 samples (memorization confirmed), pre-encoding analysis, gap ratio novelty, channel imbalance |
 | `references/accessibility_measures_survey.md` | 630-line academic survey on accessibility measures |
