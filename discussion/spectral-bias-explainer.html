@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spectral Bias Explainer — 数据谱如何成为学习时间表</title>
+<style>
+  :root{
+    --ink:#1a1d21; --muted:#6b7280; --line:#d6d9de; --surface:#ffffff; --bg:#f5f5f2;
+    --spine:#24403b; --spine-soft:#e7efec; --accent:#b3541e; --accent-soft:#f9ece2;
+    --blue:#2f5d8a; --blue-soft:#e8f0f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,"Helvetica Neue","PingFang SC",sans-serif;}
+  .page{max-width:1080px;margin:0 auto;padding:44px 24px 80px;}
+  .eyebrow{font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+  h1{font-size:26px;margin:0 0 10px;letter-spacing:-0.01em;}
+  .lede{max-width:70ch;color:var(--ink);font-size:16px;margin:0 0 8px;}
+  h2{font-size:19px;margin:44px 0 6px;padding-top:18px;border-top:1px solid var(--line);}
+  h2 .no{font:500 11px/1 ui-monospace,Menlo,monospace;color:var(--muted);letter-spacing:.08em;display:block;margin-bottom:6px;border:none;}
+  p.explain{max-width:72ch;margin:6px 0 14px;color:#333;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:14px 0;}
+  .formula{font:14px/1.6 ui-monospace,Menlo,monospace;background:var(--spine-soft);border-left:4px solid var(--spine);padding:10px 14px;margin:12px 0;max-width:72ch;}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:10px 0 4px;font:13px/1.4 ui-monospace,Menlo,monospace;}
+  .controls label{display:flex;align-items:center;gap:8px;}
+  input[type=range]{width:150px;accent-color:var(--spine);}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .seg button{border:0;background:var(--surface);padding:6px 12px;font:12px/1.4 ui-monospace,Menlo,monospace;cursor:pointer;color:var(--muted);}
+  .seg button.on{background:var(--spine);color:#fff;}
+  svg{display:block;max-width:100%;height:auto;}
+  .takeaway{border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 14px;margin:14px 0;max-width:72ch;font-size:14.5px;}
+  .note{color:var(--muted);font-size:13px;max-width:72ch;}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:16px 0;}
+  .flow .step{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:13.5px;max-width:230px;}
+  .flow .step b{display:block;font:500 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .flow .arr{align-self:center;padding:0 10px;color:var(--muted);font-size:18px;}
+  .legend{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<p class="eyebrow">Wang &amp; Pehlevan 2025 · NeurIPS · 给 ISM/DDPM 方法论的可视化注解 · 2026-09-11</p>
+<h1>数据谱如何成为学习时间表</h1>
+<p class="lede">核心思想一句话：<b>训练数据的协方差特征值谱 λ<sub>k</sub>，预测了扩散模型在训练中"什么时候学会什么"</b>——特征模态 k 学会所需的训练时间 τ*<sub>k</sub> ∝ λ<sub>k</sub><sup>−α</sup>。高方差（城市全局结构）先学会，低方差（细节纹理）后学会，时间差可达数量级。</p>
+
+<!-- ============ Section 1 ============ -->
+<h2><span class="no">01 · "投影回去"是什么意思</span>两把不同的尺子</h2>
+<p class="explain"><b>特征分解的对象是训练数据，不是生成样本。</b>对训练集（584 张城市格网图）的协方差 Σ 做特征分解，得到一组固定的"坐标轴" u<sub>k</sub>（特征向量）和每根轴上的方差 λ<sub>k</sub>（特征值）。这组轴是<b>训练数据的自然坐标系</b>——比如第 1 轴可能对应"建成区 vs 非建成区"，第 2 轴对应"密度梯度方向"。</p>
+<div class="flow">
+  <div class="step"><b>Step 1 · 训练前</b>训练集 → 协方差 Σ → 特征分解 → 固定坐标轴 u<sub>k</sub> + 谱 λ<sub>k</sub>（只做一次，之后不动）</div>
+  <div class="arr">→</div>
+  <div class="step"><b>Step 2 · 每个 checkpoint</b>生成 30–100 张样本 → 算<b>样本的</b>协方差 Σ̃(τ)</div>
+  <div class="arr">→</div>
+  <div class="step"><b>Step 3 · 投影</b>把 Σ̃(τ) 放到 Step 1 的<b>固定</b>坐标轴上量：λ̃<sub>k</sub>(τ) = u<sub>k</sub>ᵀ Σ̃(τ) u<sub>k</sub></div>
+</div>
+<div class="formula">λ̃<sub>k</sub>(τ) = u<sub>k</sub>ᵀ Σ̃(τ) u<sub>k</sub>　——　"在训练城市的第 k 根主轴方向上，我当前生成的样本有多大方差？"</div>
+<p class="explain">为什么必须用训练数据的轴而不能对生成样本另做分解：<b>如果每个 checkpoint 各自做特征分解，每次得到的坐标系都不一样，跨 checkpoint 无法比较</b>——就像每个月换一套地图投影来量同一条路的长度。固定坐标系后，λ̃<sub>k</sub>(τ) 才是可比较的时间序列：训练开始时它接近初始值（噪声），训练充分后它应收敛到 λ<sub>k</sub>。"投影回去"的"回去"，指的就是回到训练数据定义的坐标系里。</p>
+
+<!-- ============ Section 2 ============ -->
+<h2><span class="no">02 · 谱 = 时间表</span>特征值谱直接预测学习顺序</h2>
+<p class="explain">下图左：一个典型的幂律衰减谱（自然图像和城市数据的协方差谱大都长这样）。下图右：谱理论给出的预测——每个模态"学会"（方差达到目标量级）所需的训练步数 τ*<sub>k</sub> ∝ λ<sub>k</sub><sup>−α</sup>。<b>拖动 α 感受这条定律的强度</b>：α=1 时，方差小 10 倍的模态要晚 10 倍时间才学会；α=0 时所有模态同时学会（定律失效）。</p>
+<div class="card">
+  <div class="controls">
+    <label>谱定律指数 α = <span id="alphaVal">1.00</span>　<input type="range" id="alpha" min="0" max="1.5" step="0.05" value="1"></label>
+    <span class="note">α≈1：线性/MLP 理论预测　·　α≈0：宽 CNN-UNet 实测（谱偏置消失）</span>
+  </div>
+  <svg id="fig2" width="1000" height="330" viewBox="0 0 1000 330"></svg>
+  <div class="legend">左：训练数据谱 λ<sub>k</sub>（log-log）。右：预测的模态涌现时间 τ*<sub>k</sub>（log-log）。点颜色与模态序号一一对应。</div>
+</div>
+
+<!-- ============ Section 3 ============ -->
+<h2><span class="no">03 · 训练中实际发生什么</span>逐模态的方差轨迹 λ̃<sub>k</sub>(τ)</h2>
+<p class="explain">这就是"投影回去"之后你实际会画出来的图：横轴训练步数（log），纵轴是各模态上生成样本的方差（log）。每条 S 形曲线是一个模态从"噪声水平"爬升到"目标方差 λ<sub>k</sub>"的过程。<b>按 ▶ 扫过训练时间，看哪些模态已经"涌现"。</b>切换两个 regime，直观感受 Wang &amp; Pehlevan 的核心对比：</p>
+<div class="card">
+  <div class="controls">
+    <span class="seg" id="regime">
+      <button data-r="mlp" class="on">MLP regime（α≈1，有序涌现）</button>
+      <button data-r="cnn">宽 CNN-UNet regime（α≈0，近同时涌现）</button>
+    </span>
+    <label>训练步 τ = <span id="tauVal">10²·⁰</span>　<input type="range" id="tau" min="10" max="60" step="0.5" value="10"></label>
+    <button id="play" style="font:12px ui-monospace,Menlo,monospace;padding:5px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;">▶ 播放</button>
+  </div>
+  <svg id="fig3" width="1000" height="380" viewBox="0 0 1000 380"></svg>
+  <div class="legend" id="fig3status"></div>
+</div>
+<div class="takeaway"><b>对你 ISM 的含义</b>：你的配置是 3–6 输入通道 + U-Net base ch=128（通道比 21–43），落在论文 ablation 里"谱偏置基本消失"的区间。如果该结论迁移到城市数据，你看到的会是<b>右图形态</b>——模态几乎同时涌现——而不是 Bonnaire 式 MLP 实验里"先轮廓后细节"的渐进形态。这直接影响早期 checkpoint 应该多密、以及 generalization window 应该预期什么形状。</div>
+
+<!-- ============ Section 4 ============ -->
+<h2><span class="no">04 · 谱理论为什么是必要的</span>从"观察到稳定"到"预测何时稳定"</h2>
+<p class="explain">你 0417 版 methodology 里用 CV（<b>变异系数</b> coefficient of variation = std/mean，<b>不是</b> covariance 协方差）跨 checkpoint 追踪统计量的稳定性，稳定的判定为"irreducible"。问题：<b>任何统计量都可能因为偶然原因显得稳定</b>——初始值恰好接近目标、指标不灵敏、或者早就饱和——CV 本身说不出"为什么是它稳定"。谱理论补的是因果机制：</p>
+<div class="flow">
+  <div class="step"><b>没有理论（纯 CV）</b>"这个统计量跨 checkpoint 稳定" → 它是本质结构？还是伪影？无法区分，只能事后描述</div>
+  <div class="arr">→</div>
+  <div class="step"><b>有谱理论</b>预测：稳定应该<b>按方差从大到小有序到来</b>，时间服从 τ* ∝ λ<sup>−α</sup></div>
+  <div class="arr">→</div>
+  <div class="step"><b>可证伪</b>实测 λ̃<sub>k</sub>(τ) 若符合有序预测 → "稳定"是数据谱的反映；若不符合 → 发生的是别的事（如卷积局域性主导），这本身是 finding</div>
+</div>
+<p class="explain">这就是"谱即预测器"的操作含义：训练前做一次 PCA（你 methodology 里本就计划了 pre-encoding analysis），先写下预测的涌现顺序和时间尺度；训练后拿实测轨迹对照。<b> methodology 从纯观察升级为假设检验，而且成本只是一次特征分解加一个分析脚本，不需要重训。</b></p>
+<p class="note">边界提醒：理论假设（线性网络、full-batch 梯度流、各噪声尺度权重独立）在你的 setting 全部违反；作者自己的 MLP 实验显示结论定性稳健但指数衰减（α 从 ≈1 降到 0.35–0.48）。所以你在城市数据上拟合出的 α 本身就是结果：α≈1 → 数据行为接近高斯 regime；α≈0 → 卷积局域性主导；中间值也有信息量。另外该框架只覆盖二阶统计（协方差），你的 inter-channel synergy 分析捕捉的非线性耦合超出其射程，两者是正交互补而非替代。</p>
+
+</div>
+
+<script>
+// ---------- 共享工具 ----------
+const N_MODES = 48;
+const lam = k => 120 * Math.pow(k, -1.2);          // 幂律谱 λ_k，k 从 1 开始
+const LAM_MAX = lam(1);
+const TAU_MIN = 100;                                // 最高方差模态的涌现时间（步）
+const tauStar = (k, alpha) => TAU_MIN * Math.pow(LAM_MAX / lam(k), alpha);
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); return e; }
+function logScale(v, vmin, vmax, pmin, pmax){ // log10 线性映射
+  const t = (Math.log10(v) - Math.log10(vmin)) / (Math.log10(vmax) - Math.log10(vmin));
+  return pmin + t * (pmax - pmin);
+}
+function modeColor(k){ // k: 1..N_MODES，从深绿到橙
+  const t = (k - 1) / (N_MODES - 1);
+  const a = [36,64,59], b = [179,84,30];
+  const c = a.map((v,i)=>Math.round(v + (b[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function axes(svg, x0,y0,x1,y1, xlabel, ylabel, xticks, yticks, xfmt, yfmt, logx=true){
+  svg.appendChild(el('line',{x1:x0,y1:y1,x2:x1,y2:y1,stroke:'#999','stroke-width':1}));
+  svg.appendChild(el('line',{x1:x0,y1:y0,x2:x0,y2:y1,stroke:'#999','stroke-width':1}));
+  xticks.forEach(v=>{
+    const x = logx ? logScale(v, xticks[0], xticks[xticks.length-1], x0, x1) : x0 + (v-xticks[0])/(xticks[xticks.length-1]-xticks[0])*(x1-x0);
+    svg.appendChild(el('line',{x1:x,y1:y1,x2:x,y2:y1+5,stroke:'#999'}));
+    const t = el('text',{x:x,y:y1+18,'text-anchor':'middle','font-size':11,fill:'#666','font-family':'ui-monospace,Menlo,monospace'});
+    t.textContent = xfmt(v); svg.appendChild(t);
+  });
+  yticks.forEach(v=>{
+    const y = logScale(v, yticks[0], yticks[yticks.length-1], y1, y0);
+    svg.appendChild(el('line',{x1:x0-5,y1:y,x2:x0,y2:y,stroke:'#999'}));
+    const t = el('text',{x:x0-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#666','font-family':'ui-monospace,Menlo,monospace'});
+    t.textContent = yfmt(v); svg.appendChild(t);
+  });
+  const xl = el('text',{x:(x0+x1)/2,y:y1+36,'text-anchor':'middle','font-size':12,fill:'#333'});
+  xl.textContent = xlabel; svg.appendChild(xl);
+  const yl = el('text',{x:x0-44,y:(y0+y1)/2,'text-anchor':'middle','font-size':12,fill:'#333',transform:`rotate(-90 ${x0-44} ${(y0+y1)/2})`});
+  yl.textContent = ylabel; svg.appendChild(yl);
+}
+const fmtPow = v => '10' + toSup(Math.round(Math.log10(v)));
+function toSup(n){ return String(n).split('').map(d=>({'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'})[d]).join(''); }
+
+// ---------- Fig 2: 谱 → 时间表 ----------
+const fig2 = document.getElementById('fig2');
+function drawFig2(alpha){
+  fig2.innerHTML = '';
+  // 左图：谱
+  const L={x0:56,y0:26,x1:440,y1:280}, R={x0:586,y0:26,x1:970,y1:280};
+  axes(fig2, L.x0,L.y0,L.x1,L.y1, '模态序号 k（按方差降序）','特征值 λₖ',
+       [1,3,10,30,48],[0.01,0.1,1,10,100], v=>v, fmtPow, false);
+  axes(fig2, R.x0,R.y0,R.x1,R.y1, '目标方差 λₖ','预测涌现时间 τ*ₖ',
+       [0.01,0.1,1,10,100],[100,300,1000,3000,10000,30000], fmtPow, fmtPow);
+  // 谱曲线
+  let d='';
+  for(let k=1;k<=N_MODES;k++){
+    const x = L.x0 + (k-1)/(N_MODES-1)*(L.x1-L.x0);
+    const y = logScale(lam(k), 0.01, 100, L.y1, L.y0);
+    d += (k===1?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+  }
+  fig2.appendChild(el('path',{d:d,fill:'none',stroke:'#24403b','stroke-width':2}));
+  // 右图散点 + 拟合线
+  let d2='';
+  for(let k=1;k<=N_MODES;k++){
+    const x = logScale(lam(k), 0.01, 100, R.x0, R.x1);
+    const y = logScale(tauStar(k,alpha), 100, 30000, R.y1, R.y0);
+    d2 += (k===1?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+    fig2.appendChild(el('circle',{cx:x,cy:y,r:3.2,fill:modeColor(k),opacity:0.9}));
+  }
+  fig2.appendChild(el('path',{d:d2,fill:'none',stroke:'#b3541e','stroke-width':1.6,'stroke-dasharray':'4 3'}));
+  // 标注 τ 比值
+  const ratio = Math.pow(10, alpha);
+  const an = el('text',{x:R.x0+14,y:R.y0+18,'font-size':12.5,fill:'#b3541e','font-family':'ui-monospace,Menlo,monospace'});
+  an.textContent = `方差差 10× → 时间差 ${ratio.toFixed(1)}×`;
+  fig2.appendChild(an);
+}
+const alphaSlider = document.getElementById('alpha');
+alphaSlider.addEventListener('input', ()=>{
+  document.getElementById('alphaVal').textContent = (+alphaSlider.value).toFixed(2);
+  drawFig2(+alphaSlider.value);
+});
+drawFig2(1);
+
+// ---------- Fig 3: 方差轨迹 ----------
+const fig3 = document.getElementById('fig3');
+const SHOW = [1,2,3,5,8,13,21,34,48];   // 抽 9 个模态展示
+const LAM_INIT = 0.02;                   // 初始（噪声）方差，统一
+let regime = 'mlp';
+const tauSlider = document.getElementById('tau');
+let playing = false, playTimer = null;
+
+function currentTau(){ return Math.pow(10, tauSlider.value/10); } // 10^1 .. 10^6
+function alphaOf(){ return regime==='mlp' ? 1.0 : 0.02; }
+
+function drawFig3(){
+  fig3.innerHTML = '';
+  const A={x0:64,y0:24,x1:952,y1:328};
+  const alpha = alphaOf();
+  const tau = currentTau();
+  const TMIN=10, TMAX=1e6;
+  axes(fig3, A.x0,A.y0,A.x1,A.y1, '训练步 τ（log）','该模态上生成样本的方差 λ̃ₖ(τ)（log）',
+       [10,100,1000,10000,100000,1000000],[0.01,0.1,1,10,100], fmtPow, fmtPow);
+  let emerged = 0;
+  SHOW.forEach(k=>{
+    const target = lam(k), ts = tauStar(k, alpha);
+    const w = 0.35; // sigmoid 宽度（log10 步）
+    // 轨迹：log 空间 sigmoid
+    let d='';
+    for(let i=0;i<=120;i++){
+      const t = Math.pow(10, 1 + i/120*5);
+      const s = 1/(1+Math.exp(-(Math.log10(t)-Math.log10(ts))/w));
+      const v = LAM_INIT*Math.pow(target/LAM_INIT, s);
+      const x = logScale(t, TMIN, TMAX, A.x0, A.x1);
+      const y = logScale(v, 0.01, 100, A.y1, A.y0);
+      d += (i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+    }
+    fig3.appendChild(el('path',{d:d,fill:'none',stroke:modeColor(k),'stroke-width':2,opacity:0.85}));
+    // 目标线
+    const yT = logScale(target, 0.01, 100, A.y1, A.y0);
+    fig3.appendChild(el('line',{x1:A.x0,y1:yT,x2:A.x1,y2:yT,stroke:modeColor(k),'stroke-width':0.6,'stroke-dasharray':'2 4',opacity:0.45}));
+    // 当前 τ 下的值 + 标签
+    const s = 1/(1+Math.exp(-(Math.log10(tau)-Math.log10(ts))/w));
+    const vNow = LAM_INIT*Math.pow(target/LAM_INIT, s);
+    if (vNow > Math.sqrt(LAM_INIT*target)) emerged++;
+    const yN = logScale(vNow, 0.01, 100, A.y1, A.y0);
+    fig3.appendChild(el('circle',{cx:logScale(tau,TMIN,TMAX,A.x0,A.x1),cy:yN,r:4.5,fill:modeColor(k),stroke:'#fff','stroke-width':1.2}));
+    const lab = el('text',{x:A.x1+6,y:yT+4,'font-size':10.5,fill:modeColor(k),'font-family':'ui-monospace,Menlo,monospace'});
+    lab.textContent = 'k='+k; fig3.appendChild(lab);
+  });
+  // 时间扫线
+  const xT = logScale(tau, TMIN, TMAX, A.x0, A.x1);
+  fig3.appendChild(el('line',{x1:xT,y1:A.y0,x2:xT,y2:A.y1,stroke:'#1a1d21','stroke-width':1.4,'stroke-dasharray':'6 4'}));
+  const cap = el('text',{x:xT,y:A.y0-8,'text-anchor':'middle','font-size':12,fill:'#1a1d21','font-family':'ui-monospace,Menlo,monospace'});
+  cap.textContent = 'τ = '+fmtPow(Math.round(Math.log10(tau))); fig3.appendChild(cap);
+  document.getElementById('fig3status').textContent =
+    `虚线 = 各模态目标方差 λₖ（由训练数据谱决定）。当前 τ 下已涌现模态：${emerged}/${SHOW.length}` +
+    (regime==='cnn' ? '　← 注意：α≈0 时所有模态几乎同时跨过涌现线，"先轮廓后细节"不成立' : '　← α≈1：高方差模态（k 小，深绿）先涌现，低方差（k 大，橙）晚几个数量级');
+}
+document.getElementById('regime').addEventListener('click', e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  regime = e.target.dataset.r;
+  document.querySelectorAll('#regime button').forEach(b=>b.classList.toggle('on', b===e.target));
+  drawFig3();
+});
+tauSlider.addEventListener('input', ()=>{
+  document.getElementById('tauVal').textContent = '10'+toSup((tauSlider.value/10).toFixed(1)).replace('⁻','-');
+  drawFig3();
+});
+document.getElementById('play').addEventListener('click', function(){
+  if(playing){ clearInterval(playTimer); playing=false; this.textContent='▶ 播放'; return; }
+  playing=true; this.textContent='⏸ 暂停';
+  playTimer = setInterval(()=>{
+    tauSlider.value = +tauSlider.value + 0.5;
+    if(+tauSlider.value >= 60){ tauSlider.value = 10; }
+    tauSlider.dispatchEvent(new Event('input'));
+  }, 90);
+});
+drawFig3();
+</script>
+</body>
+</html>
