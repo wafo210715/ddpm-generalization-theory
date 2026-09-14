@@ -32,7 +32,9 @@ OUT.mkdir(parents=True, exist_ok=True)
 UTM = 3405
 MOSAIC_PER_TILE = 8
 
-CMAP = {"building_binary":"bone","building_density":"bone","building_height":"magma",
+# Footprints read as a figure-ground plan, so buildings are dark on a light
+# ground -- the Nolli convention anyone who knows the city will expect.
+CMAP = {"building_binary":"gray_r","building_density":"bone_r","building_height":"magma",
         "far":"inferno","building_form":"cividis","road_density":"pink",
         "intersection":"copper","transit_access":"YlOrBr","poi_count":"viridis",
         "poi_entropy":"mako" if "mako" in mpl.colormaps else "viridis",
@@ -191,6 +193,45 @@ def main():
     nx, ny = nxt * MOSAIC_PER_TILE, nyt * MOSAIC_PER_TILE
     print(f"\nmosaic: {nxt} x {nyt} tiles -> {nx} x {ny} units at {(maxx-minx)/nx:.0f} m", flush=True)
     M = compute(ctx, minx, miny, maxx, maxy, nx, ny)
+
+    # At 150 m the built-form layers cannot be point-sampled.  Rasterising asks
+    # "is a building under this pixel centre", and a 60 m2 building almost never
+    # contains the centre of a 150 m cell, so footprints come out a 2 % speckle
+    # instead of the city.  At the sampling unit the same code is right; at this
+    # size the honest quantity is coverage by AREA, summed per cell.
+    print("re-deriving built form by area for the mosaic …", flush=True)
+    import pandas as pd
+    res_x = (maxx - minx) / nx; res_y = (maxy - miny) / ny
+    cell_km2 = (res_x * res_y) / 1e6
+
+    def binned(gdf, weight=None):
+        c = gdf.geometry.centroid
+        ix = ((c.x - minx) / res_x).astype(int)
+        iy = ((maxy - c.y) / res_y).astype(int)
+        ok = (ix >= 0) & (ix < nx) & (iy >= 0) & (iy < ny)
+        w = (np.ones(len(gdf)) if weight is None else gdf[weight].astype(float).values)
+        out = np.zeros(ny * nx, dtype="float64")
+        np.add.at(out, (iy.values[ok] * nx + ix.values[ok]), w[ok])
+        return out.reshape(ny, nx)
+
+    blds_m = gpd.read_parquet(RAW / "overture_2025/buildings.parquet").to_crs(UTM)
+    blds_m["_a"] = blds_m.geometry.area
+    area = binned(blds_m, "_a")
+    count = binned(blds_m)
+    cov = np.clip(area / (res_x * res_y), 0, 1).astype("float32")
+    M["building_binary"] = cov                      # coverage fraction, by area
+    M["building_density"] = cov
+    M["building_form"] = np.where(count > 0, area / np.maximum(count, 1), 0).astype("float32")
+
+    hts_m = gpd.read_parquet(RAW / "heights_3dglobfp_2025.parquet").to_crs(UTM)
+    hts_m["_a"] = hts_m.geometry.area
+    hts_m["_ah"] = hts_m["_a"] * hts_m["Height"].astype(float)
+    ha = binned(hts_m, "_a"); hah = binned(hts_m, "_ah")
+    mean_h = np.where(ha > 0, hah / np.maximum(ha, 1e-9), 0)
+    M["building_height"] = mean_h.astype("float32")           # area-weighted mean
+    M["far"] = (np.clip(ha / (res_x * res_y), 0, 1) * mean_h / 3.0).astype("float32")
+    print(f"  mosaic coverage: mean {cov.mean():.3f}, max {cov.max():.3f}, "
+          f"cells with any building {(cov>0).mean()*100:.1f} %", flush=True)
 
     # mask to the city
     from rasterio.features import geometry_mask

@@ -40,7 +40,7 @@ def render(a, name, mask):
     lo, hi = float(np.percentile(sel, 1)), float(np.percentile(sel, 99))
     n = np.clip((np.nan_to_num(a) - lo) / max(hi - lo, 1e-6), 0, 1)
     rgb = (mpl.colormaps[CMAP.get(name, "viridis")](n)[..., :3] * 255).astype("uint8")
-    rgb[~mask] = 245                                            # outside the area
+    rgb[~mask] = 222                                            # outside: grey, distinct from white ground
     buf = io.BytesIO()
     # Footprints are a hard-edged mask, where PNG is both smaller and sharper.
     # Everything else is a continuous field, where JPEG is several times smaller

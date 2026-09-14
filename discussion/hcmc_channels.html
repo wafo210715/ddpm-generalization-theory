@@ -126,6 +126,12 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
   own a different part of the city. <strong>This image is a rendering size, not a sampling unit.</strong>
   At the real 1.17 m unit the city would be about 580 000 pixels across, so the whole-city view is
   drawn at eight units per tile and the tile renders below carry the actual grain.</p>
+  <p class="body"><strong>The built-form layers are measured differently here than below</strong>,
+  and they have to be. At 150 m, asking "is a building under this point" samples a pixel centre, and
+  a 60 m² building almost never contains it — done that way the city came out a 2 % speckle. So at
+  this size footprints are <em>coverage by area</em> per cell, height is an area-weighted mean, and
+  floor-area ratio follows from both. At the sampling unit below, where a building spans several
+  pixels, the binary field is the right question and is what you see there.</p>
   <div class="maprow">
     <div class="mapbox">
       <div class="chips" id="mapchips"></div>
