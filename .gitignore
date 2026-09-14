@@ -244,3 +244,8 @@ __marimo__/
 # Nested Repositories (not project code)
 # -------------------------------------------
 references/RegionDCL/
+
+# -------------------------------------------
+# Papers: kept locally, not redistributed here
+# -------------------------------------------
+discussion/*.pdf
