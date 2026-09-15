@@ -1,0 +1,221 @@
+<title>The B6 Ring Checkpoint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+:root{
+  --ground:#F3F5F6; --surface:#FFFFFF; --surface2:#E9EDEF; --sunken:#DDE3E6;
+  --ink:#12161A; --ink2:#39444C; --muted:#667179; --rule:#DCE1E4; --rule2:#C3CBD0;
+  --accent:#1C5E86; --on-accent:#FFFFFF;
+  --yes:#226644; --yes-bg:#E3EFE8; --no:#8F372F; --no-bg:#F6E6E4;
+  --dot:#1C5E86; --ring:#B8860B;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#0A0E10;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+  --yes:#63BE8B; --yes-bg:#142619; --no:#E08A80; --no-bg:#2C1A18;
+  --dot:#6FB4DE; --ring:#D9A445;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#0A0E10;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+  --yes:#63BE8B; --yes-bg:#142619; --no:#E08A80; --no-bg:#2C1A18;
+  --dot:#6FB4DE; --ring:#D9A445;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:38px 22px 78px;display:flex;flex-direction:column;gap:40px}
+h1{font-size:clamp(27px,3.5vw,37px);margin:0;font-weight:700;letter-spacing:-.025em;text-wrap:balance}
+h2{font-size:20px;margin:0;font-weight:600;letter-spacing:-.01em}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lede{font-family:Newsreader,Georgia,serif;font-size:17.5px;line-height:1.6;color:var(--ink2);max-width:68ch;margin:0}
+.lede strong{color:var(--ink);font-weight:500}
+header{display:flex;flex-direction:column;gap:13px}
+section{display:flex;flex-direction:column;gap:16px}
+.shead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule2);padding-bottom:8px}
+.shead .note{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted)}
+p.body{font-family:Newsreader,Georgia,serif;font-size:16px;line-height:1.62;color:var(--ink2);max-width:76ch;margin:0}
+p.body strong{color:var(--ink);font-weight:500}
+code{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--surface2);padding:1px 4px;border-radius:2px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:18px}
+.rule-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.rulecard{background:var(--surface2);border-radius:4px;padding:13px 15px;display:flex;flex-direction:column;gap:6px}
+.rulecard b{font-size:13.5px}
+.rulecard span{font-size:13px;color:var(--ink2);line-height:1.45}
+.verdict{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:2px;align-self:flex-start}
+.verdict.y{color:var(--yes);background:var(--yes-bg)} .verdict.n{color:var(--no);background:var(--no-bg)}
+figure{margin:0}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;max-width:76ch}
+.grid{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th,td{padding:8px 9px;text-align:left;vertical-align:top}
+thead th{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--rule2);white-space:nowrap}
+tbody td{border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+.srclab{font-weight:600;font-size:13.5px;white-space:nowrap}
+.srclab span{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);font-weight:400;margin-top:3px}
+.cellimg{width:100%;max-width:150px;aspect-ratio:1;display:block;border-radius:3px;background:var(--sunken);image-rendering:pixelated}
+.pct{font-family:"JetBrains Mono",monospace;font-size:12px;font-variant-numeric:tabular-nums;margin-top:5px;display:block}
+.pct.hi{color:var(--yes)} .pct.lo{color:var(--no)} .pct.mid{color:var(--ink2)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);align-items:center}
+.legend i{width:13px;height:13px;border-radius:2px;display:inline-block;vertical-align:-2px;margin-right:6px}
+.tilepick{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink2);border:1px solid var(--rule2);border-radius:3px;padding:4px 10px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.call{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.call h3{margin:0;font-size:15.5px;font-weight:600}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-wrap:wrap;gap:4px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">B6 · the checkpoint that decided the ring radius</div>
+  <h1>Where a Diversity Ring Is Defined</h1>
+  <p class="lede">B6 asks one question of every unit in the city: <strong>put a ring around it, and
+  does that ring hold enough to compute a mix at all?</strong> The answer set the ring radius for the
+  whole pipeline, and on the wrong data it set it wrong.</p>
+</header>
+
+<section>
+  <div class="shead"><h2>The test, on one unit</h2>
+    <span class="note">Shannon entropy needs two places in two categories</span></div>
+  <p class="body">Entropy over a ring is <code>−Σ p·log p</code> across the categories present. With
+  one place there is a single category at p = 1 and the entropy is zero. With none it is undefined.
+  Neither is a measurement of mixed use, but both get written as zero, so a channel can look calm and
+  be empty. The checkpoint counts how often the ring is <em>non-degenerate</em>.</p>
+  <div class="panel">
+    <svg viewBox="0 0 700 208" role="img" width="100%" style="max-width:700px;display:block;margin:0 auto"
+         aria-label="Three units with rings: empty, one category, and two categories">
+      <defs><style>
+        .u{fill:var(--ink)} .r{fill:none;stroke:var(--ring);stroke-width:1.6;stroke-dasharray:4 3}
+        .d{fill:var(--dot)} .d2{fill:var(--yes)} .lab{font:500 12px Archivo,sans-serif;fill:var(--ink2)}
+        .cap{font:600 12.5px Archivo,sans-serif} .r-m{font:11px "JetBrains Mono",monospace;fill:var(--muted)}
+      </style></defs>
+      <!-- case 1 -->
+      <circle cx="110" cy="92" r="52" class="r"/><circle cx="110" cy="92" r="3.4" class="u"/>
+      <text x="110" y="168" text-anchor="middle" class="cap" fill="var(--no)">undefined</text>
+      <text x="110" y="186" text-anchor="middle" class="r-m">0 places</text>
+      <!-- case 2 -->
+      <circle cx="350" cy="92" r="52" class="r"/><circle cx="350" cy="92" r="3.4" class="u"/>
+      <circle cx="326" cy="70" r="4.6" class="d"/><circle cx="376" cy="104" r="4.6" class="d"/>
+      <text x="350" y="168" text-anchor="middle" class="cap" fill="var(--no)">entropy = 0</text>
+      <text x="350" y="186" text-anchor="middle" class="r-m">2 places, 1 category</text>
+      <!-- case 3 -->
+      <circle cx="590" cy="92" r="52" class="r"/><circle cx="590" cy="92" r="3.4" class="u"/>
+      <circle cx="566" cy="70" r="4.6" class="d"/><circle cx="614" cy="106" r="4.6" class="d2"/>
+      <circle cx="606" cy="66" r="4.6" class="d"/>
+      <text x="590" y="168" text-anchor="middle" class="cap" fill="var(--yes)">defined</text>
+      <text x="590" y="186" text-anchor="middle" class="r-m">3 places, 2 categories</text>
+      <text x="110" y="24" text-anchor="middle" class="lab">the ring is empty</text>
+      <text x="350" y="24" text-anchor="middle" class="lab">everything is one kind</text>
+      <text x="590" y="24" text-anchor="middle" class="lab">a mix exists to measure</text>
+    </svg>
+    <div class="rule-row" style="margin-top:16px">
+      <div class="rulecard"><span class="verdict n">written as zero</span><b>Empty ring</b>
+        <span>No places. Entropy has nothing to sum, so the pilot wrote zero — the same value a
+        genuinely uniform place would get.</span></div>
+      <div class="rulecard"><span class="verdict n">written as zero</span><b>One category</b>
+        <span>A real zero: no mix. Indistinguishable downstream from the empty case above.</span></div>
+      <div class="rulecard"><span class="verdict y">a measurement</span><b>Two or more</b>
+        <span>Only here does the number mean what the indicator claims. B6 counts the share of units
+        that reach this.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>The same tiles, both sources, four radii</h2>
+    <span class="note" id="tnote"></span></div>
+  <p class="body">Green is where entropy is defined. Rows are the data source, columns the ring
+  radius. <strong>The two rows are the same city.</strong> Everything that differs between them is a
+  property of the map, not of the ground.</p>
+  <div class="tilepick" id="tilepick"></div>
+  <div class="legend">
+    <span><i style="background:var(--dot)"></i>a place, coloured by nothing</span>
+    <span><i style="background:#226644"></i>ring is non-degenerate</span>
+    <span><i style="background:#F0F2F3;border:1px solid var(--rule2)"></i>undefined, written as zero</span>
+  </div>
+  <figure class="grid"><table>
+    <thead><tr><th>Source</th><th>Places in the tile</th><th id="h0"></th><th id="h1"></th><th id="h2"></th><th id="h3"></th></tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+  <figcaption id="cap"></figcaption></figure>
+</section>
+
+<div class="call">
+  <h3>What the picture shows that the number does not</h3>
+  <p class="body"><strong>In the dense core the difference is total.</strong> The densest tile in the
+  city holds 2 places in OpenStreetMap and 681 in Overture. At a 50 m ring that is 0.0 % of units
+  defined against 60.0 %. The checkpoint was not measuring whether this city has mixed use; it was
+  measuring whether anyone had mapped it.</p>
+  <p class="body"><strong>But move off the core and both sources thin out fast</strong>, and this
+  corrects something I said earlier. A like-for-like re-run on B6's original 138 tiles gave 57 % at
+  50 m on Overture, and I reported that the ring could come back in to 100 m. Those 138 tiles are the
+  ones OpenStreetMap had mapped densely — the central, well-surveyed part of the city — so they are a
+  biased sample of the dataset, not a representative one. Across the 3 020 tiles that actually hold
+  a hundred buildings or more, the inner-urban tile above has 26 places and the outer-urban tile has
+  2. <strong>The ring radius is still not settled, and it still depends on which tiles the dataset is
+  made of</strong> — which is what B6 said in the first place.</p>
+  <p class="body"><strong>Widening the ring fixes the number, and that is the trap.</strong> Watch the
+  green grow in the 300 m column: it arrives as unions of discs around a few clusters. A unit counts
+  as defined because it is near a mapped cluster, so the channel is largely reporting distance to the
+  nearest cluster — which the accessibility channel already measures. The pilot's 0.88 correlation
+  between diversity and accessibility has its mechanism right there in the picture.</p>
+  <p class="body"><strong>So what the checkpoint now supports</strong> is narrower than "Overture
+  fixes it". It fixes the core outright. Elsewhere the honest options are unchanged: a wider ring and
+  an explicit note that the channel then encodes proximity to clusters, a plain count instead of
+  entropy, restricting the dataset to tiles where the channel is defined, or treating diversity as a
+  cell condition rather than a grid.</p>
+</div>
+
+<footer>
+  <span>Places from Overture Maps and OpenStreetMap, both folded into the same 11 functional classes. Tiles are zoom-15, 1 201 m, sampled at 320 units.</span>
+  <span>Reproduce: <code>scripts/figure_b6.py</code></span>
+</footer>
+</div>
+
+<script src="b6_figure_data.js"></script>
+<script>
+(function(){
+  var D = window.B6, RAD = D.radii, cur = 0;
+  function cls(p){ return p >= 60 ? "hi" : p >= 20 ? "mid" : "lo"; }
+  RAD.forEach(function(r,i){ document.getElementById("h"+i).textContent = r + " m ring"; });
+
+  document.getElementById("tilepick").innerHTML = D.tiles.map(function(t,i){
+    return '<button class="chip" data-i="'+i+'" aria-pressed="'+(i===cur)+'">'+t.label+
+           ' · '+t.buildings.toLocaleString()+' buildings</button>';}).join("");
+
+  function paint(){
+    var t = D.tiles[cur];
+    document.getElementById("tnote").textContent =
+      "tile " + t.cell_id.replace(/^15_/,"") + " · " + t.label;
+    document.getElementById("body").innerHTML = ["OpenStreetMap","Overture"].map(function(src){
+      var s = t.sources[src];
+      return '<tr><td class="srclab">'+src+
+        '<span>'+s.classes+' of 11 classes present</span></td>'+
+        '<td><img class="cellimg" alt="places in the tile from '+src+'" src="data:image/png;base64,'+s.dots+'">'+
+        '<span class="pct mid">'+s.places.toLocaleString()+' places</span></td>'+
+        RAD.map(function(r){
+          var p = s.share[String(r)];
+          return '<td><img class="cellimg" alt="where entropy is defined at '+r+' m, '+src+
+                 '" src="data:image/png;base64,'+s.masks[String(r)]+'">'+
+                 '<span class="pct '+cls(p)+'">'+p.toFixed(1)+'% defined</span></td>';
+        }).join("")+'</tr>';
+    }).join("");
+    var o = t.sources["OpenStreetMap"], v = t.sources["Overture"];
+    document.getElementById("cap").textContent =
+      "On this tile OpenStreetMap holds " + o.places.toLocaleString() + " places and Overture " +
+      v.places.toLocaleString() + ". At a 50 m ring that is " + o.share["50"].toFixed(1) +
+      " % of units defined against " + v.share["50"].toFixed(1) + " %.";
+    Array.prototype.forEach.call(document.querySelectorAll("#tilepick .chip"), function(c){
+      c.setAttribute("aria-pressed", String(+c.dataset.i === cur)); });
+  }
+  document.getElementById("tilepick").addEventListener("click", function(e){
+    var b = e.target.closest(".chip"); if(!b) return; cur = +b.dataset.i; paint(); });
+  paint();
+})();
+</script>
