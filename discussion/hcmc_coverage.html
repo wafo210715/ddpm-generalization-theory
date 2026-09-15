@@ -76,8 +76,8 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
   <h1>Place and Imagery Coverage</h1>
   <p class="lede">Where the destination data actually is, drawn on the tile grid rather than
   summarised. One pixel is one tile, so the shape is the municipality and the value is what a cell
-  would receive. <strong>Street view is the honest blank here</strong>: nothing has been fetched, and
-  the last section says exactly what it needs.</p>
+  would receive. Places and street view imagery are both here, each drawn the same way, so
+  what one source covers and another misses is visible rather than argued.</p>
 </header>
 
 <div class="stats" id="stats"></div>
@@ -99,34 +99,35 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
   <p class="body" id="readout"></p>
 </section>
 
+<section>
+  <div class="shead"><h2>Street view imagery per tile</h2>
+    <span class="note" id="svnote"></span></div>
+  <p class="body">Surveyed across all 5 170 cells from Mapillary's zoom-14 image tiles, which
+  partition exactly into our grid. Same log scale as the place maps above, so the three are directly
+  comparable. The second map is the capture year of the median image in each cell, which matters
+  because a city rebuilding this fast makes 2018 imagery and 2025 imagery different measurements.</p>
+  <div class="maps" id="svmaps"></div>
+  <table style="margin-top:4px"><thead><tr><th>Images in the tile</th><th>Cells</th><th></th></tr></thead>
+    <tbody id="svbrackets"></tbody></table>
+  <p class="body" id="svreadout"></p>
+</section>
+
 <div class="panel gapnote">
-  <h3>Street view: no data points yet, and one thing is needed</h3>
-  <p class="body"><strong>We hold no street view imagery locations.</strong> Nothing has been
-  fetched, there is no Mapillary credential on this machine, and the coverage claims made earlier in
-  this project came from a probe run with Mapillary's own published demo token — fine for ninety
-  read-only requests, not a basis for surveying five thousand tiles.</p>
-  <p class="body">What is known so far is second-hand but specific: a ridesharing company put roughly
-  9 million images across 27 000 km of Hanoi and Ho Chi Minh City onto Mapillary from April 2023,
-  shot on helmet cameras from scooters, and a sampled probe found imagery in 94 to 100 % of 150 m
-  cells inside several dense alley districts. That is encouraging and it is not a coverage map.</p>
-  <ol class="steps">
-    <li><b>Register a free token</b> at the Mapillary developer dashboard. It takes about two
-      minutes, needs no payment and no approval step.</li>
-    <li><b>Paste it here</b>, or put it in the environment as <code>MAPILLARY_TOKEN</code>.</li>
-  </ol>
-  <p class="body">With that I would produce the same three things this page does for places, so the
-  two are directly comparable:</p>
-  <div class="willdo">
-    <div><b>Images per tile</b>Counted across all 5 170 tiles, on the same grid and the same log
-      scale as the maps above.</div>
-    <div><b>Alley versus arterial</b>Whether coverage follows the hẻm or only the main roads, which
-      is the question that decides the perception layer.</div>
-    <div><b>Capture date per tile</b>Because imagery from 2019 and imagery from 2024 are different
-      measurements of a city that rebuilds this fast.</div>
-  </div>
-  <p class="body" style="font-size:15px">The binding limit is 50 000 tile requests per day, which is
-  comfortably above what a survey of 5 170 tiles needs, so this is an afternoon's work once the token
-  exists.</p>
+  <h3>What this does and does not license</h3>
+  <p class="body"><strong>Where imagery exists it is abundant and current.</strong> The median
+  covered cell holds 1 535 images, 60 % are panoramic, and the median image in 1 678 of the 1 930
+  covered cells was taken in 2023 or later. For a perception layer that is a good position: enough
+  frames per cell to sample from, and recent enough to describe the city as it now stands.</p>
+  <p class="body"><strong>And it is absent from more of the built city than the earlier probe
+  suggested.</strong> I reported before that 94 to 100 % of 150 m cells in several dense districts had
+  imagery. That was true and it was six central districts. Measured across all 2 968 tiles holding a
+  hundred buildings or more, <strong>1 260 have no imagery at all</strong> — 42.5 % of the built
+  city. Coverage correlates 0.64 with building count, which is well below what a layer describing the
+  fabric would score.</p>
+  <p class="body">So perception is buildable for the core and not for the whole study area, which is
+  the same shape of problem as places. The options are the same too: restrict the perception channel
+  to covered cells and say so, treat it as a cell condition where it exists, or accept a channel that
+  is absent across two fifths of the built tiles and let the model see that absence as a value.</p>
 </div>
 
 <footer>
@@ -180,6 +181,39 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
       '<td class="n">'+n(s.n)+'</td>'+
       '<td><div class="barcell b"><i style="width:'+(100*s.n/maxb).toFixed(1)+'%"></i></div></td></tr>';
   }).join("");
+
+  // ---- street view
+  var S = D.sv;
+  document.getElementById("svnote").textContent =
+    n(S.total) + " images · " + S.cells_any + " of " + n(S.cells) + " cells · " + S.pano_pct + " % panoramic";
+  document.getElementById("svmaps").innerHTML = [
+    ["mapillary","Images per tile", n(S.total)+" across the set",
+     ["#000004","#b63679","#fcfdbf"], "0", n(Math.round(S.vmax))+"+"],
+    ["mly_year","Capture year of the median image","covered cells only",
+     ["#00224e","#7c7b78","#fee838"], "2015", "2025"]
+  ].map(function(k){
+    return '<div class="mapcard"><h4>'+k[1]+'</h4><div class="sub">'+k[2]+'</div>'+
+      '<img alt="'+k[1]+' across the city" src="data:image/png;base64,'+D.img[k[0]]+'">'+
+      '<div class="ramp" style="background:linear-gradient(90deg,'+k[3][0]+','+k[3][1]+','+k[3][2]+')"></div>'+
+      '<div class="ends"><span>'+k[4]+'</span><span>'+k[5]+'</span></div></div>';
+  }).join("");
+
+  var svmax = Math.max.apply(null, S.brackets.map(function(b){return b.n}));
+  document.getElementById("svbrackets").innerHTML = S.brackets.map(function(b){
+    return '<tr><td>'+b.label+'</td><td class="n">'+n(b.n)+'</td>'+
+      '<td><div class="barcell"><i style="width:'+(100*b.n/svmax).toFixed(1)+'%"></i></div></td></tr>';
+  }).join("");
+
+  var recent = Object.keys(S.years).filter(function(y){return +y >= 2023})
+                 .reduce(function(a,y){return a + S.years[y]}, 0);
+  document.getElementById("svreadout").innerHTML =
+    "The median covered cell holds <strong>" + n(S.median_per_covered) + " images</strong>, and the median image in " +
+    n(recent) + " of the " + n(S.cells_any) + " covered cells was taken in 2023 or later. " +
+    "But coverage reaches only <strong>" + S.built_covered_pct + " % of the " + n(S.built_tiles) +
+    " tiles holding a hundred buildings or more</strong> — " + n(S.built_zero) +
+    " built-up tiles have no imagery at all. It correlates " + S.spearman_buildings +
+    " with building count and " + S.spearman_places + " with place count, so like places it describes " +
+    "the surveyed city rather than the whole one.";
 
   document.getElementById("readout").innerHTML =
     "On the " + n(D.built_tiles) + " tiles that hold a hundred buildings or more, the median tile has <strong>" +
