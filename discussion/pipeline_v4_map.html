@@ -268,7 +268,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
     <div class="lanes">
     <article class="node action" id="B3">
       <header><span class="code">B3</span><span class="kind">action</span></header>
-      <h3>Buildings at 2 to 3 m: rasterize footprints, binary and density</h3>
+      <h3>Buildings at 2 to 3 m: rasterize footprints, binary and density <span style="display:block;margin-top:6px;padding:8px 10px;border-left:3px solid #b8860b;background:#fdf6e6;color:#4a3a12;font-weight:400;font-size:13.5px;line-height:1.5"><b>Read B3&ndash;B5 as history, 15 Sep.</b> These three steps are one per channel of the pilot&rsquo;s RGB file &mdash; B buildings, R accessibility, G diversity. The &ldquo;six channels&rdquo; elsewhere in this map is that triple with B and G split in two plus one activity layer, which is why they are named B1, B2, R, G1, G2, H. Six was never chosen on the merits. The layer set is now the &ldquo;Have it&rdquo; rows of the data landscape: <b>16 computable, 13 grids and 3 cell conditions</b>, each with its own measurement scale. See <a href="v4_corrections_260915.md">the corrections page</a>.</span></h3>
       <p class="why">Why</p>
       <ul>
         <li>Rowhouses are 4 to 6 m wide and alleys 2 to 4 m. Coarser units fuse them into blocks.</li>
@@ -291,7 +291,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <ul>
         <li>Entropy needs at least two POIs and two categories. At 50 m the pilot channel was 97.5 % zeros.</li>
         <li>Count travels as its own channel, so diversity does not collapse into density.</li>
-        <li>Semantic categories only if OSM coverage holds up. The checkpoint below decides.</li>
+        <li>Semantic categories only if coverage holds up; the checkpoint below decides. <b>Settled 15 Sep:</b> it holds on Overture, and entropy now runs over 11 functional classes in a 300 m ring.</li>
       </ul>
     </article>
     </div>
@@ -304,7 +304,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <h3>Checkpoint: POI-per-ring coverage report</h3>
       <p class="why">Why</p>
       <ul>
-        <li>The fraction of units whose ring is non-degenerate must be high before any training.</li>
+        <li>The fraction of units whose ring is non-degenerate must be high before any training. <b>Ran, and reversed, 15 Sep:</b> on OSM it failed &mdash; 1.1 % of units at a 50 m ring, which is what forced the ring out to 300 m, where the channel largely reports distance to the nearest mapped cluster. On Overture, over the same tiles, it is 57.0 % at 50 m and 79.7 % at 100 m. The sparsity was OSM&rsquo;s, not the city&rsquo;s, and the wide ring is no longer forced.</li>
         <li>You asked for this check explicitly.</li>
       </ul>
     </article>

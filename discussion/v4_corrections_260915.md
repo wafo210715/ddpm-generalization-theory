@@ -103,6 +103,28 @@ in that ring. Per B7 each is computed at four samples across its own scale and
 read onto the common grid — for a 300 m ring at 1024 px that is a 17 × 17 grid,
 the size the pilot already used. `layers.py`
 
+### Where "six channels" came from, since it keeps confusing people
+
+It was never a decision. The pilot wrote one RGB image per cell: **R** road
+accessibility, **G** POI diversity, **B** building density. The v4 map then gave
+each of those its own step — B3 buildings, B4 accessibility, B5 diversity — and
+the "six channels" is that same triple with B and G split in two plus one
+activity layer. Hence the names in `cells_channels_units.html`:
+
+> B1 footprint binary · B2 building density · R road accessibility ·
+> G1 POI diversity · G2 POI count · H night lights
+
+Three colours, doubled, plus one. No indicator was chosen on its merits and no
+count was argued for. An agent reading the map on another machine reported that
+six seemed to come from nowhere, and it did.
+
+B3–B5 should now be read as history: one step per colour of a file format the
+project stopped using at B8. The layer set is the "Have it" rows of the data
+landscape — 16 computable, 13 grids and 3 cell conditions, each with an explicit
+measurement scale.
+
+---
+
 ---
 
 ## 6. Grids and conditions are now sorted by measurement
