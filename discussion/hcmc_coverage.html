@@ -1,0 +1,194 @@
+<title>Place and Imagery Coverage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+:root{
+  --ground:#F3F5F6; --surface:#FFFFFF; --surface2:#E9EDEF; --sunken:#DDE3E6;
+  --ink:#12161A; --ink2:#39444C; --muted:#667179; --rule:#DCE1E4; --rule2:#C3CBD0;
+  --accent:#1C5E86; --on-accent:#FFFFFF;
+  --good:#1B6440; --good-bg:#E3EFE8; --bad:#8F372F; --bad-bg:#F6E6E4;
+  --gap:#8C5E0B; --gap-bg:#F7F0DF;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#0A0E10;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+  --good:#63BE8B; --good-bg:#142619; --bad:#E08A80; --bad-bg:#2C1A18;
+  --gap:#D9A445; --gap-bg:#2A2316;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#0A0E10;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214;
+  --good:#63BE8B; --good-bg:#142619; --bad:#E08A80; --bad-bg:#2C1A18;
+  --gap:#D9A445; --gap-bg:#2A2316;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:38px 22px 78px;display:flex;flex-direction:column;gap:40px}
+h1{font-size:clamp(27px,3.5vw,37px);margin:0;font-weight:700;letter-spacing:-.025em;text-wrap:balance}
+h2{font-size:20px;margin:0;font-weight:600;letter-spacing:-.01em}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lede{font-family:Newsreader,Georgia,serif;font-size:17.5px;line-height:1.6;color:var(--ink2);max-width:70ch;margin:0}
+.lede strong{color:var(--ink);font-weight:500}
+header{display:flex;flex-direction:column;gap:13px}
+section{display:flex;flex-direction:column;gap:16px}
+.shead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule2);padding-bottom:8px}
+.shead .note{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted)}
+p.body{font-family:Newsreader,Georgia,serif;font-size:16px;line-height:1.62;color:var(--ink2);max-width:76ch;margin:0}
+p.body strong{color:var(--ink);font-weight:500}
+code{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--surface2);padding:1px 4px;border-radius:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.stat{background:var(--surface);padding:13px 15px;display:flex;flex-direction:column;gap:3px}
+.stat b{font-family:"JetBrains Mono",monospace;font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted);line-height:1.35}
+.maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.mapcard{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:13px;display:flex;flex-direction:column;gap:9px}
+.mapcard h4{margin:0;font-size:14.5px;font-weight:600}
+.mapcard .sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:-4px}
+.mapcard img{width:100%;height:auto;display:block;border-radius:3px;background:var(--sunken);image-rendering:pixelated}
+.ramp{height:8px;border-radius:2px;border:1px solid var(--rule2)}
+.ends{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted)}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--rule)}
+thead th{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--surface2)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+.barcell{position:relative;height:16px;background:var(--surface2);border-radius:2px;min-width:90px}
+.barcell i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:2px;display:block}
+.barcell.b i{background:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:11px}
+.gapnote{border-left:3px solid var(--gap);background:var(--gap-bg)}
+.gapnote h3{margin:0;font-size:16px;font-weight:600;color:var(--ink)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:14.5px;color:var(--ink2)}
+.steps b{color:var(--ink)}
+.willdo{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:4px}
+.willdo div{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:11px 13px;font-size:13.5px;color:var(--ink2)}
+.willdo b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:3px}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-wrap:wrap;gap:4px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Coverage across the tile set · 5 170 zoom-15 tiles</div>
+  <h1>Place and Imagery Coverage</h1>
+  <p class="lede">Where the destination data actually is, drawn on the tile grid rather than
+  summarised. One pixel is one tile, so the shape is the municipality and the value is what a cell
+  would receive. <strong>Street view is the honest blank here</strong>: nothing has been fetched, and
+  the last section says exactly what it needs.</p>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<section>
+  <div class="shead"><h2>Places per tile</h2>
+    <span class="note" id="mapnote"></span></div>
+  <p class="body">Log scale, because place density spans four orders of magnitude and a linear ramp
+  shows only the centre. The building map is there as the control: it is what the city's fabric looks
+  like, so any place map that disagrees with it is describing the survey, not the city.</p>
+  <div class="maps" id="maps"></div>
+</section>
+
+<section>
+  <div class="shead"><h2>How the tiles divide up</h2>
+    <span class="note">every tile in the set, by how many places fall inside it</span></div>
+  <table><thead><tr><th>Places in the tile</th><th>Overture</th><th></th><th>OpenStreetMap</th><th></th></tr></thead>
+    <tbody id="brackets"></tbody></table>
+  <p class="body" id="readout"></p>
+</section>
+
+<div class="panel gapnote">
+  <h3>Street view: no data points yet, and one thing is needed</h3>
+  <p class="body"><strong>We hold no street view imagery locations.</strong> Nothing has been
+  fetched, there is no Mapillary credential on this machine, and the coverage claims made earlier in
+  this project came from a probe run with Mapillary's own published demo token — fine for ninety
+  read-only requests, not a basis for surveying five thousand tiles.</p>
+  <p class="body">What is known so far is second-hand but specific: a ridesharing company put roughly
+  9 million images across 27 000 km of Hanoi and Ho Chi Minh City onto Mapillary from April 2023,
+  shot on helmet cameras from scooters, and a sampled probe found imagery in 94 to 100 % of 150 m
+  cells inside several dense alley districts. That is encouraging and it is not a coverage map.</p>
+  <ol class="steps">
+    <li><b>Register a free token</b> at the Mapillary developer dashboard. It takes about two
+      minutes, needs no payment and no approval step.</li>
+    <li><b>Paste it here</b>, or put it in the environment as <code>MAPILLARY_TOKEN</code>.</li>
+  </ol>
+  <p class="body">With that I would produce the same three things this page does for places, so the
+  two are directly comparable:</p>
+  <div class="willdo">
+    <div><b>Images per tile</b>Counted across all 5 170 tiles, on the same grid and the same log
+      scale as the maps above.</div>
+    <div><b>Alley versus arterial</b>Whether coverage follows the hẻm or only the main roads, which
+      is the question that decides the perception layer.</div>
+    <div><b>Capture date per tile</b>Because imagery from 2019 and imagery from 2024 are different
+      measurements of a city that rebuilds this fast.</div>
+  </div>
+  <p class="body" style="font-size:15px">The binding limit is 50 000 tile requests per day, which is
+  comfortably above what a survey of 5 170 tiles needs, so this is an afternoon's work once the token
+  exists.</p>
+</div>
+
+<footer>
+  <span>Places from Overture Maps and OpenStreetMap; buildings from Overture. Counted by point-in-tile over the 5 170-tile index.</span>
+  <span>Reproduce: <code>scripts/figure_coverage.py</code></span>
+</footer>
+</div>
+
+<script src="coverage_figure_data.js"></script>
+<script>
+(function(){
+  var D = window.COV;
+  function n(x){ return x.toLocaleString(); }
+
+  document.getElementById("stats").innerHTML = [
+    [n(D.totals.overture), "places, Overture"],
+    [n(D.totals.osm), "places, OpenStreetMap"],
+    [n(D.n_tiles), "tiles in the set"],
+    [n(D.built_tiles), "tiles above 100 buildings"],
+    [D.spearman_with_buildings.overture.toFixed(2), "Overture vs buildings, Spearman"],
+    [D.spearman_with_buildings.osm.toFixed(2), "OpenStreetMap vs buildings"]
+  ].map(function(s){return '<div class="stat"><b>'+s[0]+'</b><span>'+s[1]+'</span></div>'}).join("");
+
+  document.getElementById("mapnote").textContent =
+    D.nx + " × " + D.ny + " tiles · mainland, Côn Đảo omitted · log scale to " + n(Math.round(D.vmax));
+
+  var ramps = {
+    overture: ["#440154","#21908d","#fde725"],
+    osm:      ["#440154","#21908d","#fde725"],
+    buildings:["#f7f7f7","#8a8f94","#14181c"]
+  };
+  document.getElementById("maps").innerHTML = [
+    ["overture","Overture places","408 516 in the set"],
+    ["osm","OpenStreetMap places","28 725 in the set"],
+    ["buildings","Buildings, for comparison","2 836 010 — the city's fabric"]
+  ].map(function(k){
+    var r = ramps[k[0]];
+    return '<div class="mapcard"><h4>'+k[1]+'</h4><div class="sub">'+k[2]+'</div>'+
+      '<img alt="'+k[1]+' per tile across the city" src="data:image/png;base64,'+D.img[k[0]]+'">'+
+      '<div class="ramp" style="background:linear-gradient(90deg,'+r[0]+','+r[1]+','+r[2]+')"></div>'+
+      '<div class="ends"><span>0</span><span>'+(k[0]==="buildings"?"most":n(Math.round(D.vmax))+"+")+'</span></div>'+
+      '</div>';
+  }).join("");
+
+  var maxb = Math.max.apply(null, D.brackets.overture.concat(D.brackets.osm).map(function(b){return b.n}));
+  document.getElementById("brackets").innerHTML = D.brackets.overture.map(function(o,i){
+    var s = D.brackets.osm[i];
+    return '<tr><td>'+o.label+'</td>'+
+      '<td class="n">'+n(o.n)+'</td>'+
+      '<td><div class="barcell"><i style="width:'+(100*o.n/maxb).toFixed(1)+'%"></i></div></td>'+
+      '<td class="n">'+n(s.n)+'</td>'+
+      '<td><div class="barcell b"><i style="width:'+(100*s.n/maxb).toFixed(1)+'%"></i></div></td></tr>';
+  }).join("");
+
+  document.getElementById("readout").innerHTML =
+    "On the " + n(D.built_tiles) + " tiles that hold a hundred buildings or more, the median tile has <strong>" +
+    D.median_on_built.overture + " places in Overture and " + D.median_on_built.osm +
+    " in OpenStreetMap</strong>. " + n(D.zero_on_built.overture) + " of those built-up tiles have no Overture place at all, against " +
+    n(D.zero_on_built.osm) + " for OpenStreetMap. So Overture is far better and still thin: the place layer " +
+    "is concentrated in a few hundred tiles, and most of the built city has almost nothing in it. " +
+    "It also tracks the fabric better — Spearman " + D.spearman_with_buildings.overture +
+    " against buildings, versus " + D.spearman_with_buildings.osm + " — which is the difference between a layer " +
+    "that describes the city and one that describes the survey.";
+})();
+</script>
