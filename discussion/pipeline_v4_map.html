@@ -173,6 +173,8 @@ table.t td.moved{color:var(--gate);font-weight:600}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 </head>
 <body>
+<div style="max-width:980px;margin:14px auto 0;padding:12px 16px;border:1px solid #d6b36a;border-left:4px solid #b8860b;border-radius:4px;background:#fdf6e6;color:#4a3a12;font:14px/1.5 system-ui,sans-serif"><b>Corrected 15 September 2026.</b> The study area, the tile count, the source data and the channel set have all changed since this map was written. Figures in individual steps may be stale; the measured current values are on <a href="v4_corrections_260915.md" style="color:#7a5b10">the corrections page</a>. The stage structure itself still holds.</div>
+
 <main class="page">
   <header class="masthead">
     <p class="eyebrow">DDPM urban vitality · pipeline v4 · decided 9 Sep 2026</p>
@@ -360,12 +362,12 @@ table.t td.moved{color:var(--gate);font-weight:600}
     <div class="stub"></div>
     <article class="node gate" id="B10b">
       <header><span class="code">B10b</span><span class="kind">checkpoint</span></header>
-      <h3>Checkpoint: the joint pattern of the six channels, as well as each one alone</h3>
+      <h3>Checkpoint: the joint pattern of all layers together, as well as each one alone</h3>
       <p class="why">Why</p>
       <ul>
         <li>Not a replacement for B10. Each channel's distribution across the whole city is its own finding, and stays one: it is what says whether an indicator is sparse, skewed, or flat, and it is what chooses the transform.</li>
-        <li>What it adds: six channels that each look right separately can still combine in ways the city never does, and nothing in a set of marginals can see that.</li>
-        <li>A unit's six numbers are one point in six-dimensional space. The real city occupies only part of that space: dense building with no shops is ordinary, high entropy with no POIs is impossible by construction. The occupied region is itself a structure the model can get right or wrong.</li>
+        <li>What it adds: layers that each look right separately can still combine in ways the city never does, and nothing in a set of marginals can see that.</li>
+        <li>A unit's column of numbers is one point in a many-dimensional space. The real city occupies only part of that space: dense building with no shops is ordinary, high entropy with no POIs is impossible by construction. The occupied region is itself a structure the model can get right or wrong.</li>
         <li>Same object as C3's clustering, which already treats a unit's column of scores as a point. This measures it as a distribution instead, so it can be compared against generated cells at E3.</li>
         <li>Read it twice: in data space to say what the combinations mean, and in standardized space for anything using distance, since otherwise the widest channel decides which units are alike.</li>
       </ul>
@@ -530,7 +532,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <ul>
         <li>Every <a class="term" href="#g-mutant">mutant</a> is its own multi-day run, and the step budget only makes sense once tau_mem is known for this data. Guessing it wastes the budget in whichever direction the guess is wrong.</li>
         <li>Measured on the Pro 6000: a 500K-step run at 1024 px is 4 to 8 days. Sizing four mutants from a guess risks a month.</li>
-        <li>The dataset is small. Of 1,881 zoom-15 tiles only 617 hold any building and 139 hold a hundred or more, and <a class="term" href="#g-gentheory">generalization theory</a> has the onset growing with sample count, so the window may open and close early here.</li>
+        <li><b>Corrected 15 Sep:</b> this read &ldquo;the dataset is small. Of 1,881 zoom-15 tiles only 617 hold any building and 139 hold a hundred or more &hellip; so the window may open and close early here.&rdquo; Measured on the current city and on Overture rather than OSM, it is 5,170 tiles, of which 4,845 hold a building and 3,020 hold a hundred or more. Since <a class="term" href="#g-gentheory">generalization theory</a> has the onset growing with sample count, the trainable set being roughly twenty times larger means the window should be <i>wider</i>, and a step budget sized from the old figure will be too short. See <a href="v4_corrections_260915.md">the corrections page</a>.</li>
         <li>Run one mutant with logarithmic checkpoints until <a class="term" href="#g-fmem">F_mem</a> clears the D2 <a class="term" href="#g-floor">noise floor</a>, then set every other run's budget from where that happened.</li>
       </ul>
     </article>

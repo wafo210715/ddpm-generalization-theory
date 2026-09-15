@@ -1,5 +1,12 @@
 # Acquisition plan for the vitality factors — what we can actually get for HCMC
 
+> [!warning] Superseded in part, 15 September 2026
+> This page predates the move to the current city and to Overture. The study
+> area, tile count, source data and channel set have all changed; the figures
+> below are the OpenStreetMap-era values and several are wrong by an order of
+> magnitude. Read [`v4_corrections_260915.md`](v4_corrections_260915.md) first.
+> What survives is the method and the reasoning, not the numbers.
+
 Assembled 12 Sep 2026. One row per factor in the vitality indicator review's two
 de-duplicated tables (§4 built environment, §5 human), naming the source we will
 use, the substitute where the exact thing does not exist, and the limitation to

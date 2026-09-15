@@ -257,3 +257,4 @@ discussion/*.pdf
 # -------------------------------------------
 discussion/hcmc_layers_data.js
 discussion/hcmc_districts_data_*.js
+discussion/hcmc_wards_data_*.js

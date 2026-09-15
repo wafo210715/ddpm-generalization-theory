@@ -1,4 +1,4 @@
-<title>HCMC Layer Inspection</title>
+<title>HCMC Layer Inspection (deprecated)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
@@ -89,6 +89,11 @@ tbody tr:last-child td{border-bottom:none}
 .dstats b{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
 .flag{font-family:"JetBrains Mono",monospace;font-size:9.5px;padding:1.5px 5px;border-radius:2px;font-weight:700;text-transform:uppercase}
 .flag.warn{color:var(--warn);background:var(--warn-bg)} .flag.bad{color:var(--bad);background:var(--bad-bg)} .flag.good{color:var(--good);background:var(--good-bg)}
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media(max-width:860px){.mrow{grid-template-columns:1fr}}
+.mbox{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:15px;display:flex;flex-direction:column;gap:10px;overflow-x:auto}
+.mbox h4{margin:0;font-size:14.5px;font-weight:600}
+.mbox>p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45}
 .mat{border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:10px;width:100%}
 .mat th{background:none;padding:3px 2px;font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;white-space:nowrap}
 .mat td{padding:0;border:none;text-align:center}
@@ -106,6 +111,9 @@ tbody tr:last-child td{border-bottom:none}
 footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-wrap:wrap;gap:4px 18px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+
+<div style="max-width:1280px;margin:16px auto 0;padding:14px 18px;border:1px solid #c98a80;border-left:4px solid #9b3b33;border-radius:4px;background:#fbeeec;color:#5a221c;font:14.5px/1.55 system-ui,sans-serif"><b>Deprecated, 15 September 2026.</b> This page was rebuilt repeatedly during one session and carries that history in its structure. Its live replacements are <a href="hcmc_wards.html" style="color:#7d2a22">the ward atlas</a>, for looking at the data, and <a href="v4_corrections_260915.md" style="color:#7d2a22">the corrections page</a>, for the measured numbers. Kept because the variance split and the before/after-training section have not been rehomed yet.</div>
+
 
 <div class="wrap">
 <header>
@@ -180,8 +188,10 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
 <section>
   <div class="shead"><h2>Distributions, per unit</h2>
     <span class="note" id="margnote"></span></div>
-  <p class="body">Every pixel counted, pooled over sampled tiles, on a <code>log1p</code> axis so the
-  zero spike and the tail are both visible. <strong>None of these is Gaussian and none needs to be.</strong>
+  <p class="body"><strong>A unit is one pixel.</strong> A cell is one tile and one training example;
+  a unit is one pixel inside it; a channel is one layer's value at every unit. So this section counts
+  pixels, pooled over sampled tiles, on a <code>log1p</code> axis so the zero spike and the tail are
+  both visible. The per-cell view is the section after next. <strong>None of these is Gaussian and none needs to be.</strong>
   The reference papers' Gaussian mixtures are solvable toy models, not assumptions about data. What
   the shape decides is each layer's transform, and the number that matters is the zero fraction,
   because no monotone transform spreads an atom.</p>
@@ -194,6 +204,30 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
   <p class="body">The C1 baseline, the correlationist control, run on our own data. It is here to flag
   near-duplicate layers: anything close to ±1 is carrying information another layer already has.</p>
   <div class="card" style="overflow-x:auto"><div id="mat"></div></div>
+</section>
+
+<section>
+  <div class="shead"><h2>Distributions, per cell</h2>
+    <span class="note" id="cellnote"></span></div>
+  <p class="body">The same layers, but each data point is now <strong>one whole tile</strong> rather
+  than one pixel — one training example, described by its mean. These two views answer different
+  questions and neither replaces the other. <strong>Per unit is what B10 needs</strong>, because the
+  transform and the standardization act on pixel values, so the zero fraction and the tail decide
+  which transform a layer gets. <strong>Per cell is what B10b needs</strong>, because a cell is the
+  object the model generates, and E3 runs this same description on generated cells at every
+  checkpoint. The comparison the study rests on happens at this level, not the one above.</p>
+  <div class="dgrid" id="cellgrid"></div>
+  <div class="mrow" style="margin-top:6px">
+    <div class="mbox"><h4>Correlation between layers, per cell</h4>
+      <p>One mean per tile. This is close to what a driving-factor regression would see.</p>
+      <div id="cellmat"></div></div>
+    <div class="mbox"><h4>Why it differs from the per-unit matrix</h4>
+      <p class="body" style="font-size:14px;margin:0">Aggregating to a tile mean removes the
+      within-tile field, which for footprints is about nine tenths of the variance. Layers that are
+      nearly independent pixel by pixel can look strongly related once each tile is a single number,
+      because they then share only the coarse geography of where the city is dense. That gap is the
+      paper's argument, visible in the input data.</p></div>
+  </div>
 </section>
 
 <div class="call">
@@ -351,21 +385,47 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
     }).join("");
   }
 
-  // ---- correlation matrix
-  if(TI && TI.corr){
-    var cols=TI.corr.cols, m=TI.corr.m;
-    var head='<tr><th></th>'+cols.map(function(c){return '<th>'+NAME[c].split(" ")[0]+'</th>'}).join("")+'</tr>';
-    var body=cols.map(function(c,i){
+  // ---- correlation matrices, one renderer for both
+  function matrix(o){
+    if (!o) return "";
+    var cols = o.cols, m = o.m;
+    var head = '<tr><th></th>'+cols.map(function(c){return '<th>'+NAME[c].split(" ")[0]+'</th>'}).join("")+'</tr>';
+    var body = cols.map(function(c,i){
       return '<tr><th style="text-align:right;padding-right:5px">'+NAME[c]+'</th>'+
         m[i].map(function(v,j){
-          var a=Math.abs(v),bg,fg="var(--ink)";
+          var a=Math.abs(v), bg, fg="var(--ink)";
           if(i===j){bg="var(--surface2)";fg="var(--muted)";}
           else if(v>0){bg="rgba(28,94,134,"+(a*.85).toFixed(2)+")"; if(a>.55)fg="#fff";}
           else{bg="rgba(143,55,47,"+(a*.85).toFixed(2)+")"; if(a>.55)fg="#fff";}
           return '<td><div style="background:'+bg+';color:'+fg+'">'+v.toFixed(2)+'</div></td>';
         }).join("")+'</tr>';}).join("");
-    document.getElementById("mat").innerHTML='<table class="mat">'+head+body+'</table>';
+    return '<table class="mat">'+head+body+'</table>';
   }
+  if (TI && TI.corr) document.getElementById("mat").innerHTML = matrix(TI.corr);
+
+  // ---- per-cell distributions and matrix
+  if (TI && TI.cell_marginals) {
+    document.getElementById("cellnote").textContent =
+      "one point per tile · " + TI.n_sample_tiles + " tiles";
+    document.getElementById("cellgrid").innerHTML = IDS.map(function(id){
+      var m = TI.cell_marginals[id]; if(!m) return "";
+      var h=m.hist, mx=Math.max.apply(null,h), W=232, H=50, bw=W/h.length;
+      var bars=h.map(function(v,i){var bh=mx?v/mx*(H-2):0;
+        return '<rect x="'+(i*bw).toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+(bw-.6).toFixed(1)+
+               '" height="'+bh.toFixed(1)+'" fill="'+mix(RAMP[id],0.4+0.55*i/h.length)+'"/>';}).join("");
+      return '<div class="dcard"><div class="top"><h4>'+NAME[id]+'</h4>'+
+        '<span class="flag good">per cell</span></div>'+
+        '<div class="unit">mean of the units in one tile</div>'+
+        '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="per-cell distribution of '+NAME[id]+'">'+bars+'</svg>'+
+        '<div class="dstats">'+
+          '<div><span>mean</span><b>'+fmt(m.mean)+'</b></div>'+
+          '<div><span>sd</span><b>'+fmt(m.sd)+'</b></div>'+
+          '<div><span>min</span><b>'+fmt(m.min)+'</b></div>'+
+          '<div><span>max</span><b>'+fmt(m.max)+'</b></div>'+
+        '</div></div>';
+    }).join("");
+  }
+  if (TI && TI.cell_corr) document.getElementById("cellmat").innerHTML = matrix(TI.cell_corr);
 
   document.getElementById("pend").innerHTML = (MO.pending||[]).map(function(p){
     return '<div><b>'+(NAME[p.id]||p.id)+'</b> — '+p.desc+'</div>';}).join("");

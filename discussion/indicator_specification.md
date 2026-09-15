@@ -1,5 +1,12 @@
 # Indicator specification table — draft for review
 
+> [!warning] Superseded in part, 15 September 2026
+> This page predates the move to the current city and to Overture. The study
+> area, tile count, source data and channel set have all changed; the figures
+> below are the OpenStreetMap-era values and several are wrong by an order of
+> magnitude. Read [`v4_corrections_260915.md`](v4_corrections_260915.md) first.
+> What survives is the method and the reasoning, not the numbers.
+
 **Status: draft. No indicator on this page is chosen.**
 
 A1 of the [v4 pipeline map](pipeline_v4_map.html) is the first task in the whole

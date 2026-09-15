@@ -38,7 +38,7 @@ def main():
     # rank tiles by built density using the mosaic we already computed
     mj = json.load(open(OUT / "mosaic.json"))
     print("picking tiles across the density range …", flush=True)
-    blds = gpd.read_parquet(RAW / "overture_2025/buildings.parquet").to_crs(UTM)
+    blds = gpd.read_parquet(RAW / "overture_tu/buildings.parquet").to_crs(UTM)
     j = gpd.sjoin(blds[["geometry"]], tiles.reset_index()[["cell_id", "geometry"]],
                   predicate="intersects")
     cnt = j.groupby("cell_id").size().sort_values()
@@ -67,6 +67,29 @@ def main():
         if i % 20 == 0: print(f"   marginal {i}/{len(samp)}", flush=True)
     pool = {k: np.nan_to_num(np.concatenate(v)) for k, v in pool.items()}
 
+    # Per-CELL as well as per-unit.  A unit is one pixel; a cell is one whole
+    # tile, which is one training example.  B10 needs the per-unit marginal,
+    # because the transform and standardization act on unit values.  B10b needs
+    # the per-cell distribution, because that is the object E3 compares against
+    # generated cells.  They answer different questions and both belong here.
+    per_cell = {n: [] for n, _, _ in LAYERS}
+    for cid in samp:
+        L = tile_layers(ctx, tiles.loc[cid].geometry, MARGIN_N)
+        for n, _, _ in LAYERS:
+            per_cell[n].append(float(np.nan_to_num(L[n]).mean()))
+    cellm = {}
+    for n, v in per_cell.items():
+        v = np.array(v)
+        hist, edges = np.histogram(np.log1p(np.abs(v)), bins=24)
+        cellm[n] = {"mean": round(float(v.mean()), 3),
+                    "sd": round(float(v.std()), 3),
+                    "min": round(float(v.min()), 3),
+                    "max": round(float(v.max()), 3),
+                    "hist": hist.tolist(),
+                    "edges": [round(float(e), 3) for e in edges]}
+    cellM = pd.DataFrame(per_cell)
+    cellcorr = cellM.corr(method="spearman").fillna(0).round(3)
+
     marg = {}
     for k, v in pool.items():
         nz = v[v > 0]
@@ -84,6 +107,8 @@ def main():
 
     json.dump({"gallery": gallery, "marginals": marg,
                "corr": {"cols": [n for n, _, _ in LAYERS], "m": corr.values.tolist()},
+               "cell_marginals": cellm,
+               "cell_corr": {"cols": [n for n, _, _ in LAYERS], "m": cellcorr.values.tolist()},
                "n_sample_tiles": len(samp), "render_n": RENDER_N,
                "buffer_m": BUFFER_M},
               open(OUT / "tiles.json", "w"))

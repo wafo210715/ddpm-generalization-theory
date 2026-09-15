@@ -71,10 +71,10 @@ def vertices(gdf, step=1):
 def prepare():
     print("loading sources …", flush=True)
     ctx = {}
-    blds = gpd.read_parquet(RAW / "overture_2025/buildings.parquet").to_crs(UTM)
-    hts  = gpd.read_parquet(RAW / "heights_3dglobfp_2025.parquet").to_crs(UTM)
-    roads = gpd.read_file(RAW / "osm_2025/roads.gpkg").to_crs(UTM)
-    places = gpd.read_parquet(RAW / "overture_2025/places.parquet").to_crs(UTM)
+    blds = gpd.read_parquet(RAW / "overture_tu/buildings.parquet").to_crs(UTM)
+    hts  = gpd.read_parquet(RAW / "heights_3dglobfp_tu.parquet").to_crs(UTM)
+    roads = gpd.read_file(RAW / "osm_tu/roads.gpkg").to_crs(UTM)
+    places = gpd.read_parquet(RAW / "overture_tu/places.parquet").to_crs(UTM)
     print(f"  buildings {len(blds):,} | heights {len(hts):,} | roads {len(roads):,} | places {len(places):,}", flush=True)
     blds["_area"] = blds.geometry.area
     bsi, hsi, rsi = blds.sindex, hts.sindex, roads.sindex
@@ -127,10 +127,10 @@ def prepare():
     ctx["entropy"] = entropy_field
     print(f"  place classes {len(class_trees)}; classified {int(keep.sum()):,}", flush=True)
 
-    stops = gpd.read_file(RAW / "osm_2025/transit_stops.gpkg").to_crs(UTM)
+    stops = gpd.read_file(RAW / "osm_tu/transit_stops.gpkg").to_crs(UTM)
     ctx["stop_tree"] = cKDTree(np.c_[stops.geometry.x.values, stops.geometry.y.values])
-    water = gpd.read_file(RAW / "osm_2025/water_areas.gpkg").to_crs(UTM)
-    green = gpd.read_file(RAW / "osm_2025/green_areas.gpkg").to_crs(UTM)
+    water = gpd.read_file(RAW / "osm_tu/water_areas.gpkg").to_crs(UTM)
+    green = gpd.read_file(RAW / "osm_tu/green_areas.gpkg").to_crs(UTM)
     ctx["water_tree"] = vertices(water, 3)
     ctx["park_tree"] = vertices(green[green.get("leisure").isin(["park","garden"])] if "leisure" in green else green, 3)
     sev = roads[roads["highway"].isin(["motorway","trunk","motorway_link"])] if "highway" in roads else roads.iloc[:0]
@@ -214,7 +214,7 @@ def main():
         np.add.at(out, (iy.values[ok] * nx + ix.values[ok]), w[ok])
         return out.reshape(ny, nx)
 
-    blds_m = gpd.read_parquet(RAW / "overture_2025/buildings.parquet").to_crs(UTM)
+    blds_m = gpd.read_parquet(RAW / "overture_tu/buildings.parquet").to_crs(UTM)
     blds_m["_a"] = blds_m.geometry.area
     area = binned(blds_m, "_a")
     count = binned(blds_m)
@@ -223,7 +223,7 @@ def main():
     M["building_density"] = cov
     M["building_form"] = np.where(count > 0, area / np.maximum(count, 1), 0).astype("float32")
 
-    hts_m = gpd.read_parquet(RAW / "heights_3dglobfp_2025.parquet").to_crs(UTM)
+    hts_m = gpd.read_parquet(RAW / "heights_3dglobfp_tu.parquet").to_crs(UTM)
     hts_m["_a"] = hts_m.geometry.area
     hts_m["_ah"] = hts_m["_a"] * hts_m["Height"].astype(float)
     ha = binned(hts_m, "_a"); hah = binned(hts_m, "_ah")
@@ -236,7 +236,10 @@ def main():
     # mask to the city
     from rasterio.features import geometry_mask
     from shapely.ops import unary_union
-    b_geom = unary_union([g.buffer(0) for g in mainland.geometry])
+    # Mask to the tile union, not the municipality.  A tile in the set is a whole
+    # training example, so no part of one is "outside the study area"; masking to
+    # the polygon would paint the same false edges the clip used to bake in.
+    b_geom = unary_union([g.buffer(0) for g in tiles.geometry])
     tr = from_origin(minx, maxy, (maxx-minx)/nx, (maxy-miny)/ny)
     inside = ~geometry_mask([b_geom], out_shape=(ny, nx), transform=tr, invert=False)
     print(f"  units inside the city: {inside.sum():,} of {inside.size:,}", flush=True)

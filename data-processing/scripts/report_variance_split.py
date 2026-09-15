@@ -27,7 +27,7 @@ N_TILES = 40
 def main():
     ctx = prepare()
     tiles = gpd.read_file(RAW / "hcmc_tiles_z15_2025.gpkg").to_crs(UTM).set_index("cell_id")
-    blds = gpd.read_parquet(RAW / "overture_2025/buildings.parquet").to_crs(UTM)
+    blds = gpd.read_parquet(RAW / "overture_tu/buildings.parquet").to_crs(UTM)
     j = gpd.sjoin(blds[["geometry"]], tiles.reset_index()[["cell_id", "geometry"]],
                   predicate="intersects")
     cnt = j.groupby("cell_id").size()

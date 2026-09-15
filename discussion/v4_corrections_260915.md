@@ -1,0 +1,167 @@
+# What changed on 14–15 September, and what it invalidates
+
+One page, so the corrected numbers live in a single place rather than being
+re-derived from whichever document was read last. Everything here was measured,
+and the scripts that produce each figure are named beside it.
+
+**If you read one thing:** the pilot's picture of a small, sparse dataset in a
+2 406 km² city is gone. The study area is 2.8× larger, the buildings 35× more
+numerous, and the trainable tile count went up by a factor of twenty-two.
+
+---
+
+## 1. The study area is the current city, and it is measured by tiles
+
+Ho Chi Minh City absorbed Bình Dương and Bà Rịa–Vũng Tàu on 1 July 2025. The
+merged city's own OSM relation is unusable as a study area: one polygon of
+36 423 km² whose centroid sits offshore, because it carries territorial waters
+out to Côn Đảo. The land area is built instead as the union of the 168
+commune-level units. Districts no longer exist; the city is 113 wards (phường),
+54 communes (xã) and one special zone.
+
+| | old | now |
+|---|---:|---:|
+| study area | 2 406.5 km² | **6 718.7 km²** |
+| zoom-15 tiles | 1 881 | **5 170** |
+
+`build_hcmc_boundary_2025.py`, `build_zoom15_index.py`
+
+### The boundary only chooses the tiles; the tiles carry the data
+
+Clipping source data to the municipal polygon left every straddling tile half
+empty — 885 of 5 170 tiles, 699 km² of blank *inside* the tile set. A cell is a
+training example, and a cell with a straight empty edge teaches the model that
+cities have straight empty edges.
+
+So the order is now: boundary → covering tiles → data over the whole tiles. The
+study area for fetching is the **tile union**, 7 414.2 km², plus a 1 km buffer,
+because a 300 m ring or a 100 m disc at the outer edge must read real
+neighbours. `build_fetch_area.py`
+
+---
+
+## 2. OpenStreetMap was never measuring this city
+
+| | OSM | Overture / 3D-GloBFP |
+|---|---:|---:|
+| buildings | 86 418 | **3 037 029** |
+| footprint area | 23.6 km² | **425.0 km²** |
+| places | 19 670 | **411 279** |
+| buildings with a height | 3.9 % | **100 %** (2 233 344) |
+
+`fetch_overture_hcmc.py`, `prepare_building_heights.py`, `extract_hcmc_from_pbf.py`
+
+---
+
+## 3. The dataset is not small, and that changes the window argument
+
+This is the correction with the most consequence, and it contradicts the
+pipeline map's D3 reasoning directly.
+
+| tiles holding | plan said | measured now |
+|---|---:|---:|
+| any building | 617 | **4 845** |
+| ≥ 100 buildings | 139 | **3 020** |
+| ≥ 500 buildings | — | 1 586 |
+| ≥ 1 000 buildings | — | 938 |
+
+D3 argued "the dataset is small … so the window may open and close early here."
+On these numbers the trainable set is roughly twenty times what that sentence
+assumed. Memorization onset grows with sample count, so the expected window is
+wider, not narrower, and the step budget sized from the old figure will be
+wrong in the direction of being too short.
+
+---
+
+## 4. B6 reverses: the sparsity was OSM's, not the city's
+
+Fraction of units where a ring holds ≥ 2 places in ≥ 2 functional classes, on
+the same tiles B6 reported:
+
+| ring | OSM | Overture |
+|---:|---:|---:|
+| 50 m | 8.0 % | **57.0 %** |
+| 100 m | 27.1 % | **79.7 %** |
+| 300 m | 78.2 % | 97.6 % |
+
+The 300 m ring B6 forced is no longer necessary on the core. `report_overture_ring_coverage.py`
+
+---
+
+## 5. The channel set comes from the landscape page, not from a list of six
+
+The old six — footprint binary, building density, road accessibility, place
+diversity, place count, night lights — are superseded. Layers are now the "Have
+it" rows of `hcmc_data_landscape.html`: **16 computable**, with perception
+scores and age-sex structure still pending.
+
+Each layer carries its **measurement scale** separately from its sampling unit,
+which the earlier preview collapsed. Building density is footprint area within a
+100 m disc; transit is a gravity field with a 500 m decay, not a presence mask;
+places are counted in a 300 m ring and entropy runs over 11 functional classes
+in that ring. Per B7 each is computed at four samples across its own scale and
+read onto the common grid — for a 300 m ring at 1024 px that is a 17 × 17 grid,
+the size the pilot already used. `layers.py`
+
+---
+
+## 6. Grids and conditions are now sorted by measurement
+
+Share of each layer's variance that lives **inside** a tile, at the sampling
+unit, over 40 built-up tiles:
+
+| | |
+|---|---:|
+| footprints | 89 % |
+| footprint grain | 83 % |
+| junctions | 69 % |
+| height | 68 % |
+| distance to centre | **0 %** |
+| distance to park, severance | **1 %** |
+
+A tile mean keeps only the remainder. The bottom group barely varies inside a
+tile, so those are cell conditions rather than grids — the plan's three-way sort,
+settled by measurement instead of assumption. `report_variance_split.py`
+
+**One caution.** This share saturates early: footprints reach ~85 % by eight
+units per tile and do not move from 128 px to 1024 px. Variance is fixed by how
+much of a thing there is, and downsampling preserves that. So **variance cannot
+decide 128 vs 512** — what changes across that range is arrangement, where edge
+density falls about fivefold. That comparison needs a spatial statistic.
+
+---
+
+## 7. Two measurements that look alike and are not
+
+At the sampling unit, "is there a building under this point" is the right
+question, because a building spans many pixels. At 150 m, on a whole-city view,
+it is not: a 60 m² building almost never contains the centre of a 150 m cell, so
+point-sampling renders the city as a 2 % speckle. The city-wide view therefore
+measures built form as **coverage by area** per cell, with height as an
+area-weighted mean. Same indicator, two scales, two correct methods.
+
+Likewise **per unit ≠ per cell**. A unit is one pixel; a cell is one tile and one
+training example. Per-unit marginals choose each layer's transform at B10.
+Per-cell distributions are B10b, and are what E3 compares against generated
+cells. Both are now on the layer page.
+
+---
+
+## Where this lands in the plan
+
+- **A1** rewrite the specification table against Overture, the 16 layers, and
+  measurement scales. Open question 4 is answered twice over: `building:levels`
+  is 3.9 %, and irrelevant because 3D-GloBFP supplies height directly.
+- **A2** answered: the human-side layers are population, night lights, gridded
+  economy, Mapillary-derived perception and platform venue counts. All are
+  conditions or derived fields, so the supply-side scope holds on measured grounds.
+- **B1** restate the tile-count argument: 5 170 tiles, 3 020 trainable.
+- **B6** re-run and reverse on the record.
+- **D3** the step budget must be re-sized; "the dataset is small" no longer holds.
+- **Rasterized channels** rebuild on Overture footprints over the tile union.
+
+## Pages
+
+- `hcmc_data_landscape.html` — every reviewed factor against what HCMC supplies
+- `hcmc_wards.html` — 24 wards on their tiles, one unit, tile grid and boundary
+- `hcmc_channels.html` — **deprecated**, see the note at its head

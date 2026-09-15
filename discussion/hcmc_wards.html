@@ -1,0 +1,238 @@
+<title>HCMC Ward Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+:root{
+  --ground:#F3F5F6; --surface:#FFFFFF; --surface2:#E9EDEF; --sunken:#D7DEE2;
+  --ink:#12161A; --ink2:#39444C; --muted:#667179; --rule:#DCE1E4; --rule2:#C3CBD0;
+  --accent:#1C5E86; --on-accent:#FFFFFF; --ward:#C1291C;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#080B0D;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214; --ward:#E8705F;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1214; --surface:#161B1F; --surface2:#1D242A; --sunken:#080B0D;
+  --ink:#E7ECEF; --ink2:#BBC5CC; --muted:#8A959D; --rule:#283137; --rule2:#3A454D;
+  --accent:#6FB4DE; --on-accent:#0E1214; --ward:#E8705F;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1320px;margin:0 auto;padding:36px 22px 72px;display:flex;flex-direction:column;gap:24px}
+h1{font-size:clamp(26px,3.4vw,36px);margin:0;font-weight:700;letter-spacing:-.025em}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lede{font-family:Newsreader,Georgia,serif;font-size:17px;line-height:1.6;color:var(--ink2);max-width:72ch;margin:0}
+.lede strong{color:var(--ink);font-weight:500}
+header{display:flex;flex-direction:column;gap:12px}
+.pickers{display:flex;flex-direction:column;gap:8px}
+.prow{display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start}
+.plabel{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);width:64px;flex:none;padding-top:6px}
+.chip{font:inherit;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink2);border:1px solid var(--rule2);border-radius:3px;padding:4px 9px}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 268px;gap:20px;align-items:start}
+@media(max-width:920px){.stage{grid-template-columns:1fr}}
+.viewer{background:var(--sunken);border:1px solid var(--rule);border-radius:4px;padding:12px;display:flex;justify-content:center;min-height:200px;position:relative}
+.viewer img{max-width:100%;height:auto;display:block;border-radius:2px;background:var(--surface2)}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px}
+.card h4{margin:0 0 9px;font-size:11.5px;font-family:"JetBrains Mono",monospace;letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3.5px 0;border-bottom:1px solid var(--rule)}
+.kv:last-child{border-bottom:none}
+.kv b{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
+.cells{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cells span{font-family:"JetBrains Mono",monospace;font-size:10px;background:var(--surface2);border-radius:2px;padding:2px 5px;color:var(--ink2)}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink2)}
+.legend div{display:flex;align-items:center;gap:8px}
+.swatch{width:22px;height:0;border-top:3px solid var(--ward);flex:none}
+.swatch.grid{border-top:1px solid #8c96a0}
+.bar{height:9px;border-radius:2px;border:1px solid var(--rule2)}
+.ends{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:4px}
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.thumb{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:5px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.thumb[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.thumb img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:2px;display:block;background:var(--surface2)}
+.thumb span{font-size:10.5px;color:var(--ink2);text-align:center;line-height:1.25}
+.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:9px}
+.note h3{margin:0;font-size:15px;font-weight:600}
+.note p{margin:0;font-family:Newsreader,Georgia,serif;font-size:15.5px;line-height:1.6;color:var(--ink2);max-width:78ch}
+.note p strong{color:var(--ink);font-weight:500}
+code{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--surface2);padding:1px 4px;border-radius:2px}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-wrap:wrap;gap:4px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Twenty-four wards · sixteen layers · one unit for the whole city</div>
+  <h1>HCMC Ward Atlas</h1>
+  <p class="lede">Each ward drawn on the zoom-15 tiles it actually sits on, at <strong>3.75 m per
+  unit everywhere</strong>. Grey lines are tile edges, so you can see which cells the model would be
+  trained on; the red outline is the ward. Districts were abolished on 1 July 2025, so these are the
+  names the city uses now.</p>
+</header>
+
+<div class="pickers">
+  <div class="prow"><span class="plabel">Ward</span><span id="wchips"></span></div>
+  <div class="prow"><span class="plabel">Layer</span><span id="lchips"></span></div>
+</div>
+
+<div class="stage">
+  <div class="viewer"><img id="big" alt=""><div class="loading" id="load" hidden>loading…</div></div>
+  <div class="side">
+    <div class="card" id="meta"></div>
+    <div class="card"><h4>On the image</h4><div class="legend">
+      <div><span class="swatch"></span><span>ward boundary</span></div>
+      <div><span class="swatch grid"></span><span>tile edge, 1 201 m</span></div>
+    </div></div>
+    <div class="card"><h4>Scale</h4>
+      <div class="bar" id="ramp"></div>
+      <div class="ends"><span id="lo"></span><span id="hi"></span></div>
+      <p style="margin:8px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45">
+      Clipped at the 1st and 99th percentile of the units inside the ward, so one
+      extreme block does not flatten the rest.</p>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="prow" style="margin-bottom:9px"><span class="plabel">Layers</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="stripnote"></span></div>
+  <div class="strip" id="strip"></div>
+</div>
+
+<div class="note">
+  <h3>Why one unit, and why whole tiles</h3>
+  <p><strong>The unit belongs to the grid, not to the thing being drawn.</strong> An earlier version
+  fitted each area's bounding box to a fixed image width, so the metres per pixel came out different
+  for every district — 1.68 in one, 3.44 in another. That makes two images incomparable even though
+  they show the same layers. Here every ward is 1 201 m ÷ 320 px, so the same distance is the same
+  number of pixels everywhere in the city.</p>
+  <p><strong>A ward is not what the model sees; a tile is.</strong> So each render is the square
+  block of tiles covering the ward, padded out with real neighbouring tiles rather than blank space.
+  The ward crosses tile boundaries, several tiles are shared between wards, and both facts are
+  visible rather than hidden by a crop.</p>
+  <p><strong>What to look for.</strong> Footprints should show the plot-and-alley grain rather than
+  blocks. Height should pick out the towers and leave the rowhouse fabric flat. Place density should
+  concentrate on the markets and the commercial streets. If a layer looks like noise where you know
+  the ground is structured, that is a data problem worth finding now rather than after a training
+  run.</p>
+</div>
+
+<footer>
+  <span>Buildings and places from Overture; heights from 3D-GloBFP; roads, transit, water and green from OpenStreetMap; vegetation from WorldCover; population from WorldPop.</span>
+  <span>Reproduce: <code>scripts/render_wards.py</code></span>
+</footer>
+</div>
+
+<script src="hcmc_wards_index.js"></script>
+<script src="hcmc_wards_data_1.js"></script>
+<script>
+(function(){
+  var IDX = window.HCMC_WARD_INDEX, META = IDX.meta;
+  window.HCMC_WARDS = window.HCMC_WARDS || {};
+  var LAYERS = ["building_binary","building_density","building_height","far","building_form",
+    "road_density","intersection","transit_access","poi_count","poi_entropy","green",
+    "dist_water","dist_park","dist_centre","severance","population"];
+  var NAME = {building_binary:"Footprints",building_density:"Building density",
+    building_height:"Height",far:"Floor-area ratio",building_form:"Footprint grain",
+    road_density:"Road density",intersection:"Junctions",transit_access:"Transit access",
+    poi_count:"Place density",poi_entropy:"Place mix",green:"Vegetation",
+    dist_water:"Distance to water",dist_park:"Distance to park",dist_centre:"Distance to centre",
+    severance:"Severance",population:"Population"};
+  var RAMP = {building_binary:[[244,246,248],[130,134,140],[14,16,20]],
+    building_density:[[244,246,248],[130,134,140],[14,16,20]],
+    building_height:[[10,6,28],[158,42,88],[252,206,124]],
+    far:[[8,6,20],[168,52,60],[252,224,150]],
+    building_form:[[18,22,36],[92,110,120],[236,232,190]],
+    road_density:[[20,18,18],[152,112,106],[250,230,224]],
+    intersection:[[24,16,8],[150,98,44],[248,226,182]],
+    transit_access:[[30,20,6],[168,118,32],[250,232,170]],
+    poi_count:[[28,30,58],[36,126,120],[214,226,112]],
+    poi_entropy:[[20,16,44],[70,96,158],[220,232,244]],
+    green:[[16,26,16],[68,140,68],[216,242,172]],
+    dist_water:[[198,226,246],[46,106,168],[10,20,34]],
+    dist_park:[[214,240,214],[54,132,72],[10,26,14]],
+    dist_centre:[[226,216,240],[104,74,150],[20,12,32]],
+    severance:[[248,224,196],[186,110,36],[34,18,6]],
+    population:[[18,10,26],[152,44,92],[250,214,160]]};
+  function mix(r,t){t=Math.max(0,Math.min(1,t));var n=r.length-1,i=Math.min(Math.floor(t*n),n-1),f=t*n-i,a=r[i],b=r[i+1];
+    return "rgb("+Math.round(a[0]+(b[0]-a[0])*f)+","+Math.round(a[1]+(b[1]-a[1])*f)+","+Math.round(a[2]+(b[2]-a[2])*f)+")";}
+  function fmt(v){var a=Math.abs(v);return a>=1000?Math.round(v).toLocaleString():a>=10?v.toFixed(1):v.toFixed(3);}
+  function src(o){return "data:image/"+(o.fmt||"png")+";base64,"+o.img;}
+  function shortName(w){return w.replace(/^Phường /,"");}
+
+  var wards = Object.keys(META);
+  // open on a ward that is already loaded, so the first paint needs no fetch
+  var wCur = wards.filter(function(w){return IDX.part[w] === 1;})[0] || wards[0];
+  var lCur = "building_binary";
+  var loaded = {1:true}, pending = {};
+
+  document.getElementById("wchips").innerHTML = wards.map(function(w){
+    return '<button class="chip" data-w="'+w+'">'+shortName(w)+'</button>'}).join(" ");
+  document.getElementById("lchips").innerHTML = LAYERS.map(function(l){
+    return '<button class="chip" data-l="'+l+'">'+NAME[l]+'</button>'}).join(" ");
+
+  function ensure(ward, then){
+    var part = IDX.part[ward];
+    if (window.HCMC_WARDS[ward]) return then();
+    if (pending[part]) { window.addEventListener("wards-part", function h(e){
+        if (e.detail === part) { window.removeEventListener("wards-part", h); then(); } }); return; }
+    pending[part] = true;
+    document.getElementById("load").hidden = false;
+    var s = document.createElement("script");
+    s.src = "hcmc_wards_data_" + part + ".js";
+    s.onload = function(){ loaded[part] = true; document.getElementById("load").hidden = true; then(); };
+    s.onerror = function(){ document.getElementById("load").textContent = "could not load part " + part; };
+    document.head.appendChild(s);
+  }
+
+  function paint(){
+    var m = META[wCur];
+    document.getElementById("meta").innerHTML =
+      '<h4>'+shortName(wCur)+'</h4>'+
+      '<div class="kv"><span>area</span><b>'+m.km2+' km²</b></div>'+
+      '<div class="kv"><span>tiles it touches</span><b>'+m.tiles_covering+'</b></div>'+
+      '<div class="kv"><span>block shown</span><b>'+m.block+' tiles</b></div>'+
+      '<div class="kv"><span>image</span><b>'+m.px+' × '+m.px+' px</b></div>'+
+      '<div class="kv"><span>unit</span><b>'+m.m_per_px+' m per px</b></div>'+
+      '<div class="kv" style="border:none;padding-bottom:0"><span>cells</span></div>'+
+      '<div class="cells">'+m.cells.map(function(c){return '<span>'+c+'</span>'}).join("")+'</div>';
+    document.getElementById("stripnote").textContent = shortName(wCur);
+    Array.prototype.forEach.call(document.querySelectorAll("#wchips .chip"),function(c){
+      c.setAttribute("aria-pressed",String(c.dataset.w===wCur));});
+    Array.prototype.forEach.call(document.querySelectorAll("#lchips .chip"),function(c){
+      c.setAttribute("aria-pressed",String(c.dataset.l===lCur));});
+
+    ensure(wCur, function(){
+      var W = window.HCMC_WARDS[wCur]; if (!W) return;
+      var L = W.layers[lCur];
+      var big = document.getElementById("big");
+      big.src = src(L); big.alt = NAME[lCur]+" in "+shortName(wCur);
+      big.style.maxHeight = "80vh";
+      var r = RAMP[lCur];
+      document.getElementById("ramp").style.background =
+        "linear-gradient(90deg,"+mix(r,0)+","+mix(r,.5)+","+mix(r,1)+")";
+      document.getElementById("lo").textContent = fmt(L.lo);
+      document.getElementById("hi").textContent = fmt(L.hi);
+      document.getElementById("strip").innerHTML = LAYERS.map(function(l){
+        return '<button class="thumb" data-l="'+l+'" aria-pressed="'+(l===lCur)+'">'+
+          '<img loading="lazy" alt="'+NAME[l]+' in '+shortName(wCur)+'" src="'+src(W.layers[l])+'">'+
+          '<span>'+NAME[l]+'</span></button>';}).join("");
+    });
+  }
+  document.getElementById("wchips").addEventListener("click",function(e){
+    var b=e.target.closest(".chip"); if(!b) return; wCur=b.dataset.w; paint();});
+  document.getElementById("lchips").addEventListener("click",function(e){
+    var b=e.target.closest(".chip"); if(!b) return; lCur=b.dataset.l; paint();});
+  document.getElementById("strip").addEventListener("click",function(e){
+    var b=e.target.closest(".thumb"); if(!b) return; lCur=b.dataset.l; paint();
+    document.querySelector(".stage").scrollIntoView({behavior:"smooth",block:"start"});});
+  paint();
+})();
+</script>

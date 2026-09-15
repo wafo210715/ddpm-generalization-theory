@@ -12,11 +12,11 @@ import pathlib, sys
 import duckdb
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-OUT = REPO / "data/hcmc/raw/overture_2025"
-BOUNDARY = REPO / "data/hcmc/raw/hcmc_boundary_2025.gpkg"
+OUT = REPO / "data/hcmc/raw/overture_tu"
+BOUNDARY = REPO / "data/hcmc/raw/hcmc_fetch_area.gpkg"   # the tile union, not the municipality
 REL = "s3://overturemaps-us-west-2/release/2026-08-19.0"
 # the 2025 municipality: mainland plus Con Dao
-W, S, E, N = 106.05, 8.50, 107.62, 11.55
+W, S, E, N = 106.05, 8.50, 107.62, 11.56
 
 LAYERS = {
     "places":    ("theme=places/type=place",       "id, names.primary AS name, categories.primary AS category, categories.alternate AS categories_alt, confidence, geometry"),

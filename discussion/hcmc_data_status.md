@@ -1,5 +1,12 @@
 # HCMC data status — zoom-15 retiling, first rasterization
 
+> [!warning] Superseded in part, 15 September 2026
+> This page predates the move to the current city and to Overture. The study
+> area, tile count, source data and channel set have all changed; the figures
+> below are the OpenStreetMap-era values and several are wrong by an order of
+> magnitude. Read [`v4_corrections_260915.md`](v4_corrections_260915.md) first.
+> What survives is the method and the reasoning, not the numbers.
+
 Run on 9 Sep 2026 on the Linux box. Covers A3's data move, B1's retiling, B3–B7
 for the built-form channels, and what B6 and B10 can and cannot say yet.
 

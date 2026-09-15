@@ -18,8 +18,8 @@ from pyogrio import read_dataframe
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent
 PBF = REPO / "data/osm/vietnam-latest.osm.pbf"
-OUT = REPO / "data/hcmc/raw/osm_2025"
-BOUNDARY = REPO / "data/hcmc/raw/hcmc_boundary_2025.gpkg"
+OUT = REPO / "data/hcmc/raw/osm_tu"
+BOUNDARY = REPO / "data/hcmc/raw/hcmc_fetch_area.gpkg"   # the tile union, not the municipality
 
 
 def parse_other_tags(s):
