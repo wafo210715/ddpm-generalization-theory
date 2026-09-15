@@ -336,10 +336,10 @@ table.t td.moved{color:var(--gate);font-weight:600}
     </article>
     <article class="node action" id="B9">
       <header><span class="code">B9</span><span class="kind">action</span></header>
-      <h3>Decide how multi-channel cells will be shown</h3>
+      <h3>Decide how multi-channel cells will be shown <span style="display:block;margin-top:6px;padding:8px 10px;border-left:3px solid #2e7d4f;background:#eaf4ee;color:#1b4430;font-weight:400;font-size:13.5px;line-height:1.5"><b>Answered 15 Sep.</b> Small multiples won, and the conventions are settled in practice by <a href="hcmc_wards.html">the ward atlas</a> (one panel per layer, one colour map per indicator, a fixed unit for the whole city, tile grid and boundary drawn on) and <a href="hcmc_coverage.html">the coverage page</a> (the tile grid itself as the canvas, log scale where density spans orders of magnitude). False-colour composites were not adopted: with sixteen layers, any choice of three is arbitrary.</span></h3>
       <p class="why">Why</p>
       <ul>
-        <li>Six greyscale grids cannot be one picture. Fix the conventions before the first sample exists: <a class="term" href="#g-smallmult">small multiples</a>, one panel per channel; <a class="term" href="#g-falsecolour">false-colour composites</a>, any three channels to RGB, the remote-sensing habit; one perceptually uniform colour map per indicator.</li>
+        <li>Sixteen greyscale grids cannot be one picture. Fix the conventions before the first sample exists: <a class="term" href="#g-smallmult">small multiples</a>, one panel per channel; <a class="term" href="#g-falsecolour">false-colour composites</a>, any three channels to RGB, the remote-sensing habit; one perceptually uniform colour map per indicator.</li>
         <li>Starting references, from memory, verify before citing: Tufte 1990, Envisioning Information, on small multiples; Crameri, Shephard and Heron 2020, Nature Communications, on colour maps; Munzner 2014, Visualization Analysis and Design, on encoding channels.</li>
       </ul>
     </article>
@@ -659,7 +659,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
   <dt id="g-unit">Unit</dt>
   <dd>One pixel inside a cell: the patch of urban space that each indicator gives a score to.</dd>
   <dt id="g-channel">Channel</dt>
-  <dd>One indicator's grid of unit scores for a cell. Six indicators make six greyscale grids. The pilot's RGB file was three of these in an image container; the colours were never colours.</dd>
+  <dd>One indicator's grid of unit scores for a cell. Six indicators make sixteen greyscale grids. The pilot's RGB file was three of these in an image container; the colours were never colours.</dd>
   <dt id="g-tensor">Tensor</dt>
   <dd>The whole stack of grids for one cell. What the model learns from and what it generates.</dd>
   <dt id="g-standardize">Standardization</dt>
