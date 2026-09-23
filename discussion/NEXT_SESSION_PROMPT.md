@@ -1,5 +1,10 @@
 # Prompt for the next session
 
+> **Done, 15 Sep (later):** A1 is written and decided in `indicator_specification.md`.
+> The next job is B8 at 256 px: 13 grids, 3 010 cells, following that page's §5
+> list of what the store must do differently from `layers.py`. The prompt below
+> is the one that produced A1, kept for the record.
+
 Copy everything below the line into a new session in this repo.
 
 ---

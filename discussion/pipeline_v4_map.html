@@ -197,7 +197,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
     <div class="stub"></div>
     <article class="node action" id="A1">
       <header><span class="code">A1</span><span class="kind">action</span></header>
-      <h3>Write the indicator specification table</h3>
+      <h3>Write the indicator specification table <span style="display:block;margin-top:6px;padding:8px 10px;border-left:3px solid #2e7d4f;background:#eaf4ee;color:#1b4430;font-weight:400;font-size:13.5px;line-height:1.5"><b>Written and decided 15 Sep.</b> <a href="indicator_specification.md">indicator_specification.md</a>: thirteen grids, three conditions, 3 010 cells, 256 px first. Places stay grids with absence as a value at a 300 m ring; perception is a condition on covered cells only; C&ocirc;n &#272;&#7843;o&rsquo;s ten tiles are out. Four defects in the preview code are listed there as B8 requirements, and the junction rule is already patched.</span></h3>
       <p class="why">Why</p>
       <ul>
         <li>A footprint is a data source. Binary raster, density, and floor-area ratio are three different indicators of it.</li>
@@ -291,7 +291,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <ul>
         <li>Entropy needs at least two POIs and two categories. At 50 m the pilot channel was 97.5 % zeros.</li>
         <li>Count travels as its own channel, so diversity does not collapse into density.</li>
-        <li>Semantic categories only if coverage holds up; the checkpoint below decides. <b>Settled 15 Sep:</b> it holds on Overture, and entropy now runs over 11 functional classes in a 300 m ring.</li>
+        <li>Semantic categories only if coverage holds up; the checkpoint below decides. <b>Settled 15 Sep:</b> it holds on Overture, and entropy now runs over 11 functional classes in a 300 m ring. <b>Qualified by A1 later that day:</b> &ldquo;holds&rdquo; was measured on the 138 OSM-dense tiles. On the full urban set the 300 m ring is defined on 35 % of units, 94 % on the densest band; the ring stays at 300 m, absence is written as a value, and the core becomes a C7 mutant.</li>
       </ul>
     </article>
     </div>
@@ -304,7 +304,7 @@ table.t td.moved{color:var(--gate);font-weight:600}
       <h3>Checkpoint: POI-per-ring coverage report</h3>
       <p class="why">Why</p>
       <ul>
-        <li>The fraction of units whose ring is non-degenerate must be high before any training. <b>Ran, and reversed, 15 Sep:</b> on OSM it failed &mdash; 1.1 % of units at a 50 m ring, which is what forced the ring out to 300 m, where the channel largely reports distance to the nearest mapped cluster. On Overture, over the same tiles, it is 57.0 % at 50 m and 79.7 % at 100 m. The sparsity was OSM&rsquo;s, not the city&rsquo;s, and the wide ring is no longer forced.</li>
+        <li>The fraction of units whose ring is non-degenerate must be high before any training. <b>Ran, and reversed, 15 Sep:</b> on OSM it failed &mdash; 1.1 % of units at a 50 m ring, which is what forced the ring out to 300 m, where the channel largely reports distance to the nearest mapped cluster. On Overture, over the same tiles, it is 57.0 % at 50 m and 79.7 % at 100 m. The sparsity was OSM&rsquo;s, not the city&rsquo;s, and the wide ring is no longer forced. <b>Corrected again by A1, 15 Sep:</b> those two figures are on the 138 tiles with &ge; 100 <i>OSM</i> buildings, not on the urban set. Over all 3 020 tiles with &ge; 100 Overture buildings the defined share is 6.3 % at 50 m, 13.4 % at 100 m and 35.3 % at 300 m (78.5 % on the 938 tiles above 1 000 buildings). The ring is decided at 300 m; see the corrections page, section 4, and A1.</li>
         <li>You asked for this check explicitly.</li>
       </ul>
     </article>

@@ -47,9 +47,18 @@ neighbours. `build_fetch_area.py`
 | buildings | 86 418 | **3 037 029** |
 | footprint area | 23.6 km² | **425.0 km²** |
 | places | 19 670 | **411 279** |
-| buildings with a height | 3.9 % | **100 %** (2 233 344) |
+| buildings with a height | 3.9 % | **70 %** of Overture buildings, 82 % by area (see below) |
 
 `fetch_overture_hcmc.py`, `prepare_building_heights.py`, `extract_hcmc_from_pbf.py`
+
+**Corrected 15 Sep, A1.** The row above read "buildings with a height …
+**100 %** (2 233 344)". That was 100 % of the 3D-GloBFP polygons, not of the
+Overture buildings the footprint grid is drawn from; the two sets are different
+outlines. In a 150-tile sample of the urban set, 70.3 % of Overture buildings
+have their centroid inside a 3D-GloBFP polygon — 46 % of those under 30 m²,
+85 % and more over 100 m² — and 82 % by footprint area. B8 joins height onto the
+Overture footprint by centroid so the height and footprint grids share one mask.
+`report_tile_sources.py`, and the A1 table.
 
 ---
 
@@ -85,6 +94,26 @@ the same tiles B6 reported:
 | 300 m | 78.2 % | 97.6 % |
 
 The 300 m ring B6 forced is no longer necessary on the core. `report_overture_ring_coverage.py`
+
+**Corrected 15 Sep, A1.** The Overture column above was measured on the
+**138 tiles holding ≥ 100 OpenStreetMap buildings** — the part of the city OSM
+had mapped densely, hence "the same tiles B6 reported". It is not the urban
+set. On the same 1 881-tile index restricted to tiles with ≥ 100 *Overture*
+buildings (1 023 tiles) the on-disk parquet gives 14.3 % at 50 m and 26.6 % at
+100 m. On the full 2025 urban set, all 3 020 tiles with ≥ 100 Overture
+buildings (`report_ring_coverage_full.py`):
+
+| ring | all 3 020 | ≥ 1 000 buildings (938) | ≥ 2 000 (426) |
+|---:|---:|---:|---:|
+| 50 m | 6.3 % | 18.8 % | 34 % |
+| 100 m | 13.4 % | 37.9 % | 61 % |
+| 300 m | 35.3 % | 78.5 % | 94 % |
+| 500 m | 51.9 % | — | 99 % |
+
+So the sentence "the 300 m ring is no longer necessary" held for the core and
+not for the dataset. A1 keeps the ring at 300 m for both place grids, writes
+absence as a value, and puts the ≥ 1 000-building core on the C7 mutant list;
+the reasoning is in `indicator_specification.md` §3.2.
 
 ---
 
@@ -169,11 +198,34 @@ cells. Both are now on the layer page.
 
 ---
 
+## 8. What A1 measured on 15 September, and what it changed
+
+All on the 3 020 urban tiles unless stated. `report_tile_sources.py`,
+`report_ring_coverage_full.py`, `tile_sources_urban2025.parquet`,
+`ring_coverage_urban2025.parquet`.
+
+| finding | figure | consequence |
+|---|---:|---|
+| junctions were counted as way endpoints shared by ≥ 3 ways | 21 242 on the union; **254 512** by node degree ≥ 3 | `prepare()` patched; the intersection grid's per-unit zero fraction falls from 93.7 % to 62.0 % on the same 80 tiles |
+| Overture buildings with a 3D-GloBFP height | **70 %** by centroid, 82 % by area | height joins onto Overture footprints at B8 |
+| urban tiles with no Overture place | 549, **18.2 %** | place grids keep absence as a value |
+| urban tiles with fewer than two functional classes | 1 072, 35.5 % | entropy written 0 where undefined; count disambiguates |
+| urban tiles with no Mapillary image | 1 293, **42.8 %** | perception is a condition on covered cells only |
+| urban tiles with no transit stop inside | 72.3 %; nearest > 2.5 km on 42.8 % | transit grid carried, flagged flattest |
+| urban tiles entirely nodata in WorldPop constrained | 406, **13.4 %** | written as 0; flagged for C1 |
+| urban tiles outside the WorldCover tile on disk | 10, all Côn Đảo | excluded → **3 010 cells** |
+| store size, 13 grids × 3 010 cells | **10.3 GB at 256**, 41 GB at 512 | not 17.6 / 70, which assumed all 5 170 tiles |
+| `building_form` as coded | coverage-weighted; one warehouse fills a 300 m square | B8 recomputes count-weighted over centroids |
+| disc filters as coded | square boxes (`uniform_filter`) | B8 uses disc kernels |
+| distance fields as coded | to every third polygon vertex; beads along canals | B8 uses distance transforms |
+| place class map | 79 999 of 387 513 categorised places fall to "other" | B8 extends the map (`accommodation`, `bar`, `fashion` …) |
+
 ## Where this lands in the plan
 
-- **A1** rewrite the specification table against Overture, the 16 layers, and
-  measurement scales. Open question 4 is answered twice over: `building:levels`
-  is 3.9 %, and irrelevant because 3D-GloBFP supplies height directly.
+- **A1** written and decided, 15 Sep: `indicator_specification.md`. 13 grids,
+  3 conditions, 3 010 cells, 256 px first. Open question 4 is answered twice
+  over: `building:levels` is 3.9 %, and irrelevant because 3D-GloBFP supplies
+  height on 70 % of Overture buildings (82 % by area).
 - **A2** answered: the human-side layers are population, night lights, gridded
   economy, Mapillary-derived perception and platform venue counts. All are
   conditions or derived fields, so the supply-side scope holds on measured grounds.

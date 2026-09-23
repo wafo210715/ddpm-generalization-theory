@@ -96,15 +96,22 @@ def prepare():
     ctx["burn_heights"] = burner(hts, hsi, "Height")
     ctx["burn_roads"] = burner(roads, rsi)
 
-    # junctions: endpoints shared by three or more ways
+    # junctions: nodes of degree three or more in the way graph.  A way's
+    # endpoint adds one to a node's degree, an interior vertex adds two.
+    # Corrected 15 Sep (A1): the earlier rule counted only endpoints shared by
+    # three or more ways, which misses every junction where one way runs
+    # through and another ends on it.  Over the tile union that rule found
+    # 21 242 junctions; this one finds 254 512, twelve times as many, and the
+    # per-unit zero fraction of the intersection layer falls accordingly.
     from collections import Counter
-    ends = Counter()
+    deg = Counter()
     for g in roads.geometry:
         parts = g.geoms if g.geom_type.startswith("Multi") else [g]
         for p in parts:
             c = list(p.coords)
-            for e in (c[0], c[-1]): ends[(round(e[0],1), round(e[1],1))] += 1
-    j = np.array([k for k, v in ends.items() if v >= 3])
+            for i, e in enumerate(c):
+                deg[(round(e[0],1), round(e[1],1))] += 1 if i in (0, len(c) - 1) else 2
+    j = np.array([k for k, v in deg.items() if v >= 3])
     ctx["junc_tree"] = cKDTree(j)
     print(f"  junctions {len(j):,}", flush=True)
 

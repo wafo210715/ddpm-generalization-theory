@@ -170,6 +170,14 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padd
   an explicit note that the channel then encodes proximity to clusters, a plain count instead of
   entropy, restricting the dataset to tiles where the channel is defined, or treating diversity as a
   cell condition rather than a grid.</p>
+
+  <p><b>Settled by A1, later on 15 Sep.</b> The test was run on all 3 020 tiles with a hundred
+  buildings or more (<code>scripts/report_ring_coverage_full.py</code>): the ring is non-degenerate on
+  6.3 % of units at 50 m, 13.4 % at 100 m, 35.3 % at 300 m and 51.9 % at 500 m. On the 426 tiles above
+  2 000 buildings the 300 m figure is 94 %; on the 788 tiles between 100 and 250 buildings it is 4 %.
+  The ring is fixed at 300 m for both place grids, absence is written as a value with the count grid to
+  disambiguate it, and the dense core goes on the C7 mutant list rather than becoming the dataset. The
+  reasoning is in <code>indicator_specification.md</code> §3.2.</p>
 </div>
 
 <footer>
