@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workspace rules (set 30 Sep 2026; these come first)
+
+1. Answer first, briefly, in plain words. Pipeline codes (A1, B8, E3…) only in brackets.
+2. Ask before creating any file in `discussion/` or `references/`. No handoffs, cards, maps, templates or plans unless asked.
+3. To explain something, draw it inline in the chat, not as a new file.
+4. Annotated bibliography: one file, `references/annotated_bibliography.md`. Each paper is a full citation plus one paragraph of at most 200 words.
+5. Measure every number on the data on this machine; name the script and the tile subset. When a number contradicts a document, fix the document in place and quote the old text.
+6. Don't commit or push without asking.
+7. `discussion/` holds only the decisions in force, the data viewers, the proposal, the literature extraction and the diffusion reading note. Everything else goes to `archive/`.
+
 ## Code Style Guidelines
 
 ### Parameter Naming Consistency
