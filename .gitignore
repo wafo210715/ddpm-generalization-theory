@@ -259,3 +259,7 @@ discussion/hcmc_layers_data.js
 discussion/hcmc_districts_data_*.js
 discussion/hcmc_wards_data_*.js
 discussion/b6_figure_data.js
+
+# Papers and their extracted full text stay local (copyright); the annotated
+# bibliography in references/ is what gets committed.
+references/papers/

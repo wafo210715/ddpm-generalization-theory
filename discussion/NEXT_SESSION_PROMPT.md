@@ -1,5 +1,12 @@
 # Prompt for the next session
 
+> **Superseded, 29 Sep.** Two standing handoffs replace this file. Each is updated
+> at the end of every session:
+> [`HANDOFF_factor_loop.md`](HANDOFF_factor_loop.md) for the factor loops (issue #2
+> parts 1–2, urgent) and [`HANDOFF_diffusion_reading.md`](HANDOFF_diffusion_reading.md)
+> for reading against the argument's two threats. What follows is kept for the
+> record.
+
 > **Done, 15 Sep (later):** A1 is written and decided in `indicator_specification.md`.
 > The next job is B8 at 256 px: 13 grids, 3 010 cells, following that page's §5
 > list of what the store must do differently from `layers.py`. The prompt below
