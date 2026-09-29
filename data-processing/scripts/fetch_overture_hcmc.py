@@ -21,6 +21,13 @@ W, S, E, N = 106.05, 8.50, 107.62, 11.56
 LAYERS = {
     "places":    ("theme=places/type=place",       "id, names.primary AS name, categories.primary AS category, categories.alternate AS categories_alt, confidence, geometry"),
     "buildings": ("theme=buildings/type=building", "id, subtype, class, height, num_floors, roof_shape, geometry"),
+    # Added 23 Sep (issue #2, round 1): which provider drew each outline.  Overture
+    # conflates OSM, Esri, Google and Microsoft in a fixed order, and Google's
+    # confidence separates its high- and low-precision tiers.  Same filter as
+    # "buildings", so the ids match row for row.
+    "building_sources": ("theme=buildings/type=building",
+                         "id, sources[1].dataset AS source, sources[1].confidence AS source_confidence, "
+                         "sources[1].update_time AS source_update_time, len(sources) AS n_sources"),
     "land_use":  ("theme=base/type=land_use",      "id, subtype, class, names.primary AS name, geometry"),
     "land_cover":("theme=base/type=land_cover",    "id, subtype, cartography.min_zoom AS min_zoom, geometry"),
     "water":     ("theme=base/type=water",         "id, subtype, class, names.primary AS name, geometry"),
