@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>论文数据源 → 指标，HCMC 能否做到</title>
+<style>
+:root{--ink:#161A20;--muted:#626D7B;--rule:#DFE4EA;--bg:#F5F7F9;--card:#fff;--cand:#8F5D0D;--cand-bg:#F6EEDE;--no:#93352F;--no-bg:#F6E7E5;--pro:#1B6B41}
+body{font:14px/1.55 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;color:var(--ink);background:var(--bg);margin:0;padding:28px 32px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;max-width:1000px}
+table{border-collapse:collapse;width:100%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:32px}
+caption{text-align:left;font-size:16px;font-weight:700;padding:0 0 8px}
+th,td{border-bottom:1px solid var(--rule);padding:9px 10px;vertical-align:top;text-align:left}
+th{background:#fff;font-size:12px;color:var(--muted);letter-spacing:.03em}
+td>b{display:block}
+td small{color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:600;border-radius:10px;padding:0 7px;margin-right:4px}
+.cand{color:var(--cand);background:var(--cand-bg)}.no{color:var(--no);background:var(--no-bg)}
+ul{margin:0;padding-left:16px}li{margin:0 0 3px}
+.pro{color:var(--pro)}
+</style>
+
+<h1>论文数据源 → 指标，HCMC 能否做到</h1>
+<p class="sub">一行是读过的论文里的一个数据源：它被算成了哪些指标，HCMC 用什么数据源能算出类似的指标，以及局限。读一篇加一篇。
+指标前的标记：<span class="tag cand">候选</span> 可以算但还没定要不要用；<span class="tag no">做不到</span> 目前没有办法；不加标记的是已经在算的。</p>
+
+<div id="out"></div>
+
+<script>
+// 一条记录 = 论文里的一个数据源。ind 里用 C("…") 标候选、N("…") 标做不到。
+const C=s=>`<span class="tag cand">候选</span>${s}`, N=s=>`<span class="tag no">做不到</span>${s}`;
+const BE=[
+{paper:"Cai 2025",psrc:"高德 POI 2022",pind:["商业密度 CD","公共设施密度 PFD","建筑功能混合 BFM（熵）","居住 / 非居住平衡 RNR","商业混合 CFM（熵）","基本 / 非基本设施平衡 BNB"],
+ src:"Overture places",ind:["POI 密度（300 m 环）","POI 熵，11 类（300 m 环）",C("按类别拆出商业密度、公共设施密度、商业混合"),N("居住 / 非居住平衡：Overture 地点几乎不含住宅")],
+ lim:["18.2 % 的瓦片没有任何地点；记录的是制图投入，路边摊等非正规功能基本缺席","熵只在 35.3 % 的单元上有定义"]},
+{paper:"Cai 2025",psrc:"高德路网 2021",pind:["路口密度 ID"],
+ src:"OSM 道路",ind:["路口密度（100 m 圆）","道路密度（100 m 圆）"],
+ lim:["Cai 按街区面积算，我们按 100 m 圆算","小巷是否都画了未核实"]},
+{paper:"Cai 2025 · Amer 2025",psrc:"Cai：百度街景 2022<br>Amer 转引：街景 / 实地影像",pind:["Cai：开敞度 O（天空占比，预设为负）","Amer 转引：路边摊位置（Liu & Liu 2022，YOLOv4）","Amer 转引：空置店铺（Li & Long 2024，Faster R-CNN）"],
+ src:"Mapillary 街景（覆盖 1 727 个城市格子）",ind:[C("开敞度"),C("每格路边摊计数"),C("每格空置店铺计数")],
+ lim:["1 293 个格子无覆盖；覆盖到的也只是沿街零散点，所以这些指标只能每格一个数（condition），不能做成整张图（grid）","若用街道构型预测摊位来补全整张图，补出的层是其他通道的函数，只能作对照（同 T1）"]},
+{paper:"Cai 2025",psrc:"链家 2022（逐楼）",pind:["建筑均龄 BAA（取负号，疑为照搬 Gómez-Varo 时的符号错误）","建筑年龄标准差 DBA"],
+ src:"GAIA 不透水面年份（30 m，1985–2018）；备选 GHSL 建成区年代（100 m，五期）",ind:[C("环内首次变为不透水面的平均年份"),C("环内年份标准差")],
+ lim:["记录的是土地首次开发的年份，不是楼的建成年份；原地翻新、拆了重建看不出来","1985 年前开发的地都归为同一年；只到 2018 年","未下载、未在本机核实","逐栋建成年份：<b>没有</b>。各门户挂牌无此字段；OSM 旧 HCMC 约 11.7 万栋中 23 栋有 start_date；无公开地籍 / 许可数据。只有正式公寓项目有交付年份（batdongsan 项目库 1 743 个；DKRA / Savills / CBRE 报告），管状屋与巷内住宅没有（2026-10-02 核实）"]},
+{paper:"Cai 2025",psrc:"自然资源部 2021",pind:["到公交站距离 DPT","到铁路站与大公园的距离 DRLP（边界真空）"],
+ src:"OSM 公交站、公园、高速干道",ind:["公交可达（8 个最近站指数衰减）","到公园距离（每格一个数）",C("到大公园距离：可按 OSM 公园面积分大小，还没分"),C("到铁路站距离：OSM 有 railway=station，还没算；现在的 severance 是到高速干道，不是同一个量")],
+ lim:["72.3 % 的格子内无公交站；地铁实际只有一条线","76 % 的格子一个瓦片长度内无公园"]},
+{paper:"Chen 2021",psrc:"OSM POI",pind:["POI 核密度（<b>活力分的成分</b>，不是自变量）"],
+ src:"Overture places",ind:["POI 密度（300 m 环）"],
+ lim:["我们把 POI 当供给侧输入；Chen 把它算进活力分，再用建筑密度去预测——建筑多的地方 POI 多，关系部分是构造出来的（T1）","Overture 的地点数约是 OSM 的 17 倍（旧页记录），换源会改变这一成分"]},
+{paper:"Chen 2021",psrc:"OSM 道路",pind:["路网类型概率：方格 / 有机 / 放射 / 无形态（路网图 CRHD → ResNet-34，人工标 521 张）","道路密度","交叉口密度","街区密度、平均街区面积"],
+ src:"OSM 道路",ind:["道路密度、路口密度（100 m 圆）",C("路网类型概率：他们的分类器和路网图脚本开源，可直接跑"),C("街区密度、平均街区面积：由路网切出街区再算")],
+ lim:["分类前截掉了 minor roads（residential、service 等），只看主干路骨架。HCMC 的巷（hẻm）在 OSM 里多是 residential / service / footway，截掉后最有 HCMC 特征的巷弄肌理正好被去掉","四类是人定的，训练的 108 个城市里有没有越南未报告；巷弄肌理不属于任何一类时，模型只能硬归到四类之一","他们的格子约 1 km，路网图半径 1 km；我们的瓦片 1.2 km，尺度接近"]},
+{paper:"Chen 2021",psrc:"OSM / 市政开放数据：建筑",pind:["建筑密度","平均建筑基底面积"],
+ src:"Overture buildings",ind:["建筑密度（100 m 圆）","平均建筑占地（<code>building_form</code>，150 m）"],
+ lim:["足迹 57 % Microsoft、39 % Google、4 % OSM，按区片分布；同一格内 Google 的中位建筑只有 Microsoft 的 0.45 倍，平均占地受这条接缝影响最大（提交 9f8dd7e）"]},
+{paper:"Chen 2021",psrc:"市政土地利用数据",pind:["土地利用混合（Shannon 熵）"],
+ src:"无",ind:[N("土地利用熵：HCMC 没有地块级用地图；POI 熵是另一种量")],
+ lim:["旧页记录：覆盖不等于用途；OSM 只把 45 km² 标为住宅"]},
+{paper:"Chen 2021",psrc:"Inside Airbnb",pind:["Airbnb 房源核密度（活力分的成分）"],
+ src:"未核实",ind:[C("房源密度")],
+ lim:["Inside Airbnb 是否覆盖 HCMC 未核实","房源是住宿供给，按分类约定归建成环境；Chen 也把它归为 environment（L653）"]},
+{paper:"Amer 2025",psrc:"SDGSAT-1 夜光（Table 2，只列出处）",pind:["未给指标"],
+ src:"SDGSAT-1 微光（全色 10 m，RGB 40 m）",ind:[C("夜光强度"),C("RGB 光谱类型（每格一个数）")],
+ lim:["<span class=pro>好处：10 m 到 4.7 m 只放大约 2 倍，瓦片内不再是常数（VIIRS 约 500 m 时几乎是常数）</span>","HCMC 有没有存档景未知，要注册登录才能查","条带与渐晕；定标在更新；满月夜要剔除","细分辨率下测的更像照明基础设施（Jing et al. 2025），按 2026-10-02 裁定归建成环境；不能当活力 DV（T2）"]},
+{paper:"Cai 2025",psrc:"链家 2022（逐楼）",pind:["均价 ARR（预设为负）"],
+ src:"batdongsan.com.vn 挂牌（链家的对应角色）；官方地价表 bảng giá đất（按街道分段 × 位置 VT1–4）",ind:[C("挂牌单价（百万 VND/m²），按环或格聚合"),C("官方路段地价，挂到路网再插值")],
+ lim:["<b>有数据</b>：batdongsan HCMC 在售公寓约 1.4 万条，含总价、单价、面积、街道 + 坊地址、项目名；官方地价表 PDF 可直接下载，guland 已数字化约 2.1 万行路段地价","<b>能不能拿</b>：batdongsan 浏览器可用，脚本遇 Cloudflare，无 API；nhatot 浏览器也 403；homedy、alonhadat、muaban、guland 可直接取 HTML；挂牌坐标能否从页面读出未确认","挂牌价 ≠ 成交价；公寓为主，巷内住宅可能少","地价表是行政定价，只覆盖具名街道；2026 起按合并后的大 HCMC 新表","旧笔记“HCMC 没有链家式数据”不成立（2026-10-02 核实，见 data-processing/hcmc_housing_data_verification.md）","暂归建成环境：与人的感知无关的都归建成环境（2026-10-02，房价未最终裁定）"]},
+{paper:"Chen 2021",psrc:"VIIRS DNB（月均）",pind:["夜光亮度（活力分的成分）"],
+ src:"VIIRS DNB；候选 SDGSAT-1",ind:["VIIRS 每格一个数",C("SDGSAT-1 夜光（见上行）")],
+ lim:["Chen 的格子约 1 km，VIIRS 约 500 m 还能用；我们要的是瓦片内部的变化，VIIRS 不够","Chen 也把夜光归 environment（L653），与我们 2026-10-02 的裁定一致"]}
+];
+const HUMAN=[
+{paper:"Cai 2025",psrc:"人口栅格 2021（文献 [33]）",pind:["人口密度 PD（100 m 格聚到街区）"],
+ src:"WorldPop 2020 constrained（100 m）",ind:["每公顷居民"],
+ lim:["13.4 % 的格子整格 nodata","把各行政单元的普查人口，用随机森林按协变量（土地覆盖、夜光、道路、地形、建成区等）分到 100 m 格；constrained 版只分到建成区掩膜内。在 HCMC 与建筑足迹相关 0.87，基本在复述建成区"]},
+{paper:"Chen 2021",psrc:"WorldPop（1 km）",pind:["人口数（<b>活力分的成分</b>）"],
+ src:"WorldPop 2020 constrained（100 m）",ind:["每公顷居民"],
+ lim:["WorldPop 用建成区等协变量分配普查人口，constrained 版只分到建成区内；在 HCMC 与足迹相关 0.87。Chen 把它算进活力分，再用建筑密度预测，“建筑密度最重要”有一部分是 WorldPop 的建模方式造成的"]},
+{paper:"Chen 2021",psrc:"Twitter API",pind:["推文密度（R² 太低，已从活力分剔除）"],
+ src:"无",ind:[N("推文密度：地理标记推文在 HCMC 本就稀少，平台已关闭免费 API（未在本轮核实）")],
+ lim:["作者自己也因质量差剔除了这一项"]}
+];
+const li=a=>"<ul>"+a.map(x=>"<li>"+x+"</li>").join("")+"</ul>";
+const table=(title,rows)=>`<table><caption>${title}</caption><thead><tr><th style="width:15%">论文的数据源</th><th style="width:20%">论文算出的指标</th><th style="width:15%">HCMC 数据源</th><th style="width:22%">HCMC 能算出的类似指标</th><th style="width:28%">局限</th></tr></thead><tbody>`+
+ rows.map(r=>`<tr><td><b>${r.psrc}</b><small>${r.paper}</small></td><td>${li(r.pind)}</td><td>${r.src}</td><td>${li(r.ind)}</td><td>${li(r.lim)}</td></tr>`).join("")+"</tbody></table>";
+document.getElementById("out").innerHTML=table("建成环境",BE)+table("Human-centric",HUMAN);
+</script>
+</html>

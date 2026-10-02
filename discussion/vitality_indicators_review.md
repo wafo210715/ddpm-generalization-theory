@@ -19,9 +19,9 @@ diagram 的节点清单，也是 HCMC 数据采集的对照表。**
 |---|---|---|
 | 任何 POI 计数/密度/熵/核密度 | BE | 无论原文放在哪一侧 |
 | 静态人口存量（census、居住人口密度） | Human | |
-| 夜间灯光 | Human | 经济活动代理，provisional |
+| 夜间灯光 | BE | 2026-10-02 改判：细分辨率夜光（SDGSAT-1）测的是照明基础设施。原文：「夜间灯光 \| Human \| 经济活动代理，provisional」 |
 | 主观感知分数（Place Pulse 类、问卷量表） | Human | 无论原文作 IV 还是 DV |
-| 房价/地价、社区年龄、地形、环境质量 | 待裁定 | 单列，不硬塞 |
+| 房价/地价、社区年龄、地形、环境质量 | 暂归 BE（provisional） | 2026-10-02 用户倾向：与人的感知无关的都归建成环境，房价未最终裁定。原文：「待裁定 \| 单列，不硬塞」 |
 
 「原角色」列记论文自己给这个角色是什么（IV / DV 成分 / 分组变量 / 控制变量），
 与我们的 BE/Human 分类互相独立。
@@ -202,7 +202,7 @@ T2 的结构子型——更隐蔽，因为"我们用了评论数据"看起来像
 
 | 因子 | 被几篇用过 | 原文角色 | 各文报告的效应 | 数据源可行性（HCMC） |
 |---|---|---|---|---|
-| POI 计数/密度 | 13（Zeng, Liu19, Xia, Li21, Chen21, Yue, Li22, Liu22, Gómez-Varo, Wu, Dogan, Wang, Qin, Collins, Cai, Tan） | 多数作 IV 或指数成分；Li21/Qin 作 DV 维度（异常） | 绝大多数 ↑；Li21 社↑经↓文↓（分维度变号）；Collins ↓（对男女差） | **OSM POI 在 HCMC 覆盖差**（B6：50 m 环熵定义率 1.1%）；SVI-to-POI 是替代路线 |
+| POI 计数/密度 | 13（Zeng, Liu19, Xia, Li21, Chen21, Yue, Li22, Liu22, Gómez-Varo, Wu, Dogan, Wang, Qin, Collins, Cai, Tan） | 多数作 IV 或指数成分；Li21/Qin 作 DV 维度（异常） | 绝大多数 ↑；Li21 ↑（三维皆正，标准化系数社 0.36 / 经 0.53 / 文 0.27）；Collins ↓（DV 是男女活力差而非活力本身：POI 密度越高，性别差越小） | **OSM POI 在 HCMC 覆盖差**（B6：50 m 环熵定义率 1.1%）；SVI-to-POI 是替代路线 |
 | 道路密度 | 9（Zeng, Kim, Li21, Li22, Liu22, Wu, Chen21, Qin, Collins, Jiang） | IV | 多数 ↑；Li22 ↓；Tan ↓；Chen21 方向未报告 | OSM roads 已 fetch，可行 |
 | 交叉口密度 | 7（Kim, Li22, Yue, Gómez-Varo, Scepanovic, Collins, Dogan, Cai） | IV | Scepanovic ↑（最强 0.497）；Li22 不显著；Collins ↓（不显著）；Dogan ↑（十字口） | OSM 可算 |
 | 土地利用混合（Shannon 熵） | 8（Zeng, Xia, Kim, Yue, Liu22, Li22, Scepanovic, Qin, Chen21, Chen24） | IV 或成分 | 多数 ↑；Liu19 ↓（有序混合好）；Chen24 ↓；Li22 用居住占比替代（↓） | 需要 land-use map 或用 POI 熵近似 |
@@ -215,7 +215,7 @@ T2 的结构子型——更隐蔽，因为"我们用了评论数据"看起来像
 | 空间句法 integration/choice | 3（Li22, Wu, Tan） | IV | Li22 integration↑（尺度依赖）；Wu integration↑、choice 不显著；Tan 全部 ↑ | OSM road graph 可算 |
 | 绿地/NDVI/绿视率 | 5（Li22, Wu, Chen24, Mouratidis, Cai, Shi21） | IV 或成分 | Li22 NDVI↓、Wu greenness↓、Mouratidis 绿地↓、Chen24 tree↑ | Sentinel-2 NDVI 可行 |
 | 土地利用混合（POI 熵版） | 5（Liu19, Li21, Wu, Tan, Liu25, Dogan） | IV | 多数 ↑；Liu19 ↓（有序）；Tan ↓ | 同 POI 覆盖问题 |
-| 房价/地价 | 3（Li21, Li22, Cai, Tan） | IV | Li21 社不显著/经↑文↑；Li22 不显著；Cai 预设↓；Tan ↓ | 待裁定；HCMC 无链家类数据 |
+| 房价/地价 | 3（Li21, Li22, Cai, Tan） | IV | Li21 社不显著/经↑文↑；Li22 不显著；Cai 预设↓；Tan ↓ | 待裁定；batdongsan.com.vn 挂牌（单价 + 地址）与官方路段地价表都有，可取性见 `hcmc_data_sources.html` 与 `data-processing/hcmc_housing_data_verification.md`。*2026-10-02 更正，原文：「待裁定；HCMC 无链家类数据」* |
 | 建筑/社区年龄 | 3（Yue, Gómez-Varo, Cai, Li22, Xia） | IV 或成分 | Yue 老城区↑；Li22 社区年龄↑；Cai 预设↓；Gómez-Varo 待裁定 | OSM `start_date` 极稀疏，不可行 |
 | 地形（坡度/海拔/起伏） | 3（Kim, Lee-Kang, Shi23, Gómez-Varo） | 控制/IV | Kim 不显著；Lee-Kang 海拔↓；其余未报告 | SRTM DEM 可行 |
 | 水体/河流距离 | 3（Li22, Shi23, Cai, Yue） | IV | Shi23 ↑（越近越高）；Li22 不显著 | OSM water 已有 |
@@ -262,7 +262,7 @@ MINE、Xie 2025 的 XGBoost+SHAP）报告了非线性与阈值。
 - **§4 BE 因子去重表** → 每行的「数据源可行性」列就是采集清单。
   已可行：OSM buildings/roads/transit/water、Sentinel-2 NDVI、SRTM DEM。
   需要补：GBA 高度图（FAR/建筑高度）、SVI-to-POI（POI 覆盖）、land-use map（混合度）。
-  不可行：建筑年龄（OSM `start_date` 稀疏）、房价（HCMC 无链家类数据）。
+  不可行：逐栋建筑年龄（OSM `start_date` 稀疏；候选替代 GAIA / GHSL）。房价有来源（batdongsan 挂牌、官方路段地价），待裁定。*2026-10-02 更正，原文：「不可行：建筑年龄（OSM `start_date` 稀疏）、房价（HCMC 无链家类数据）。」*
 - **§5 Human 因子去重表** → 本文只做供给侧（§2.4），Human 表是下一阶段的对照。
   但 NTL 和人口密度已在 `indicator_specification.md` 候选行里（作 condition 不作 grid）。
 
@@ -351,7 +351,9 @@ MINE、Xie 2025 的 XGBoost+SHAP）报告了非线性与阈值。
 
 **理论书（7 本，无量化指标）**：Jacobs 1961, Whyte 1980, Lynch 1981, Maas 1984, Montgomery 1998, Landry 2007/2009, Gehl 2010。
 
-**未读（2026-09-11 索引，[0]）**：Amer et al. 2025, Jiang & Ma 2025——下一轮候选。
+**未读（2026-09-11 索引，[0]）**：Jiang & Ma 2025——下一轮候选。
+
+*2026-09-30 更正。* 原文：「未读（2026-09-11 索引，[0]）：Amer et al. 2025, Jiang & Ma 2025——下一轮候选。」Amer et al. 2025 已读（`Amer-et-al-2025-What-Deep-Learning-Can-See.txt`）：208 篇的系统综述，统计 DL 在活力相关研究里的用途与数据源，不报告任何因子效应，因此不进 §4/§5 去重表，也不进 CLD 提取。
 
 ---
 
@@ -359,3 +361,8 @@ MINE、Xie 2025 的 XGBoost+SHAP）报告了非线性与阈值。
 每篇因子带 txt 行号与短引文，逐篇明细见 `vitality-extraction/batch-*.md`。
 v1 的 BE/Human 双母节点结构与分类约定沿用；anomaly 清单沿用 v1 事实层，
 附四条结构层使用须知。PDF 页码未核。*
+
+*2026-09-15 勘误：§4「POI 计数/密度」行的 Li21 效应原写作「社↑经↓文↓」，系误抄自建筑密度行；
+按原文（txt L2178 / L2606 / L2615）与 batch-B 提取表改为「↑（三维皆正）」。
+分维度变号的因子是 sky rate 与 building density，不是 POI density。
+同行 Collins 的 ↓ 是对男女活力差 DV 的效应，已在单元格内注明。*

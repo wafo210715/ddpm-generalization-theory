@@ -1,6 +1,6 @@
 # Annotated bibliography
 
-Each entry is a citation and one paragraph of at most 200 words. Line references
+Each entry is a citation and one paragraph of at most 300 words (was 200 until 2 Oct 2026). Line references
 (L#) point into the paper's text layer in `references/papers/`.
 
 ---
