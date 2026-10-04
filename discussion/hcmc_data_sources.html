@@ -67,7 +67,22 @@ const BE=[
  lim:["<b>有数据</b>：batdongsan HCMC 在售公寓约 1.4 万条，含总价、单价、面积、街道 + 坊地址、项目名；官方地价表 PDF 可直接下载，guland 已数字化约 2.1 万行路段地价","<b>能不能拿</b>：batdongsan 浏览器可用，脚本遇 Cloudflare，无 API；nhatot 浏览器也 403；homedy、alonhadat、muaban、guland 可直接取 HTML；挂牌坐标能否从页面读出未确认","挂牌价 ≠ 成交价；公寓为主，巷内住宅可能少","地价表是行政定价，只覆盖具名街道；2026 起按合并后的大 HCMC 新表","旧笔记“HCMC 没有链家式数据”不成立（2026-10-02 核实，见 data-processing/hcmc_housing_data_verification.md）","暂归建成环境：与人的感知无关的都归建成环境（2026-10-02，房价未最终裁定）"]},
 {paper:"Chen 2021",psrc:"VIIRS DNB（月均）",pind:["夜光亮度（活力分的成分）"],
  src:"VIIRS DNB；候选 SDGSAT-1",ind:["VIIRS 每格一个数",C("SDGSAT-1 夜光（见上行）")],
- lim:["Chen 的格子约 1 km，VIIRS 约 500 m 还能用；我们要的是瓦片内部的变化，VIIRS 不够","Chen 也把夜光归 environment（L653），与我们 2026-10-02 的裁定一致"]}
+ lim:["Chen 的格子约 1 km，VIIRS 约 500 m 还能用；我们要的是瓦片内部的变化，VIIRS 不够","Chen 也把夜光归 environment（L653），与我们 2026-10-02 的裁定一致"]},
+{paper:"Chen 2024（旧金山 IUNV）",psrc:"Google 街景，沿 OSM 路每 10 m 一点，26 810 张，固定 120° 前视",pind:["ADE20K 分割后 15 类像素占比，按街取均值：树、草、天空、人行道、人、路灯、座椅、围栏、墙、水、地面、喷泉、山、雕塑、桥（L325–345；Table 3）"],
+ src:"Mapillary 街景（覆盖 1 727 个城市格子）",ind:[C("绿视率：树 / 草占比"),C("开敞度：天空占比（同 Cai 2025 行）"),C("人行道占比（旧页计划用 Mask2Former 做）"),C("座椅、围栏 / 墙占比")],
+ lim:["这篇里 15 类只有树和雕塑显著；雕塑在全模型里原表符号为负（PDF p.11），矛盾未解决，不值得照搬","GSV 是固定相机、均匀采样；Mapillary 是众包、相机与朝向不一，同一占比在两边不可直接比","1 293 个格子无覆盖（见 Cai 2025 行），只能每格一个数","「人」的像素占比是在场人数，属于活力本身的另一个代理，不该当自变量（T5）；本行不列"]},
+{paper:"Chen 2024",psrc:"OSM leisure=park（442 处）",pind:["公园可达：block group 中心 1000 m 服务覆盖（L506–509；最强因子 0.489）"],
+ src:"OSM + Overture 绿地",ind:["到公园距离（每格一个数）",C("1000 m 内公园覆盖 / 面积")],
+ lim:["76 % 的格子一个瓦片长度内无公园（见 Cai 2025 行）","Chen 的 DV 是按「公园图片」抓的 Flickr 照片（L549），可达系数大有一部分是抓取方式造成的（我们的推断），不能当作公园提升活力的证据"]},
+{paper:"Chen 2024",psrc:"OSM 用地",pind:["用地 Shannon 熵（0–1，L516–531；系数 −0.074）"],
+ src:"无",ind:[N("用地熵：同 Chen 2021 行，HCMC 没有地块级用地图")],
+ lim:["负号与多数文献相反，作者自己解释为不同绿地类型反应不同（L1013–1016）；空间模型里 p = 0.080，按作者自己的 0.05 阈值已不显著"]},
+{paper:"Chen 2024",psrc:"OSM 道路",pind:["道路密度 = 路长 / 街区面积（L568–570；不显著）"],
+ src:"OSM 道路",ind:["道路密度（100 m 圆）"],
+ lim:["摘要称道路密度是主导变量，Table 3 三个模型都不显著（p ≥ 0.43）"]},
+{paper:"Gu 2027（墨尔本 SVV）",psrc:"OSM 道路等级",pind:["四类道路等级 major / minor / link / local（Table 5），看各类在「移动–社交」二维空间里的位置"],
+ src:"OSM 道路",ind:[C("同样的四类道路等级（highway 标签直接可得）")],
+ lim:["作者结论：等级只能解释很少一部分差异，同一类内部分散很大（p.22）","HCMC 的巷（hẻm）多标为 residential / service / footway，按这套分法都落进 local 或被漏掉"]}
 ];
 const HUMAN=[
 {paper:"Cai 2025",psrc:"人口栅格 2021（文献 [33]）",pind:["人口密度 PD（100 m 格聚到街区）"],
@@ -78,7 +93,22 @@ const HUMAN=[
  lim:["WorldPop 用建成区等协变量分配普查人口，constrained 版只分到建成区内；在 HCMC 与足迹相关 0.87。Chen 把它算进活力分，再用建筑密度预测，“建筑密度最重要”有一部分是 WorldPop 的建模方式造成的"]},
 {paper:"Chen 2021",psrc:"Twitter API",pind:["推文密度（R² 太低，已从活力分剔除）"],
  src:"无",ind:[N("推文密度：地理标记推文在 HCMC 本就稀少，平台已关闭免费 API（未在本轮核实）")],
- lim:["作者自己也因质量差剔除了这一项"]}
+ lim:["作者自己也因质量差剔除了这一项"]},
+{paper:"Chen 2024",psrc:"CDC SVI 2020（ACS 2016–2020，census tract）",pind:["总人口、65 岁以上人数、17 岁以下人数（进回归，均不显著）","贫困、无高中文凭、族裔（只在 Table 1 和地图里，未进回归）"],
+ src:"WorldPop constrained（人口）；WorldPop age-sex（年龄）；GSO 人口普查（教育）",ind:["每公顷居民",C("少年 / 老年人口比例：WorldPop age-sex 100 m，旧页记录只有 unconstrained 版，未下载、未在本机核实"),N("教育 / 贫困：GSO 坊级数据是否存在未确认，网页仪表盘拦自动抓取（旧页记录）"),N("族裔结构：美国语境变量，HCMC 无对应")],
+ lim:["Chen 的 Table 1 是人数不是占比；表头写 Age>60，变量定义是 65+","17 岁以下系数三模型均为负、不显著，正文却说年轻人多则活力高（L987–988）","WorldPop age-sex 用协变量分配普查数，和建成区有部分循环（旧页记录）"]},
+{paper:"Chen 2024",psrc:"Flickr 地理标记照片 2013–2022（抓 4 180 张，清洗后 3 434）",pind:["<b>DV</b>：每单元照片数 = IUNV","Google Vision 前 10 个标签 → 层次聚类 → 12 个人工命名的「活力类型」（轮廓系数 0.046，几乎无聚类结构）"],
+ src:"未核实（Flickr）；已知的替代是 ShopeeFood 店铺与评论数（旧页记录 164 561 家）",ind:[C("每格 Flickr 照片数：HCMC 有多少带坐标的照片、API 能不能批量取，都未核实"),C("照片内容标签分类")],
+ lim:["作者承认偏向年轻人（L1385–1388）；记录的是「有人觉得值得拍」，不等于「有人在用」（Flickr 用户构成本轮未核实）","十年累计，不是某一时刻的人数","按「公园图片」抓取，照片只会出现在公园附近，当活力 DV 时供给已经在里面（T2，我们的推断）","是否值得为此开一个子任务去查 HCMC 的 Flickr 密度：待定"]},
+{paper:"Gu 2027（墨尔本 SVV）",psrc:"YouTube「Melbourne city walk」步行视频（1 602 条 → 892 条，801 白天 / 91 夜间）",pind:["每 50 m 路段行人数（YOLOv11 + BoT-SORT），白天 / 夜间分开","动作：走 / 站 / 坐（X-CLIP 零样本）","声音强度 dB（RMS）","声音类型：说话 / 音乐 / 车辆（PANNs，AudioSet 标签）","「移动」与「社交」两个合成分（z 分数平均，车辆声取反）","video presence：每段路出现在多少条视频里"],
+ src:"YouTube 胡志明市步行视频（未核实数量与地理覆盖）",ind:[C("每段路行人数与走 / 站 / 坐"),C("声音强度与类型"),C("移动 / 社交两个分")],
+ lim:["代码开源（github.com/youlonggu/Street-View-Video-SVV-Project-Tutorial），视频清单公开，视频本身作者无权分享（p.28）","定位靠 OCR 认招牌再匹配 OSM：越南文带声调、OSM 店名是否齐全未核实；公园、河边这类没有招牌的地方本来就定位不了（p.16, p.27）","摩托车上的人也会被检测成 person，HCMC 的行人数会被抬高（我们的推断）","车辆声在墨尔本与行人负相关、被当成社交的反向项；HCMC 巷里摩托车和街头社交同时存在，这个符号很可能不能照搬（我们的推断）","作者自己说：游客口味决定拍哪条街（幸存者偏差），不代表人口（p.26–27）；定位准确率 77.19% 只在认出来的路段上算（p.16）"]},
+{paper:"Gu 2027",psrc:"Google 街景 + Mapillary，每 50 m 一点，ZenSVI 调 GroundingDINO 数人（只用白天）",pind:["每段路行人数（作对照）"],
+ src:"Mapillary 街景（覆盖 1 727 个城市格子）",ind:[C("每格行人数（同样用 ZenSVI）")],
+ lim:["墨尔本：与传感器相关 GSV 0.65、Mapillary 0.56，白天 SVV 只有 0.30（p.24）——静态街景数人在白天反而更贴近传感器","人数是活力的代理，放进因变量一侧，不能当自变量（T5）"]},
+{paper:"Gu 2027",psrc:"墨尔本行人计数系统（141 个传感器，选 38 个户外点）",pind:["年均小时行人数，白天 6–18 时 / 夜间 18–6 时（只用来验证）"],
+ src:"无",ind:[N("固定行人计数传感器：HCMC 未发现公开数据（未核实）")],
+ lim:["没有它，SVV 或街景数出的人数在 HCMC 没有独立的对照"]}
 ];
 const li=a=>"<ul>"+a.map(x=>"<li>"+x+"</li>").join("")+"</ul>";
 const table=(title,rows)=>`<table><caption>${title}</caption><thead><tr><th style="width:15%">论文的数据源</th><th style="width:20%">论文算出的指标</th><th style="width:15%">HCMC 数据源</th><th style="width:22%">HCMC 能算出的类似指标</th><th style="width:28%">局限</th></tr></thead><tbody>`+

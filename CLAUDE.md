@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 6. Don't commit or push without asking.
 7. `discussion/` holds only the decisions in force, the data viewers, the proposal, the literature extraction and the diffusion reading note. Everything else goes to `archive/`.
 
+How we work, and an index of the working files (`vitality_stance.md`, `reading_method.md`, the data ledger), is in `AGENTS.md` at the root (from 4 Oct 2026).
+
 ## Code Style Guidelines
 
 ### Parameter Naming Consistency

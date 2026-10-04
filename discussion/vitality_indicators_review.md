@@ -90,7 +90,7 @@ diagram 的节点清单，也是 HCMC 数据采集的对照表。**
 | Li 2021 | 社/经/文三维各自 flat | POI density↑（三维）、POI 熵↑、bus↑、sky 社↑经↓文↓、building density 社↑经↓文↓、road sparsity 社↓文↑、subway 社↓文↑、work convenience 社↑文↑ | Crowd counting↑（三维） | 多元回归 ×3 |
 | Scepanovic 2021 | 移动互联网活动 | intersection density↑（最强 0.497）、小公园↑、anisotropicity↑、block size↓、building height↓、land use mix↑（最弱） | — | 两阶段回归 |
 | Wu 2023 | 腾讯 EasyGo 昼/夜 | integration↑、road density↑、road area ratio↑、POI diversity↑、BPOI/IPO↑、GPOI/RPOI 夜↑昼不显著、FSI↓、GSI↑、building continuity↑、greenness↓、openness↑、walkability↑、choice 不显著 | safe↑（夜更大）、wealthy↑、beautiful↓、boring↓、lively 不显著 | RFR 重要性 + SLR |
-| Chen 2024 | Flickr 照片计数 | UGS 可达性↑、land use entropy↓、tree↑、sculpture↑、person↓、wall/fence↓、chair↑ | 17 岁以下人口占比↑ | Pearson + OLS + SEM |
+| Chen 2024 | Flickr 照片计数 | UGS 可达性↑、land use entropy↓、tree↑（单层显著，加宏观后 p=0.053）、sculpture↑（Model 2 列原表为负）；person、wall/fence、chair 三模型均不显著，方向只是作者叙述 | 17 岁以下人口数：三模型系数均为负且不显著（作者正文却说↑） | Pearson + OLS + 空间误差模型（SEM ≠ 结构方程）。2026-10-04 对 PDF Table 3 改，旧文本："UGS 可达性↑、land use entropy↓、tree↑、sculpture↑、person↓、wall/fence↓、chair↑ \| 17 岁以下人口占比↑ \| Pearson + OLS + SEM" |
 | Collins 2024 | CDR 活动量（**DV=男女差**） | third place density↑（最强）、POI density↓、building density↑、cycling/walking intersection↑、road intersection↓（不显著） | — | Kendall τ + SAR |
 | Tan 2026 | 百度热力 14 天均值 | FAR↑ **阈值[0.25]**（SHAP 第一）、global integration↑、life service↓、food↓、road density↓、距地铁↓（越近越高）、business residence↑、mixing degree↓ | safe↑、wealthy↓ | RF + SHAP + PDP |
 | Lee & Kang 2022 | SKT 访问人口密度 | 总建筑面积↑、商业用地↑、居住用地↓、工业用地↓、土地混合↑、地铁/公交/步行道↑、walk score↑、邻里公园↓、主题/自然公园↑、教育机构↓、公共设施/医院/市场↑ | 常住人口密度↑、工作人口密度↑（系数最大 0.41） | SAC 空间面板（工作日/周末分开） |
@@ -135,7 +135,7 @@ Canonical：**Li 2021**（文化活力 DV = 300 m 缓冲区内文化 POI 计数�
 
 **T2 · 供需混合因子。** 一个指标内部混合了供给与需求信号。
 Canonical：**Li 2022**——街景机动车计数：私家车混合（人在用车 + 基础设施可见），公交是纯供给（反映公交基础设施密度，本身是 IV）；两者加总进 DV。
-另：Chen 2024（IUNV = 街景物理绿量供给 + Flickr 人的活动）、Shi 2023（VAN = NTL+热力需求融合 POI 供给）、Pan 2021（EnV 潜变量内部混合人口密度与道路密度）。
+另：Chen 2024（概念上 IUNV = 街景物理绿量 + Flickr 照片，摘要 L48；但回归 DV 只用 Flickr 计数，街景作 IV。供需混合实际在抓取方式：照片按"images of parks"抓取 L549，DV 以公园存在为条件，与 IV"1000 m 公园可达"部分重叠——此句为我们的推断。2026-10-04 改，旧文本："IUNV = 街景物理绿量供给 + Flickr 人的活动"）、Shi 2023（VAN = NTL+热力需求融合 POI 供给）、Pan 2021（EnV 潜变量内部混合人口密度与道路密度）。
 疑似（NTL 的电力基础设施污染）：Xia 2020、Qin 2025、Jiang 2024、Yang & Pan 2020。
 
 **T3 · causal pathway 不明朗。** 统计上不可区分的路径。
