@@ -117,7 +117,7 @@ diagram 的节点清单，也是 HCMC 数据采集的对照表。**
 | Shi 2023 | 夜间经济 POI 8 类 | NTL、百度热力 | — | 多项 logistic：三级路网↑（最重要）、水体↑、铁路↑、火车站↓ |
 | Liu 2025 | POI 熵、建筑密度、类 FAR、POI 类型×密度、交叉口数 | Place Pulse Lively（乘性修正） | — | n/a（仅与信令 GT 的 Pearson 验证 r=0.84） |
 | Qin 2025 | 文化 POI 密度、创新 POI 密度 | 信令人口密度、NTL | — | OLS 保留 7 因子全↑（商圈数、道路密度、楼层数、建筑密度、TAZ 面积、公交站密度），距市中心↓；MGWR 空间异质 |
-| Williams 2019 | 8 类设施可达性 | Landscan 人口（需求权重） | — | n/a（Moran's I 聚类 + 实地验证） |
+| Williams 2019 | 8 类设施可达性 | 点评数（需求权重，txt L390–393；2026-10-08 改，旧文「Landscan 人口（需求权重）」——Landscan 只用来分城区 / 郊区，L257–270） | — | n/a（Moran's I 聚类 + 实地验证） |
 | Mouratidis 2020 | — | — | — | （见表 A，非 composite） |
 | Gómez-Varo 2022 | 商业/设施密度、BuMI、CFMIX、RNR/BNB、交叉口密度、介数中心性、6 类距离/有无 | 人口密度 | 建筑年份×2、租金、坡度 | n/a（仅制图） |
 
@@ -143,7 +143,7 @@ Canonical：**Pan 2021**——PLS-SEM 潜变量 UV 由 NTL（载荷 0.842）+ PO
 处理：只标记；依赖此类路径的主张失去因果解释力。（1 例明确命中；该模式可推广到任何混合供需指标的潜变量 DV。）
 
 **T4 · 供给入尺（定义循环——活力测量内含供给指标）。** 活力分数按构造就含供给侧指标；「前置条件」被当成「结果」测量。
-发现型，**最频繁：10 例完整命中**——Zeng 2018（DALD 全供给）、Yue 2021、Gómez-Varo 2022（弱：说的是"条件"却命名为"Index of urban vitality"）、Liu 2022（道路密度测"mobility"）、Dogan & Lee 2024、Wang 2025（"vitality … a function of high-density built environments, accessibility, population"）、Cai 2025（14 个全供给指标）、Liu 2025（物理活力 = POI 熵 + 建筑密度/体量 + 设施 + 交叉口）、Shi 2021（C1–C18）、Williams 2019（amenity 供给分数 → 空置推断——decoupling 论文自己就跑在供给代理上）。成分级：Chen 2021、Qin 2025。
+发现型，**最频繁：10 例完整命中**——Zeng 2018（DALD 全供给）、Yue 2021、Gómez-Varo 2022（弱：说的是"条件"却命名为"Index of urban vitality"）、Liu 2022（道路密度测"mobility"）、Dogan & Lee 2024、Wang 2025（"vitality … a function of high-density built environments, accessibility, population"）、Cai 2025（14 个全供给指标）、Liu 2025（物理活力 = POI 熵 + 建筑密度/体量 + 设施 + 交叉口）、Shi 2021（C1–C18）、~~Williams 2019（amenity 供给分数 → 空置推断——decoupling 论文自己就跑在供给代理上）~~（2026-10-08 移出：分数含点评数作需求权重〔txt L390–393〕，且未当需求侧结果去回归，只筛低端再实地核实，不满足本表 L191 的 T4 限定）。成分级：Chen 2021、Qin 2025。
 与 T1 的区别：T4 不需要回归——任何后续把这种分数当需求侧 DV 使用都自动触发 T1。
 
 **T5 · 同侧自证（需求对需求）。** DV 与 IV 都是人的活动代理；回归变成对同一现象的两种测量互相验证。
@@ -163,7 +163,7 @@ T2 的结构子型——更隐蔽，因为"我们用了评论数据"看起来像
 | T1 | 5（+1 成分级） | Li 2021, Yue 2021, Dogan & Lee 2024, Qin 2025, Chen 2021（成分级）；Xia 2020（成分级） |
 | T2 | 3 明确 + 4 疑似 | 明确：Li 2022, Chen 2024, Shi 2023。疑似（NTL）：Xia 2020, Qin 2025, Jiang 2024, Yang & Pan 2020 |
 | T3 | 1 | Pan 2021 |
-| T4 | 10（+2 成分级） | Zeng 2018, Yue 2021, Gómez-Varo 2022, Liu 2022, Dogan & Lee 2024, Wang 2025, Cai 2025, Liu 2025, Shi 2021, Williams 2019 |
+| T4 | 9（+2 成分级） | Zeng 2018, Yue 2021, Gómez-Varo 2022, Liu 2022, Dogan & Lee 2024, Wang 2025, Cai 2025, Liu 2025, Shi 2021；~~Williams 2019~~（2026-10-08 移出：分数含点评数作需求权重〔txt L390–393〕，且未当需求侧结果去回归，只筛低端再实地核实，不满足本表 L191 的 T4 限定）。旧文：「10（+2 成分级）… Shi 2021, Williams 2019」 |
 | T5 | 1 | Li 2021 |
 | T6 | 2 + 3 部分/疑似 | Shi 2021, Liu 2022；Yang & Pan 2020（疑似）, Cai 2025, Scepanovic 2021（命名级） |
 | T7 | 3 | Li 2021, Xia 2020, Wang 2025 |
@@ -344,7 +344,7 @@ MINE、Xie 2025 的 XGBoost+SHAP）报告了非线性与阈值。
 | 28 | Ruszczyk et al. 2023（孟加拉） | 质性混合 | — | n/a |
 | 29 | Liu et al. 2025（南京, EPB） | Mixed | composite（P+S·H） | T4 |
 | 30 | Qin et al. 2025（南京） | Mixed | composite（四维熵权） | T1 + T2 疑似 + T4 成分级 |
-| 31 | Williams et al. 2019（鬼城） | 对照方法 | composite 反向（amenities） | T4 |
+| 31 | Williams et al. 2019（鬼城） | 对照方法 | composite 反向（amenities） | ~~T4~~ 无（2026-10-08 移出，理由见 T4 表） |
 | R | Doan & Zhang 2025（系统综述） | 对照材料 | — | n/a |
 
 **身份注记**：ISM 报告的 "Q. Li et al. 2021" = Li et al., "Multidimensional Urban Vitality on Streets"（`Li-et-al-2021-…txt`，一作 Qian Li）；期刊元数据为 ISPRS IJGI 2022, 11(1):2，引用年份需在报告参考文献冻结前统一。

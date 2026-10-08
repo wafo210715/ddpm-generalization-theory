@@ -31,7 +31,7 @@ EN entry        英文 ≤ 300 词（2026-10-02 起，原为 ≤ 200），供 an
    3c path       SEM 间接效应、BN 路径
    3d interaction PDP / 交互 / 阈值
    3e hierarchy  ISM 层级（expert）
-   3f narrative  Discussion 机制叙事；每个负号/反直觉符号作者怎么解释（必填）
+   3f narrative  Discussion 机制叙事；每个负号/反直觉符号作者怎么解释（必填）；加一列「量化切入点」：若要量化这条叙事，有什么事件、日期、空间边界可用（2026-10-08 加）
    3g limitation 作者承认的反向因果、双向、自选择
    3h DV→DV      多维 DV 之间、DV → 下游变量
 4. Mermaid       实边 -->  虚边 -.->  专家层级 ==>  调节变量虚线指边
@@ -66,7 +66,7 @@ EN entry        英文 ≤ 300 词（2026-10-02 起，原为 ≤ 200），供 an
 | `condition` | 文字 | 例：`FAR > 0.25`、`伴 bus stop 多` |
 | `moderator` | 节点 slug | 调节这条边的变量；Mermaid 里虚线指边 |
 | `effect-type` | direct / total / average-marginal / conditional / bivariate | 与 sign 列对应 |
-| `evidence` | coef / corr / path / interaction / hierarchy / narrative / limitation / inferred | 见 §4 |
+| `evidence` | definition / coef / corr / path / interaction / hierarchy / narrative / limitation / inferred | 见 §4 |
 | `operating-range` | source 变量在样本中的区间 | 从节点 `sample-range` 继承；有阈值时写阈值两侧 |
 | `line` | txt 行号 | 主键 |
 | `quote` | 原句 | 必须 grep 核过 |
@@ -76,8 +76,11 @@ DV 子节点是否相同 → effect-type 是否相同（直接 vs 总）→ 是�
 
 ## 4. evidence 取值与画法
 
+三类边分开（用户 2026-10-08）：**作者定义的**（definition）、**作者分析的**（coef / path / interaction / hierarchy / corr）、**作者分析后推理或推测的**（narrative / limitation；作者演绎做得认真的称推理，只是顺着结果猜的称推测，逐条判断，2026-10-08）；另有我们推的（inferred）。注意循环论证：合成分画出已知格局（如单中心递减）不算循环；拿合成分去解释它自己的成分才算（例：Yue 2021 N3、Cai 2025 房价、Chen 2021 开发强度）。
+
 | 值 | 含义 | Mermaid |
 |---|---|---|
+| `definition` | 作者把因子定义为活力的一部分，方向预设（合成分的成分、先验符号、AHP 权重），没有分析。2026-10-08 加；此前各篇 §3f 里标 prior 的行即此类 | `---` 连线、不画箭头，标 def；表示「属于」不是「导致」；**整合时不计入共识边** |
 | `coef` | 回归系数、SEM 直接效应、SHAP 符号 | `-->` 实 |
 | `path` | SEM 间接效应、BN 路径 | `-->` 实 |
 | `interaction` | PDP / 交互 / 阈值 | `-->` 实，标签 `\| 条件` |
